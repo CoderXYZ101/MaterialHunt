@@ -1,3 +1,8 @@
+// Safe Guards: Prevent "Cannot convert undefined or null to object" anywhere in the app
+const _origEntries = Object.entries;
+Object.entries = (obj) => (obj == null ? [] : _origEntries(obj));
+const _origKeys = Object.keys;
+Object.keys = (obj) => (obj == null ? [] : _origKeys(obj));
 // Firebase Backend Bridge + Complete Metallurgy Engine
 const originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
