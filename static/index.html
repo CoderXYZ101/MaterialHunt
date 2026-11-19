@@ -1200,9 +1200,32 @@
   </aside>
 
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+   <!-- Firebase Browser SDKs -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCSdfxGQu5opz4x5E_1GxLfPTb2HbpmhdE",
+      authDomain: "materialhunt-2026.firebaseapp.com",
+      projectId: "materialhunt-2026",
+      storageBucket: "materialhunt-2026.firebasestorage.app",
+      messagingSenderId: "993727280011",
+      appId: "1:993727280011:web:65ed39f822a99c0386b58e",
+      measurementId: "G-3QC10Z0HSJ"
+    };
 
-  <script src="/static/vendor/three.min.js"></script>
-  <script src="/static/vendor/plotly.min.js"></script>
-  <script src="/static/app.js?v=2.7.0"></script>
+    const host = "gstatic.com";
+    const path = "/firebasejs/10.12.0/";
+    ["firebase-app-compat.js", "firebase-auth-compat.js", "firebase-firestore-compat.js"].forEach(f => {
+      document.write('<script src="https://www.' + host + path + f + '"><\/script>');
+    });
+  </script>
+  <script>
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/plotly.min.js"></script>
+  <script src="app.js?v=2.7.0"></script>
 </body>
 </html>
