@@ -84,16 +84,33 @@ window.fetch = async function(url, options = {}) {
           'Verify weld-zone sensitization if service exceeds 450°C.'
         ],
         warnings: isMelted ? ['Operating temperature exceeds alloy solidus/liquidus threshold.'] : [],
-        radar: {
-          labels: ['Strength', 'Thermal', 'Corrosion', 'Toughness', 'Cost Eff.', 'Pressure'],
-          values: [82, Math.max(10, Math.round(100 - temp / 20)), 88, 79, 85, 90]
+                radar: {
+          Strength: 82,
+          Thermal: Math.max(10, Math.round(100 - temp / 20)),
+          Corrosion: 88,
+          Toughness: 79,
+          'Cost Eff.': 85,
+          Pressure: 90
         },
-        curves: {
-          strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
-          stress_25c: [0, 420, 640, 680, 710, 650],
-          stress_op: [0, Math.round(operating * 0.9), predicted, Math.round(predicted * 1.06), Math.round(predicted * 1.1), predicted],
-          temps: [-200, 25, 200, 400, 600, 800, 1000, 1200],
-          strengths: [720, 640, 605, 550, 460, 310, 160, 75]
+                       curves: {
+          room: {
+            strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
+            stress: [0, 1, 2, 3, 4, 5].map(i => i === 0 ? 0 : Math.round(420 + Math.sin(i * 0.6) * 280)),
+            yield_point: { strain: 0.002, stress: 420 },
+            fracture_point: { strain: 0.22, stress: 650 }
+          },
+          operating: {
+            strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
+            stress: [0, Math.round(operating * 0.9), predicted, Math.round(predicted * 1.06), Math.round(predicted * 1.1), predicted],
+            yield_point: { strain: 0.002, stress: operating },
+            fracture_point: { strain: 0.22, stress: predicted }
+          },
+          thermal: {
+            temperatures: [-200, 25, 200, 400, 600, 800, 1000, 1200],
+            strength: [0, 1, 2, 3, 4, 5, 6, 7].map(i => Math.round(720 - i * 92)),
+            operating_temp: temp,
+            operating_strength: operating
+          }
         }
       }), { status: 200 });
     }
