@@ -94,18 +94,20 @@ window.fetch = async function(url, options = {}) {
           alloy: [82, Math.max(10, Math.round(100 - temp / 20)), 88, 79, 85, 90],
           benchmark: [74, 70, 76, 72, 80, 75]
         },
-        curves: {
+                curves: {
           room: {
             strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
             stress: [0, 1, 2, 3, 4, 5].map(i => i === 0 ? 0 : Math.round(420 + Math.sin(i * 0.6) * 280)),
             yield_point: { strain: 0.002, stress: 420 },
-            fracture_point: { strain: 0.22, stress: 650 }
+            fracture_point: { strain: 0.22, stress: 650 },
+            fracture_strain_pct: 22.0
           },
           operating: {
             strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
             stress: [0, Math.round(operating * 0.9), predicted, Math.round(predicted * 1.06), Math.round(predicted * 1.1), predicted],
             yield_point: { strain: 0.002, stress: operating },
-            fracture_point: { strain: 0.22, stress: predicted }
+            fracture_point: { strain: 0.22, stress: predicted },
+            fracture_strain_pct: 22.0
           },
           degradation: {
             operating_temperature_c: temp,
