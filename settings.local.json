@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import fastapi, uvicorn, matminer, pymatgen, sklearn, pandas, numpy, joblib, fpdf, requests; print\\('all deps OK'\\)\")",
+      "Bash(timeout 300 python verify.py)",
+      "Bash(wc -l static/*.html static/*.js static/*.css)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('main.py'\\).read\\(\\)\\); print\\('main.py parses OK'\\)\")"
+    ]
+  }
+}
