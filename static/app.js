@@ -649,8 +649,9 @@ async function bootstrap() {
     state.meta = meta;
     applyMeta(meta);
     updateHealthBadge(health);
-  } catch (err) {
-    toast(err.message, 'error', 7000);
+   } catch (err) {
+    console.error("BOOT ERROR:", err);
+    toast(`${err.message} (${(err.stack || '').split('\n')[1]?.trim() || ''})`, 'error', 15000);
     $('#offlineText').textContent = 'ENGINE OFFLINE';
   }
 
