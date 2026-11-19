@@ -29,32 +29,42 @@ window.fetch = async function(url, options = {}) {
       return new Response(JSON.stringify({ leaderboard: items }), { status: 200 });
     }
 
-           // 4. Health & Model Metadata (Matches applyMeta schema 100%)
+               // 4. Health & Model Metadata (Matches every benchmark, chart & table in app.js)
     if (url === '/api/health' || url === '/api/models/meta' || url.includes('meta') || url.includes('health')) {
+      const feats = [
+        { feature: 'MagpieData mean Electronegativity', importance: 0.24 },
+        { feature: 'MagpieData avg dev AtomicWeight', importance: 0.19 },
+        { feature: 'MagpieData mean MeltingT', importance: 0.16 },
+        { feature: 'MagpieData mean CovalentRadius', importance: 0.14 },
+        { feature: 'MagpieData mean NdValence', importance: 0.11 }
+      ];
       const ds = {
         steels: {
-          label: 'Steels Yield', samples: 312, unit: 'MPa',
+          label: 'Matbench Steels', rows: 312, samples: 312, unit: 'MPa', best_model: 'random_forest',
           benchmarks: {
-            random_forest: { r2: 0.942, mae: 38.4, rmse: 51.2 },
-            ridge: { r2: 0.810, mae: 74.1, rmse: 95.0 },
-            dummy: { r2: -0.01, mae: 210.5, rmse: 265.0 }
-          }
+            linear: { r2: 0.810, mae: 74.1, rmse: 95.0, train_seconds: 0.4 },
+            random_forest: { r2: 0.942, mae: 38.4, rmse: 51.2, train_seconds: 2.1 },
+            gradient_boosting: { r2: 0.928, mae: 42.6, rmse: 56.8, train_seconds: 3.4 }
+          },
+          feature_importances: [{ model: 'random_forest', features: feats }]
         },
         glass: {
-          label: 'Metallic Glass', samples: 5680, unit: 'GFA',
+          label: 'Matbench Glass', rows: 5680, samples: 5680, unit: 'GFA', best_model: 'random_forest',
           benchmarks: {
-            random_forest: { r2: 0.918, mae: 0.04, rmse: 0.06 },
-            ridge: { r2: 0.765, mae: 0.12, rmse: 0.18 },
-            dummy: { r2: -0.02, mae: 0.35, rmse: 0.48 }
-          }
+            linear: { r2: 0.765, mae: 0.12, rmse: 0.18, train_seconds: 0.8 },
+            random_forest: { r2: 0.918, mae: 0.04, rmse: 0.06, train_seconds: 5.6 },
+            gradient_boosting: { r2: 0.904, mae: 0.05, rmse: 0.07, train_seconds: 7.2 }
+          },
+          feature_importances: [{ model: 'random_forest', features: feats }]
         },
         expt_gap: {
-          label: 'Band Gap', samples: 4604, unit: 'eV',
+          label: 'Matbench Band Gap', rows: 4604, samples: 4604, unit: 'eV', best_model: 'random_forest',
           benchmarks: {
-            random_forest: { r2: 0.895, mae: 0.31, rmse: 0.44 },
-            ridge: { r2: 0.720, mae: 0.58, rmse: 0.79 },
-            dummy: { r2: -0.01, mae: 1.12, rmse: 1.45 }
-          }
+            linear: { r2: 0.720, mae: 0.58, rmse: 0.79, train_seconds: 0.6 },
+            random_forest: { r2: 0.895, mae: 0.31, rmse: 0.44, train_seconds: 4.8 },
+            gradient_boosting: { r2: 0.881, mae: 0.35, rmse: 0.49, train_seconds: 6.1 }
+          },
+          feature_importances: [{ model: 'random_forest', features: feats }]
         }
       };
       const elements = {
@@ -82,6 +92,11 @@ window.fetch = async function(url, options = {}) {
         latency_ms: 14,
         datasets: ds,
         elements,
+        feature_space: [
+          { formula: 'Fe70 Cr18 Ni8 Mo2 C2', dataset: 'steels', x: 1.2, y: 0.8, z: -0.4, target: 640 },
+          { formula: 'Ti90 Al6 V4', dataset: 'steels', x: -1.4, y: 1.1, z: 0.7, target: 880 },
+          { formula: 'Ni58 Cr21 Fe17 Mo3', dataset: 'steels', x: 0.5, y: -1.2, z: 0.9, target: 1035 }
+        ],
         tiers: {
           starter: { name: 'Free Starter', price: 0 },
           pro: { name: 'Pro Lab', price: 24999 },
@@ -96,14 +111,7 @@ window.fetch = async function(url, options = {}) {
         conditions: {
           environments: ['Air / Industrial', 'Marine / Chloride', 'Cryogenic LNG', 'High-Temp Steam', 'Sour Gas (H2S)'],
           loads: ['Static tension', 'Cyclic fatigue', 'Creep rupture', 'Pressure burst']
-        },
-        feature_importance: [
-          { feature: 'MagpieData mean Electronegativity', importance: 0.24 },
-          { feature: 'MagpieData avg_dev AtomicWeight', importance: 0.19 },
-          { feature: 'MagpieData mean MeltingT', importance: 0.16 },
-          { feature: 'MagpieData mean CovalentRadius', importance: 0.14 },
-          { feature: 'MagpieData mean NdValence', importance: 0.11 }
-        ]
+        }
       }), { status: 200 });
     }
 
