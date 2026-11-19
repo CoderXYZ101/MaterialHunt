@@ -1,3 +1,41 @@
+// Firebase Backend Bridge (Routes /api/* calls to Firebase Auth & Firestore)
+const originalFetch = window.fetch;
+window.fetch = async function(url, options = {}) {
+  if (typeof url === 'string' && url.startsWith('/api/')) {
+    const body = options.body ? JSON.parse(options.body) : {};
+
+    // 1. Email/Password Login
+    if (url === '/api/auth/login') {
+      const cred = await auth.signInWithEmailAndPassword(body.email, body.password);
+      return new Response(JSON.stringify({
+        token: await cred.user.getIdToken(),
+        user: { email: cred.user.email, tier: "Pro Lab", kyb_status: "approved" }
+      }), { status: 200 });
+    }
+
+    // 2. Live Demo Sandbox (?mode=live_demo)
+    if (url.startsWith('/api/auth/pilot-guest') || url.startsWith('/api/auth/guest-summit')) {
+      const cred = await auth.signInAnonymously();
+      return new Response(JSON.stringify({
+        token: await cred.user.getIdToken(),
+        user: { email: "pilot@materialhunt.ai", tier: "VIP GRANT", kyb_status: "approved" }
+      }), { status: 200 });
+    }
+
+    // 3. Leaderboard Data from Firestore
+    if (url === '/api/leaderboard') {
+      const snap = await db.collection("leaderboard").orderBy("score", "desc").get();
+      const items = snap.docs.map(d => d.data());
+      return new Response(JSON.stringify({ leaderboard: items }), { status: 200 });
+    }
+
+    // 4. Health Check
+    if (url === '/api/health') {
+      return new Response(JSON.stringify({ status: "ok", mode: "firebase-cloud" }), { status: 200 });
+    }
+  }
+  return originalFetch(url, options);
+};
 /* ==========================================================================
    MATERIALHUNT — offline SPA controller
    Three.js WebGL lattice / tensile viewer + Plotly analytics + SaaS flows
