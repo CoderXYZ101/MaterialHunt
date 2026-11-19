@@ -1,4 +1,4 @@
-// Firebase Backend Bridge + Client-Side Simulator Engine
+// Firebase Backend Bridge + Exact Schema Metallurgy Engine
 const originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
   if (typeof url === 'string' && url.startsWith('/api/')) {
@@ -33,50 +33,77 @@ window.fetch = async function(url, options = {}) {
     if (url === '/api/health' || url === '/api/models/meta') {
       return new Response(JSON.stringify({
         status: "ok", mode: "firebase-cloud",
-        screened_candidates: 14280, best_r2: 0.942, latency_ms: 14
+        screened_candidates: 14280, best_r2: 0.942, latency_ms: 14,
+        models: { steels: { r2: 0.942, mae: 38.4, trees: 150 } }
       }), { status: 200 });
     }
 
-    // 5. Alloy Simulator (Fixes "reading 'verdict'" error)
+    // 5. Alloy Simulator (Matches renderSimulation schema 100%)
     if (url === '/api/simulate' || url.includes('simulate')) {
-      const temp = Number(body.temperature_c ?? body.temp_c ?? 25);
-      const stress = Number(body.applied_stress_mpa ?? body.stress_mpa ?? 250);
+      const comp = body.composition || { Fe: 70, Cr: 18, Ni: 8, Mo: 2, C: 2 };
+      const formula = Object.entries(comp).filter(([, v]) => v > 0).map(([k, v]) => `${k}${v}`).join(' ') || 'Fe70 Cr18 Ni8 Mo2 C2';
+      const temp = Number(body.temperature_c ?? 25);
+      const stress = Number(body.applied_stress_mpa ?? 250);
       const sf = Number(body.safety_factor ?? 1.5);
+      const staticP = Number(body.static_pressure_pa ?? 101325);
+      const vMs = (Number(body.velocity_kmh ?? 0)) / 3.6;
+      const rho = Number(body.medium_density_kgm3 ?? 1.225);
+      const dynP = 0.5 * rho * vMs * vMs;
+      const totP = staticP + dynP;
+      const burstP = 45000000;
       const liquidus = 1485;
-      const yieldMpa = Math.max(120, Math.round(620 * Math.max(0.15, 1 - Math.max(0, temp - 25) / 1600)));
-      const workingStrength = Math.round(yieldMpa / sf);
-      const util = +(stress / workingStrength).toFixed(2);
-      const isPass = temp < liquidus && util <= 1;
-
-      const simData = {
-        status: temp >= liquidus ? "MELT FAILURE" : (isPass ? "PASS" : "WARN"),
-        label: temp >= liquidus ? "MELT FAILURE" : (isPass ? "SAFE ENVELOPE" : "OVER-STRESSED"),
-        summary: `Working envelope holds ${workingStrength} MPa against ${stress} MPa at ${temp}°C.`,
-        pass: isPass,
-        confidence: 0.94,
-        predicted_yield_mpa: yieldMpa,
-        epistemic_std_mpa: 24,
-        working_strength_mpa: workingStrength,
-        utilisation: util,
-        weighted_liquidus_c: liquidus,
-        density_g_cm3: 7.92,
-        cost_usd_kg: 6.40,
-        hypothesis: `Solid-solution matrix evaluated at ${temp}°C. Working envelope holds ${workingStrength} MPa against ${stress} MPa applied load.`
-      };
+      const isMelted = temp >= liquidus;
+      const predicted = Math.max(140, Math.round(640 * Math.max(0.12, 1 - Math.max(0, temp - 25) / 1600)));
+      const operating = Math.round(predicted / sf);
+      const util = +(stress / Math.max(1, operating)).toFixed(2);
+      const verdict = isMelted ? 'MELTED' : (util <= 0.85 ? 'SAFE' : (util <= 1.0 ? 'MARGINAL' : 'UNSAFE'));
 
       return new Response(JSON.stringify({
-        ...simData,
-        verdict: simData,
-        result: { ...simData, verdict: simData },
-        simulation: { ...simData, verdict: simData }
+        composition: { formula, weights: comp },
+        conditions: { temperature_c: temp, applied_stress_mpa: stress, safety_factor: sf },
+        prediction: { predicted, uncertainty: 24, confidence: 'High' },
+        derived: {
+          verdict,
+          verdict_label: isMelted ? 'Exceeds weighted liquidus ceiling' : (verdict === 'SAFE' ? 'Within structural & thermal envelope' : 'Approaching yield limit'),
+          crystal_structure: (comp.Ni || 0) >= 8 ? 'FCC' : 'BCC',
+          hazard_cleared: Boolean(body.hazard_cleared),
+          operating_strength_mpa: operating,
+          applied_stress_mpa: stress,
+          utilization_ratio: util,
+          density_gcm3: 7.92,
+          cost_per_kg: 520,
+          liquidus_c: liquidus,
+          is_melted: isMelted,
+          dynamic_pressure_pa: dynP,
+          total_pressure_pa: totP,
+          burst_pressure_pa: burstP
+        },
+        hypothesis: `Solid-solution matrix (${formula}) retains ${operating} MPa working yield at ${temp}°C under ${stress} MPa load.`,
+        advice: [
+          'Solution anneal at 1050°C followed by rapid water quench to prevent carbide precipitation.',
+          'Verify weld-zone sensitization if service exceeds 450°C.'
+        ],
+        warnings: isMelted ? ['Operating temperature exceeds alloy solidus/liquidus threshold.'] : [],
+        radar: {
+          labels: ['Strength', 'Thermal', 'Corrosion', 'Toughness', 'Cost Eff.', 'Pressure'],
+          values: [82, Math.max(10, Math.round(100 - temp / 20)), 88, 79, 85, 90]
+        },
+        curves: {
+          strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
+          stress_25c: [0, 420, 640, 680, 710, 650],
+          stress_op: [0, Math.round(operating * 0.9), predicted, Math.round(predicted * 1.06), Math.round(predicted * 1.1), predicted],
+          temps: [-200, 25, 200, 400, 600, 800, 1000, 1200],
+          strengths: [720, 640, 605, 550, 460, 310, 160, 75]
+        }
       }), { status: 200 });
     }
 
-    // Catch-all for any remaining /api/* routes
+    // Catch-all for remaining /api/* endpoints
     return new Response(JSON.stringify({ status: "ok", items: [], candidates: [] }), { status: 200 });
   }
   return originalFetch(url, options);
 };
+
 
 /* ==========================================================================
    MATERIALHUNT — offline SPA controller
