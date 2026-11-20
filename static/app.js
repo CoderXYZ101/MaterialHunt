@@ -6480,3 +6480,36 @@ window.trackBenchmark = trackBenchmark;
   });
   //---------------------------------------
 window.injectPeriodicSliders = injectPeriodicSliders;
+
+// ============================================
+// RISK RADAR MATERIAL DATA - Supply Chain
+// ============================================
+const RISK_RADAR_MATERIALS = [
+  { material: 'Cobalt (Co)', exposure: 86, note: '~70% of global supply from DRC; export scrutiny rising.', alt: 'Co-free maraging / Fe-Ni-Mo grades' },
+  { material: 'Tungsten (W)', exposure: 78, note: 'China controls ~80% of refined output.', alt: 'Mo-TZM for nozzle throats' },
+  { material: 'Rare earths (Nd, Dy)', exposure: 91, note: 'Magnet-grade separation is China-dominated.', alt: 'Ferrite or switched-reluctance designs' },
+  { material: 'Nickel (Ni)', exposure: 54, note: 'Indonesia export policy moves price floor.', alt: 'Indian stainless scrap + Jindal / MIDHANI' },
+  { material: 'Titanium (Ti)', exposure: 58, note: 'Sponge capacity concentrated; aerospace grades long-lead.', alt: 'KMML Kerala sponge + MIDHANI Hyderabad' },
+];
+
+function renderRiskRadar() {
+  const container = $('#riskRadar');
+  if (container) {
+    container.innerHTML = RISK_RADAR_MATERIALS.map((item) => `
+      <div class="risk-item">
+        <div class="risk-item-head">
+          <strong>${item.material}</strong>
+          <span class="risk-badge">${item.exposure}% Risk</span>
+        </div>
+        <div class="risk-item-body">
+          <p>${item.note}</p>
+          <p><strong>Indian Alternative:</strong> ${item.alt}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderRiskRadar();
+});
