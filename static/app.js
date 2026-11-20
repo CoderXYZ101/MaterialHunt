@@ -3992,7 +3992,19 @@ function bindEvents() {
   $('#downloadPdf')?.addEventListener('click', downloadPdf);
 
   /* Feedback */
-  $('#feedbackToggle')?.addEventListener('click', openFeedback);
+  $('\n\n  // ? next to Screened candidates statistic
+  $('#statCandidates')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
+    copilotOpen();
+    copilotAsk('Explain the screened candidates count and what it means for the Matbench test set');
+  });\n\n  // ? next to Best test R² statistic
+  $('#statAccuracy')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
+    copilotOpen();
+    copilotAsk('Explain the Best test R² score and what it means for material prediction');
+  });\n\n  // ? next to Inference latency statistic
+  $('#statLatency')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
+    copilotOpen();
+    copilotAsk('Explain the inference latency and Magpie + 150-tree RF ensemble');
+  });\n\n#feedbackToggle')?.addEventListener('click', openFeedback);
   $('#feedbackClose')?.addEventListener('click', closeFeedback);
   $('#drawerBackdrop')?.addEventListener('click', closeFeedback);
   $('#starRow')?.addEventListener('click', (event) => {
@@ -4955,6 +4967,19 @@ function bindExtraEvents() {
   $('#benchmarkFromSliders')?.addEventListener('click', syncBenchmarkSlidersToJson);
   $('#benchmarkApply')?.addEventListener('click', applyBenchmarkDesign);
   $('#copyBenchmarkLink')?.addEventListener('click', copyBenchmarkLink);
+  // Generate Challenge - auto-populate with aerospace rocket nozzle defaults
+  $('#genChallenge')?.addEventListener('click', () => {
+    $('#benchmarkTag').value = 'AEROSPACE - REUSABLE';
+    $('#benchmarkTitle').value = 'Rocket Nozzle Gen-2';
+    $('#benchmarkBrief').value = 'Rocket nozzle must survive combustion and pressure cycles';
+    syncBenchmarkSlidersToJson();
+    $('#benchmarkCost').value = 800;
+    $('#benchmarkBurst').value = 250;
+    $('#benchmarkTemp').value = 1800;
+    $('#benchmarkBanned').value = 'Co,Be';
+    applyBenchmarkDesign();
+    toast('Challenge generated - review and adjust sliders', 'success', 3000);
+  });\n\n
   $('#loadBenchmarkLink')?.addEventListener('click', () => { benchmarkFromUrl(); applyBenchmark(state.benchmarkId); runBenchmark(); });
 
   $('#requestSampleBtn')?.addEventListener('click', () => openRfq('Custom sample melt'));
@@ -6357,7 +6382,8 @@ window.trackBenchmark = trackBenchmark;
     let csv = '';
     rows.forEach((row, rIdx) => {
       const cells = row.querySelectorAll('td, th');
-      const cellText = Array.from(cells).map(c => c.textContent.replace(/["
+      const cellText = Array.from(cells).map(c => c.textContent.replace(/["
+
 ]/g, '"')).join(',');
       if (rIdx === 0) csv += '"' + cellText + '"
 ';

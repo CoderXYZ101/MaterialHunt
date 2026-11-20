@@ -172,15 +172,15 @@
         <section class="stats-row" aria-label="Platform metrics">
           <article class="stat-card glass">
             <span class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg></span>
-            <div><span class="stat-label">Screened candidates</span><strong id="statCandidates">—</strong><small>held-out Matbench test set</small></div>
+            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statCandidates">—</strong><small>held-out Matbench test set</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label">Best test R²</span><strong id="statAccuracy">—</strong><small id="statAccuracySub">Random Forest ensemble</small></div>
+            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statAccuracy">—</strong><small id="statAccuracySub">Random Forest ensemble</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-            <div><span class="stat-label">Inference latency</span><strong id="statLatency">—</strong><small>Magpie + 150-tree RF</small></div>
+            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statLatency">—</strong><small>Magpie + 150-tree RF</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></span>
@@ -439,7 +439,7 @@
           </div>
           <div class="forge-grid">
             <div class="forge-blueprint">
-              <span class="forge-chip" id="benchmarkTag">AEROSPACE · REUSABLE</span>
+              <span class="forge-chip" id="benchmarkTag">AEROSPACE  <button class="btn btn-ghost small" id="genChallenge">Generate Challenge</button> · REUSABLE</span>
               <h4 id="benchmarkTitle">Reusable Rocket Nozzle</h4>
               <p id="benchmarkBrief">A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.</p>
               <ul class="forge-rules" id="benchmarkRules"></ul>
@@ -471,8 +471,8 @@
               <strong id="forgeVerdict">READY</strong>
               <p id="forgeVerdictSub">Select a blueprint and run the stress test.</p>
               <ul class="forge-fixes" id="forgeFixes"></ul>
-              <button class="btn btn-primary full small" id="forgeAutoFix" disabled>⚡ Apply AI Fix</button>
-              <button class="btn btn-glass full small" id="forgePublish" disabled>Post Result to Discovery Registry</button>
+              <button class="btn btn-primary full small" id="benchmarkAutoFix" disabled>⚡ Apply AI Fix</button>
+              <button class="btn btn-glass full small" id="benchmarkPublish" disabled>Post Result to Discovery Registry</button>
             </div>
           </div>
         </article>
@@ -1731,7 +1731,7 @@
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
   <script src="firebase-bridge.js?v=3.0.2"></script>
-  <script src="app.js?v=3.0.2"></script>
+  <script src="app.js?v=3.0.4"></script>
 </body>
 </html><div class="ef-col ef-modules">
         <span class="ef-title">Modules</span>
@@ -1930,15 +1930,15 @@
         <section class="stats-row" aria-label="Platform metrics">
           <article class="stat-card glass">
             <span class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg></span>
-            <div><span class="stat-label">Screened candidates</span><strong id="statCandidates">—</strong><small>held-out Matbench test set</small></div>
+            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statCandidates">—</strong><small>held-out Matbench test set</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label">Best test R²</span><strong id="statAccuracy">—</strong><small id="statAccuracySub">Random Forest ensemble</small></div>
+            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statAccuracy">—</strong><small id="statAccuracySub">Random Forest ensemble</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-            <div><span class="stat-label">Inference latency</span><strong id="statLatency">—</strong><small>Magpie + 150-tree RF</small></div>
+            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statLatency">—</strong><small>Magpie + 150-tree RF</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></span>
@@ -2197,7 +2197,7 @@
           </div>
           <div class="forge-grid">
             <div class="forge-blueprint">
-              <span class="forge-chip" id="benchmarkTag">AEROSPACE · REUSABLE</span>
+              <span class="forge-chip" id="benchmarkTag">AEROSPACE  <button class="btn btn-ghost small" id="genChallenge">Generate Challenge</button> · REUSABLE</span>
               <h4 id="benchmarkTitle">Reusable Rocket Nozzle</h4>
               <p id="benchmarkBrief">A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.</p>
               <ul class="forge-rules" id="benchmarkRules"></ul>
@@ -2229,8 +2229,8 @@
               <strong id="forgeVerdict">READY</strong>
               <p id="forgeVerdictSub">Select a blueprint and run the stress test.</p>
               <ul class="forge-fixes" id="forgeFixes"></ul>
-              <button class="btn btn-primary full small" id="forgeAutoFix" disabled>⚡ Apply AI Fix</button>
-              <button class="btn btn-glass full small" id="forgePublish" disabled>Post Result to Discovery Registry</button>
+              <button class="btn btn-primary full small" id="benchmarkAutoFix" disabled>⚡ Apply AI Fix</button>
+              <button class="btn btn-glass full small" id="benchmarkPublish" disabled>Post Result to Discovery Registry</button>
             </div>
           </div>
         </article>
@@ -3489,6 +3489,6 @@
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
   <script src="firebase-bridge.js?v=3.0.2"></script>
-  <script src="app.js?v=3.0.2"></script>
+  <script src="app.js?v=3.0.4"></script>
 </body>
 </html>
