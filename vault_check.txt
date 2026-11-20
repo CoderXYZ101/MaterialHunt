@@ -1,5 +1,0 @@
-vault mints an Enterprise Access pilot",
-          status == 200 and minted.get("tier") == "enterprise" and minted.get("billing_waived") is True
-          and body.get("waiver_label") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)",
-          f"HTTP {status} · {minted.get('email')}")
-    check("minted pi
