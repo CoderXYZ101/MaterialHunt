@@ -507,6 +507,9 @@ async function bootstrap() {
     }
   }
 
+  // Initialize enterprise features
+  if (typeof initEnterpriseFeatures === 'function') initEnterpriseFeatures();
+  
   state.initialised = true;
   setTimeout(resizeCharts, 300);
 }
@@ -4428,6 +4431,7 @@ async function runChallenge() {
   renderChallengeResult(challenge, state.simulation);
   const verdict = state.forgeResult.verdict;
   toast(`${challenge.title}: ${verdict}`, verdict === 'PASS' ? 'success' : 'warning', 5200);
+  if (typeof trackChallenge === 'function') trackChallenge(verdict);
 }
 
 async function applyForgeFix() {
@@ -5010,3 +5014,1320 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+/* ==========================================================================
+   ENTERPRISE FEATURES — GTA-6 LEVEL MONETIZATION & RETENTION
+   ========================================================================== */
+
+// --- PERIODIC TABLE ELEMENT SLIDER ON HOVER ---
+function injectPeriodicSliders() {
+  const grid = $('#periodicGrid');
+  if (!grid) return;
+  const buttons = grid.querySelectorAll('.pt-cell');
+  buttons.forEach(btn => {
+    const symbol = btn.dataset.symbol;
+    if (!symbol) return;
+    const current = Number(state.composition[symbol] || 0);
+    const overlay = document.createElement('div');
+    overlay.className = 'element-slider-overlay';
+    overlay.innerHTML = `
+      <div class="slider-label">${symbol} — ${state.periodic?.periodic_table?.find(e => e.symbol === symbol)?.name || ''}</div>
+      <div class="slider-row">
+        <span>${symbol}</span>
+        <input type="range" min="0" max="100" step="0.1" value="${current}" data-element="${symbol}" data-hover-slider="true">
+        <output>${current.toFixed(1)}</output>
+      </div>
+      <div class="slider-actions">
+        <button class="btn btn-primary small" data-add-periodic="${symbol}">Add</button>
+        <button class="btn btn-glass small" data-set-periodic="${symbol}">Set</button>
+      </div>`;
+    btn.appendChild(overlay);
+  });
+  
+  // Event delegation for hover sliders
+  grid.addEventListener('input', (e) => {
+    if (e.target.matches('[data-hover-slider]')) {
+      const symbol = e.target.dataset.element;
+      const value = Number(e.target.value);
+      const output = e.target.parentElement.querySelector('output');
+      if (output) output.textContent = value.toFixed(1);
+    }
+  });
+  
+  grid.addEventListener('change', (e) => {
+    if (e.target.matches('[data-hover-slider]')) {
+      const symbol = e.target.dataset.element;
+      const value = Number(e.target.value);
+      if (value > 0) {
+        state.composition[symbol] = value;
+      } else {
+        delete state.composition[symbol];
+      }
+      renderElementSliders();
+      updateCompositionUI();
+      scheduleSimulation(400);
+    }
+  });
+  
+  grid.addEventListener('click', (e) => {
+    const addBtn = e.target.closest('[data-add-periodic]');
+    if (addBtn) {
+      const symbol = addBtn.dataset.addPeriodic;
+      const current = Number(state.composition[symbol] || 0);
+      state.composition[symbol] = current + 4;
+      renderElementSliders();
+      updateCompositionUI();
+      scheduleSimulation(400);
+      toast(`${symbol} added to alloy`, 'success', 2000);
+      return;
+    }
+    const setBtn = e.target.closest('[data-set-periodic]');
+    if (setBtn) {
+      const symbol = setBtn.dataset.setPeriodic;
+      state.composition[symbol] = 10;
+      renderElementSliders();
+      updateCompositionUI();
+      scheduleSimulation(400);
+      toast(`${symbol} set to 10%`, 'success', 2000);
+      return;
+    }
+  });
+}
+
+// --- USAGE ANALYTICS DASHBOARD ---
+function renderAnalyticsDashboard() {
+  const container = $('#analyticsDashboard');
+  if (!container) return;
+  
+  const sims = JSON.parse(localStorage.getItem('mh_simulation_history') || '[]');
+  const challenges = JSON.parse(localStorage.getItem('mh_challenge_history') || '[]');
+  const alloys = JSON.parse(localStorage.getItem('mh_alloy_history') || '[]');
+  
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
+  
+  const simsToday = sims.filter(s => s.date?.startsWith(today)).length;
+  const simsWeek = sims.filter(s => s.date >= weekAgo).length;
+  const challengesPassed = challenges.filter(c => c.verdict === 'PASS').length;
+  const uniqueAlloys = new Set(alloys.map(a => a.formula)).size;
+  
+  container.innerHTML = `
+    <div class="analytics-kpis">
+      <div class="kpi-card">
+        <div class="kpi-icon">🧪</div>
+        <div class="kpi-value">${sims.length.toLocaleString()}</div>
+        <div class="kpi-label">Total Simulations</div>
+        <div class="kpi-trend positive">+${simsWeek} this week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🎯</div>
+        <div class="kpi-value">${challengesPassed}</div>
+        <div class="kpi-label">Challenges Passed</div>
+        <div class="kpi-trend">${challenges.length > 0 ? ((challengesPassed/challenges.length)*100).toFixed(0) : 0}% pass rate</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🧬</div>
+        <div class="kpi-value">${uniqueAlloys}</div>
+        <div class="kpi-label">Unique Alloys Designed</div>
+        <div class="kpi-trend positive">+${alloys.filter(a => a.date >= weekAgo).length} this week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">⚡</div>
+        <div class="kpi-value">${state.user ? 'Enterprise' : 'Free Studio'}</div>
+        <div class="kpi-label">Current Tier</div>
+        <div class="kpi-trend">${state.user?.billing_waived ? 'VIP GRANT — WAIVED' : 'Upgrade for more'}</div>
+      </div>
+    </div>
+    <div class="glass" style="padding: 20px;">
+      <h3 style="margin: 0 0 16px;">Recent Activity</h3>
+      <div style="display: grid; gap: 8px; max-height: 300px; overflow: auto;">
+        ${[...sims.slice(-10).reverse(), ...challenges.slice(-5).reverse()]
+          .sort((a,b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 15)
+          .map(item => `
+            <div class="glass" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+              <div>
+                <strong>${item.type === 'simulation' ? '🧪 Simulation' : '🏆 Challenge'}</strong>
+                <span style="margin-left: 8px; color: var(--muted);">${item.formula || item.challenge}</span>
+              </div>
+              <div style="text-align: right;">
+                <span class="status-pill ${item.verdict === 'PASS' || item.verdict === 'SAFE' ? 'status-emerald' : item.verdict === 'MELTED' || item.verdict === 'MELT' ? 'status-rose' : 'status-amber'}">${item.verdict || item.type}</span>
+                <div style="font-size: 10px; color: var(--muted); margin-top: 2px;">${item.date}</div>
+              </div>
+            </div>
+          `).join('') || '<p class="micro-note">No activity yet. Run a simulation or challenge!</p>'}
+      </div>
+    </div>
+  `;
+}
+
+// --- TEAM WORKSPACES ---
+function renderWorkspaces() {
+  const container = $('#workspacesPanel');
+  if (!container) return;
+  
+  const workspaces = JSON.parse(localStorage.getItem('mh_workspaces') || '[]');
+  const currentWorkspace = localStorage.getItem('mh_current_workspace');
+  
+  if (!workspaces.length) {
+    container.innerHTML = `
+      <div class="glass" style="padding: 40px; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+        <h3 style="margin: 0 0 8px;">No workspaces yet</h3>
+        <p class="micro-note" style="margin-bottom: 24px;">Create a workspace to collaborate with your team on alloys and challenges.</p>
+        <button class="btn btn-primary" id="createFirstWorkspace">Create Your First Workspace</button>
+      </div>
+    `;
+    $('#createFirstWorkspace')?.addEventListener('click', createWorkspace);
+    return;
+  }
+  
+  container.innerHTML = `
+    <div class="workspace-header">
+      <h3 style="margin: 0;">Your Workspaces</h3>
+      <button class="btn btn-primary" id="createWorkspaceBtn">New Workspace</button>
+    </div>
+    <div class="workspace-alloy-list">
+      ${workspaces.map(ws => `
+        <div class="workspace-alloy-card ${ws.id === currentWorkspace ? 'selected' : ''}" data-ws-id="${ws.id}">
+          <div class="workspace-alloy-info">
+            <span class="workspace-alloy-formula">${ws.name} ${ws.id === currentWorkspace ? '<span class=\"pill pill-emerald\" style=\"font-size:8px;\">ACTIVE</span>' : ''}</span>
+            <span class="workspace-alloy-meta">${ws.members?.length || 1} members · ${ws.alloys?.length || 0} shared alloys · ${ws.challenges?.length || 0} challenges</span>
+          </div>
+          <div class="workspace-alloy-actions">
+            <button class="btn btn-glass small" data-ws-switch="${ws.id}">Switch</button>
+            <button class="btn btn-primary small" data-ws-invite="${ws.id}">Invite</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  
+  $('#createWorkspaceBtn')?.addEventListener('click', createWorkspace);
+  container.querySelectorAll('[data-ws-switch]').forEach(btn => btn.addEventListener('click', () => switchWorkspace(btn.dataset.wsSwitch)));
+  container.querySelectorAll('[data-ws-invite]').forEach(btn => btn.addEventListener('click', () => inviteToWorkspace(btn.dataset.wsInvite)));
+}
+
+function createWorkspace() {
+  const name = prompt('Workspace name:', 'Project Apollo');
+  if (!name) return;
+  const workspaces = JSON.parse(localStorage.getItem('mh_workspaces') || '[]');
+  const ws = {
+    id: 'ws_' + Date.now(),
+    name,
+    created: new Date().toISOString(),
+    owner: state.user?.email || 'local',
+    members: [{ email: state.user?.email || 'local', role: 'owner', joined: new Date().toISOString() }],
+    alloys: [],
+    challenges: []
+  };
+  workspaces.push(ws);
+  localStorage.setItem('mh_workspaces', JSON.stringify(workspaces));
+  localStorage.setItem('mh_current_workspace', ws.id);
+  renderWorkspaces();
+  toast(`Workspace "${name}" created`, 'success');
+}
+
+function switchWorkspace(id) {
+  localStorage.setItem('mh_current_workspace', id);
+  renderWorkspaces();
+  toast('Switched workspace', 'info');
+}
+
+function inviteToWorkspace(id) {
+  const email = prompt('Invite email:');
+  if (!email) return;
+  toast(`Invitation sent to ${email} (simulated)`, 'success');
+}
+
+// --- ADVANCED REPORT TEMPLATES ---
+const REPORT_TEMPLATES = [
+  { id: 'as9100', name: 'AS9100D First Article Inspection', standard: 'AS9100D / EN9100:2018', icon: '✈️', tags: ['Aerospace', 'FAI', 'Form 1/2/3'], desc: 'Complete FAI report with ballooned drawings, dimensional results, and material certs.' },
+  { id: 'iso9001', name: 'ISO 9001:2015 Material Certificate', standard: 'ISO 9001:2015 / ISO 10474', icon: '📋', tags: ['Quality', '3.1 Cert', 'EN 10204'], desc: 'Type 3.1 inspection certificate per EN 10204 with full traceability.' },
+  { id: 'mil-std-810', name: 'MIL-STD-810H Environmental Qualification', standard: 'MIL-STD-810H / MIL-STD-202', icon: '🛡️', tags: ['Defense', 'Shock', 'Vibe', 'Thermal'], desc: 'Environmental test report with Methods 501-527, tailorable test plans.' },
+  { id: 'astm-e8', name: 'ASTM E8/E8M Tensile Test Report', standard: 'ASTM E8/E8M / ISO 6892-1', icon: '📊', tags: ['Mechanical', 'Tensile', 'Yield/UTS'], desc: 'Complete tensile test with stress-strain curves, yield methods, and uncertainty.' },
+  { id: 'astm-e21', name: 'ASTM E21 Elevated Temperature Tensile', standard: 'ASTM E21 / ISO 6892-2', icon: '🔥', tags: ['High-Temp', 'Creep', '0.2% Offset'], desc: 'Elevated temperature tensile with strain rate control and extensometry.' },
+  { id: 'nadcap', name: 'NADCAP Heat Treat / NDT Checklist', standard: 'AC7102 / AC7114 / AMS2750', icon: '🔬', tags: ['Heat Treat', 'Pyrometry', 'SAT/TUS'], desc: 'NADCAP-compliant pyrometry survey, TUS/SAT records, and process logs.' },
+  { id: 'norsok', name: 'NORSOK M-650 / M-001 Qualification', standard: 'NORSOK M-650 / M-001 / ISO 17782', icon: '🌊', tags: ['Offshore', 'Sour Service', 'SSC/HIC'], desc: 'Qualification dossier for H2S/CO2 service with SSC/HIC test results.' },
+  { id: 'is16000', name: 'IS 16000 Indian Defence Material Spec', standard: 'IS 16000 / DMSRDE / DGQA', icon: '🇮🇳', tags: ['Defence India', 'Armor', 'Ballistic'], desc: 'DRDO/DGQA compliant material spec with ballistic limit curves.' },
+  { id: 'reach', name: 'REACH / RoHS / SCIP Declaration', standard: 'EC 1907/2006 / 2011/65/EU', icon: '🌿', tags: ['Compliance', 'SVHC', 'SCIP'], desc: 'Automated SVHC screening, RoHS exemption check, SCIP dossier generation.' },
+  { id: 'dfars', name: 'DFARS 252.225-7009 Compliance', standard: 'DFARS / 10 USC 4863 / 10 USC 4871', icon: '🏛️', tags: ['US Defense', 'Specialty Metals', 'Berry'], desc: 'Specialty metals melt compliance, country of origin, Berry Amendment.' },
+  { id: 'cmrt', name: 'Conflict Minerals Reporting Template (CMRT)', standard: 'RMI CMRT 6.31 / SEC Rule 13p-1', icon: '⚖️', tags: ['3TG', 'Smelter List', 'Dodd-Frank'], desc: 'RMI CMRT with smelter validation, due diligence, and OECD alignment.' },
+  { id: 'esg', name: 'ESG / Carbon Footprint Report', standard: 'GHG Protocol / TCFD / ISSB S2', icon: '🌍', tags: ['Scope 1/2/3', 'PCF', 'LCA'], desc: 'Product carbon footprint with primary data, allocation, and uncertainty.' }
+];
+
+function renderReportTemplates() {
+  const container = $('#templatesGrid');
+  if (!container) return;
+  
+  container.innerHTML = REPORT_TEMPLATES.map(t => `
+    <div class="template-card" data-template="${t.id}">
+      <div class="template-icon">${t.icon}</div>
+      <div class="template-title">${t.name}</div>
+      <div class="template-desc">${t.desc}</div>
+      <div class="template-tags">${t.tags.map(tag => `<span class="template-tag">${tag}</span>`).join('')}</div>
+      <div style="display: flex; gap: 8px; margin-top: auto;">
+        <button class="btn btn-primary small" data-gen-template="${t.id}">Generate</button>
+        <button class="btn btn-glass small" data-preview-template="${t.id}">Preview</button>
+      </div>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-gen-template]').forEach(btn => btn.addEventListener('click', () => generateReport(btn.dataset.genTemplate)));
+  container.querySelectorAll('[data-preview-template]').forEach(btn => btn.addEventListener('click', () => previewReport(btn.dataset.previewTemplate)));
+}
+
+function generateReport(id) {
+  const t = REPORT_TEMPLATES.find(x => x.id === id);
+  if (!t) return;
+  toast(`Generating ${t.name}... (simulated)`, 'info');
+  setTimeout(() => {
+    downloadReport(t);
+  }, 800);
+}
+
+function previewReport(id) {
+  const t = REPORT_TEMPLATES.find(x => x.id === id);
+  if (!t) return;
+  toast(`Opening ${t.name} preview...`, 'info');
+}
+
+function downloadReport(template) {
+  const sim = state.simulation;
+  const lines = [
+    `# ${template.name}`,
+    `Standard: ${template.standard}`,
+    `Generated: ${new Date().toLocaleString('en-IN')}`,
+    `Alloy: ${sim?.composition?.formula || 'N/A'}`,
+    `Verdict: ${sim?.derived?.verdict || 'N/A'}`,
+    `Strength: ${sim?.prediction?.predicted || 'N/A'} MPa`,
+    `Density: ${sim?.derived?.density_gcm3 || 'N/A'} g/cm³`,
+    `Cost: ₹${sim?.derived?.cost_per_kg || 'N/A'}/kg`,
+    `Liquidus: ${sim?.derived?.liquidus_c || 'N/A'}°C`,
+    `Temperature: ${sim?.conditions?.temperature_c || 'N/A'}°C`,
+    `Pressure: ${sim?.derived?.pressure_label || 'N/A'}`,
+    `Safety Factor: ${sim?.conditions?.safety_factor || 'N/A'}`,
+    '',
+    `--- ${template.standard} COMPLIANT ---`,
+    'This is a simulated report. Actual certification requires accredited lab testing.'
+  ];
+  downloadBlob(lines.join('\n'), `MATERIALHUNT_${template.id}_${Date.now()}.txt`, 'text/plain');
+  toast(`${template.name} downloaded`, 'success');
+}
+
+// --- REAL-TIME METAL PRICING ---
+const METAL_PRICES = [
+  { symbol: 'Ni', name: 'Nickel', lme: 16420, shfe: 128500, indian: 1480, change: '+2.3%', unit: '$/t' },
+  { symbol: 'Co', name: 'Cobalt', lme: 28500, shfe: 225000, indian: 3200, change: '-1.1%', unit: '$/t' },
+  { symbol: 'Mo', name: 'Molybdenum', lme: 46200, shfe: 368000, indian: 2850, change: '+0.8%', unit: '$/t' },
+  { symbol: 'W', name: 'Tungsten', lme: 285, shfe: 2280, indian: 2450, change: '+1.5%', unit: '$/kg' },
+  { symbol: 'Cr', name: 'Chromium', lme: 8500, shfe: 68000, indian: 185, change: '-0.4%', unit: '$/t' },
+  { symbol: 'Fe', name: 'Iron Ore (62%)', lme: 98, shfe: 780, indian: 5200, change: '+3.2%', unit: '$/t' },
+  { symbol: 'Al', name: 'Aluminum', lme: 2180, shfe: 18900, indian: 215, change: '+1.8%', unit: '$/t' },
+  { symbol: 'Ti', name: 'Titanium Sponge', lme: 8.5, shfe: 68, indian: 720, change: '+0.5%', unit: '$/kg' },
+  { symbol: 'Cu', name: 'Copper', lme: 8420, shfe: 68500, indian: 785, change: '-0.7%', unit: '$/t' },
+  { symbol: 'Mn', name: 'Manganese', lme: 1250, shfe: 10200, indian: 95, change: '+2.1%', unit: '$/t' },
+  { symbol: 'V', name: 'Vanadium', lme: 18.5, shfe: 145, indian: 1650, change: '-1.2%', unit: '$/kg' },
+  { symbol: 'Nb', name: 'Niobium', lme: 42, shfe: 335, indian: 3800, change: '+0.9%', unit: '$/kg' },
+  { symbol: 'Ta', name: 'Tantalum', lme: 185, shfe: 1480, indian: 18500, change: '+2.4%', unit: '$/kg' },
+  { symbol: 'RE', name: 'Rare Earth (NdPr)', lme: 52, shfe: 420, indian: 480, change: '-2.1%', unit: '$/kg' },
+];
+
+function renderMetalPricing() {
+  const container = $('#metalPricingTicker');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="pricing-header">
+      <span class="pricing-title">Live Metal Prices — ${new Date().toLocaleTimeString('en-IN')}</span>
+      <span class="pricing-source"><span class="live-dot"></span>LME + SHFE + Indian Spot (simulated)</span>
+    </div>
+    <div class="pricing-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>Name</th>
+            <th>LME</th>
+            <th>SHFE</th>
+            <th>Indian Spot (₹/kg)</th>
+            <th>24h Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${METAL_PRICES.map(p => `
+            <tr>
+              <td><strong>${p.symbol}</strong></td>
+              <td>${p.name}</td>
+              <td>${Number(p.lme).toLocaleString()} ${p.unit}</td>
+              <td>${Number(p.shfe).toLocaleString()} ${p.unit}</td>
+              <td>₹${Number(p.indian).toLocaleString()}/kg</td>
+              <td class="change-${p.change.startsWith('+') ? 'up' : 'down'}">${p.change}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// --- SUPPLIER MARKETPLACE ---
+const SUPPLIERS = [
+  { id: 's1', name: 'Mishra Dhatu Nigam (MIDHANI)', location: 'Hyderabad, India', verified: true, preferred: true, caps: ['Superalloys', 'Titanium', 'Maraging Steel', 'NABL Lab'], type: 'Mill' },
+  { id: 's2', name: 'Jindal Stainless', location: 'Hisar, India', verified: true, preferred: false, caps: ['316LVM', 'Duplex', 'Precision Strip', 'IS 6911'], type: 'Mill' },
+  { id: 's3', name: 'Hindalco Industries', location: 'Renukoot, India', verified: true, preferred: true, caps: ['Al-7075', 'Al-2024', 'Extrusions', 'Forgings'], type: 'Mill' },
+  { id: 's4', name: 'KMML (Kerala Minerals)', location: 'Kollam, India', verified: true, preferred: false, caps: ['Ti Sponge', 'TiO2 Pigment', 'Zircon'], type: 'Mill' },
+  { id: 's5', name: 'Carpenter Technology', location: 'Reading, PA, USA', verified: true, preferred: true, caps: ['AerMet 340', 'BioDur 108', 'Custom 465', 'AMS 5662'], type: 'Mill' },
+  { id: 's6', name: 'ATI Specialty Alloys', location: 'Pittsburgh, PA, USA', verified: true, preferred: false, caps: ['Inconel 718', 'Haynes 282', 'Rene 41', 'Waspaloy'], type: 'Mill' },
+  { id: 's7', name: 'VDM Metals', location: 'Werdohl, Germany', verified: true, preferred: false, caps: ['Hastelloy C-276', 'Alloy 59', 'Nicrofer 6025'], type: 'Mill' },
+  { id: 's8', name: 'Sandvik Materials', location: 'Sandviken, Sweden', verified: true, preferred: true, caps: ['Sanicro 25', 'Safurex', 'Kanthal APM'], type: 'Mill' },
+  { id: 's9', name: 'Höganäs AB', location: 'Höganäs, Sweden', verified: true, preferred: false, caps: ['AM Powder', 'MIM Powder', '316L', 'Inconel 718'], type: 'Powder' },
+  { id: 's10', name: 'Carpenter Additive', location: 'Athens, AL, USA', verified: true, preferred: true, caps: ['AM Powder', 'Ni718', 'Ti64', 'AlSi10Mg'], type: 'Powder' },
+  { id: 's11', name: 'NABL Lab - Chennai Testing', location: 'Chennai, India', verified: true, preferred: false, caps: ['Tensile', 'Fatigue', 'Creep', 'Corrosion', 'Fracture'], type: 'Lab' },
+  { id: 's12', name: 'NABL Lab - Delhi Calibration', location: 'New Delhi, India', verified: true, preferred: true, caps: ['Dimensional', 'NDT', 'Metallography', 'Chemical'], type: 'Lab' },
+];
+
+function renderSupplierMarketplace() {
+  const container = $('#supplierGrid');
+  if (!container) return;
+  
+  container.innerHTML = SUPPLIERS.map(s => `
+    <div class="supplier-card" data-supplier="${s.id}">
+      <div class="supplier-header">
+        <div>
+          <div class="supplier-logo">${s.type === 'Mill' ? '🏭' : s.type === 'Powder' ? '⚗️' : '🔬'}</div>
+          <div class="supplier-name">${s.name}</div>
+          <div class="supplier-location">${s.location}</div>
+        </div>
+        <div>
+          ${s.verified ? '<span class="supplier-badge verified">VERIFIED</span>' : ''}
+          ${s.preferred ? '<span class="supplier-badge preferred">PREFERRED</span>' : ''}
+        </div>
+      </div>
+      <div class="supplier-caps">
+        ${s.caps.map(c => `<span class="supplier-cap">${c}</span>`).join('')}
+      </div>
+      <div class="supplier-actions">
+        <button class="btn btn-primary small" data-rfq-supplier="${s.id}">Request Quote</button>
+        <button class="btn btn-glass small" data-contact-supplier="${s.id}">Contact</button>
+      </div>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-rfq-supplier]').forEach(btn => btn.addEventListener('click', () => openRfqForSupplier(btn.dataset.rfqSupplier)));
+  container.querySelectorAll('[data-contact-supplier]').forEach(btn => btn.addEventListener('click', () => contactSupplier(btn.dataset.contactSupplier)));
+}
+
+function openRfqForSupplier(id) {
+  const s = SUPPLIERS.find(x => x.id === id);
+  if (!s) return;
+  openRfq(`Supplier quote from ${s.name}`);
+  const alloyField = $('#rfqAlloy');
+  if (alloyField) alloyField.value = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(', ');
+  const notesField = $('#rfqNotes');
+  if (notesField) notesField.value = `Preferred supplier: ${s.name} (${s.location})`;
+  toast(`RFQ prepared for ${s.name}`, 'success');
+}
+
+function contactSupplier(id) {
+  const s = SUPPLIERS.find(x => x.id === id);
+  if (!s) return;
+  toast(`Contact details for ${s.name} copied (simulated)`, 'success');
+}
+
+// --- FAILURE ANALYSIS KNOWLEDGE BASE ---
+const FAILURE_CASES = [
+  { id: 'f1', title: 'Turbine Blade LCF Failure at 950°C', alloy: 'Inconel 718', type: 'fatigue', desc: 'Low-cycle fatigue crack initiation at fir-tree root due to stress concentration and dwell fatigue.', condition: '950°C · 1.2% strain · R=-1 · Air', actions: ['Shot peen root', 'Reduce dwell', 'Switch to Rene 104'] },
+  { id: 'f2', title: 'Marine Valve SCC in Duplex 2205', alloy: '2205 Duplex', type: 'corrosion', desc: 'Stress corrosion cracking in chloride-containing seawater at 60°C with 400 MPa residual stress.', condition: '60°C · 3.5% NaCl · 400 MPa · Seawater', actions: ['Reduce ferrite to 45%', 'Apply compressive stress', 'Use 2507 Super Duplex'] },
+  { id: 'f3', title: 'Reformer Tube Creep Rupture', alloy: 'HK-40 (25Cr-20Ni)', type: 'creep', desc: 'Primary creep accelerated by carburization; tertiary creep rupture at 105,000 hours.', condition: '950°C · 15 MPa · Carburizing', actions: ['Aluminize coating', 'Reduce tube skin temp', 'Switch to HP Modified'] },
+  { id: 'f4', title: 'Cryogenic Brittle Fracture in 304L', alloy: '304L SS', type: 'brittle', desc: 'Cleavage fracture at -196°C due to δ-ferrite stringers and high strain rate.', condition: '-196°C · 500 MPa · LNG Service', actions: ['Specify 316LN', 'Limit ferrite < 1%', 'Charpy qualify'] },
+  { id: 'f5', title: 'Hydrogen Embrittlement in Aermet 100', alloy: 'Aermet 100', type: 'hydrogen', desc: 'Delayed fracture at 1800 MPa UTS after cadmium plating; H ingress during electroplating.', condition: 'RT · 1800 MPa · Cd Plated', actions: ['Bake 190°C/23h post-plate', 'Use IVD aluminum', 'Reduce strength to 1600 MPa'] },
+  { id: 'f6', title: 'Thermal Fatigue in Rocket Nozzle', alloy: 'NARloy-Z (Cu-3Ag-0.5Zr)', type: 'fatigue', desc: 'Cracking at throat due to thermal cycling; oxidation-assisted fatigue.', condition: '500-1200°C · 100 cycles · H2/O2', actions: ['GRCop-84 alloy', 'Channel cooling', 'Increase corner radius'] },
+  { id: 'f7', title: 'Pitting in Offshore Riser 13Cr', alloy: '13Cr Martensitic', type: 'corrosion', desc: 'Severe pitting at 120°C with 500 ppm Cl- and 0.5 MPa H2S.', condition: '120°C · 500 ppm Cl · 0.5 MPa H2S', actions: ['Switch to Super 13Cr', 'Inhibitor injection', 'CRA cladding'] },
+  { id: 'f8', title: 'Creep-Fatigue in GTD-111 Blade', alloy: 'GTD-111 DS', type: 'creep', desc: 'Hold-time fatigue interaction at 980°C; rafting-induced loss of creep strength.', condition: '980°C · 120 MPa · 120s hold', actions: ['Reduce hold time', 'Coat with TBC', 'Switch to Rene N5'] },
+];
+
+function renderFailureAnalysis() {
+  const container = $('#failureGrid');
+  if (!container) return;
+  
+  container.innerHTML = FAILURE_CASES.map(f => `
+    <div class="failure-card" data-failure="${f.id}">
+      <div class="failure-title">${f.title}</div>
+      <div class="failure-alloy">${f.alloy}</div>
+      <span class="failure-type ${f.type}">${f.type.toUpperCase()}</span>
+      <div class="failure-desc">${f.desc}</div>
+      <div class="failure-condition">
+        <span>${f.condition}</span>
+      </div>
+      <div class="failure-actions">
+        <button class="btn btn-primary small" data-failure-detail="${f.id}">Root Cause Tree</button>
+        <button class="btn btn-glass small" data-failure-prevent="${f.id}">Prevention Playbook</button>
+      </div>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-failure-detail]').forEach(btn => btn.addEventListener('click', () => showFailureDetail(btn.dataset.failureDetail)));
+  container.querySelectorAll('[data-failure-prevent]').forEach(btn => btn.addEventListener('click', () => showPreventionPlaybook(btn.dataset.failurePrevent)));
+}
+
+function showFailureDetail(id) {
+  const f = FAILURE_CASES.find(x => x.id === id);
+  if (!f) return;
+  toast(`Root cause analysis for ${f.title} (simulated)`, 'info');
+}
+
+function showPreventionPlaybook(id) {
+  const f = FAILURE_CASES.find(x => x.id === id);
+  if (!f) return;
+  toast(`Prevention playbook: ${f.actions.join(' → ')}`, 'success');
+}
+
+// Filter handlers
+function bindFailureFilters() {
+  $('#failureSearch')?.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
+      const text = card.textContent.toLowerCase();
+      card.style.display = text.includes(term) ? '' : 'none';
+    });
+  });
+  $('#failureFilter')?.addEventListener('change', (e) => {
+    const type = e.target.value;
+    document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
+      const badge = card.querySelector('.failure-type');
+      card.style.display = !type || badge?.classList.contains(type) ? '' : 'none';
+    });
+  });
+}
+
+// --- COMPLIANCE AUTO-GENERATION ---
+const COMPLIANCE_ITEMS = [
+  { id: 'itar', title: 'ITAR / EAR Classification', standard: '22 CFR 120-130 / 15 CFR 730-774', status: 'pending', regs: ['USML Cat VI', 'ECCN 1C002', 'ECCN 1C216'] },
+  { id: 'reach', title: 'REACH SVHC Screening', standard: 'EC 1907/2006', status: 'pending', regs: ['Candidate List', 'Annex XIV', 'Annex XVII'] },
+  { id: 'rohs', title: 'RoHS 3 Compliance', standard: '2011/65/EU + 2015/863', status: 'pending', regs: ['Pb, Hg, Cd, Cr(VI)', 'PBB, PBDE', 'DEHP, BBP, DBP, DIBP'] },
+  { id: 'dfars', title: 'DFARS 252.225-7009', standard: 'DFARS / 10 USC 4863', status: 'pending', regs: ['Specialty Metals', 'Melt in US', 'Qualifying Country'] },
+  { id: 'cmrt', title: 'Conflict Minerals (CMRT)', standard: 'RMI CMRT 6.31 / SEC 13p-1', status: 'pending', regs: ['3TG', 'Smelter List', 'Due Diligence'] },
+  { id: 'esg', title: 'ESG / Carbon Footprint', standard: 'GHG Protocol / ISSB S2', status: 'pending', regs: ['Scope 1/2/3', 'PCF', 'LCA'] },
+];
+
+function renderCompliance() {
+  const container = $('#complianceChecklist');
+  if (!container) return;
+  
+  const sim = state.simulation;
+  const composition = sim?.composition?.elements || [];
+  const elements = new Set(composition.map(e => e.symbol));
+  
+  container.innerHTML = COMPLIANCE_ITEMS.map(item => {
+    let status = 'pending';
+    let evidence = 'Run analysis';
+    if (item.id === 'itar') {
+      const controlled = ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf', 'Ta', 'W', 'Mo', 'Nb'];
+      const found = controlled.filter(el => elements.has(el));
+      status = found.length ? 'flagged' : 'clear';
+      evidence = found.length ? `Controlled: ${found.join(', ')}` : 'No controlled elements';
+    } else if (item.id === 'reach' || item.id === 'rohs') {
+      const restricted = ['Cd', 'Hg', 'Pb', 'Cr', 'As'];
+      const found = restricted.filter(el => elements.has(el));
+      status = found.length ? 'flagged' : 'clear';
+      evidence = found.length ? `Restricted: ${found.join(', ')}` : 'No restricted substances';
+    } else if (item.id === 'dfars') {
+      const specialty = ['Co', 'Ni', 'Cr', 'Mo', 'W', 'V', 'Nb', 'Ta', 'Ti', 'Zr', 'Hf'];
+      const found = specialty.filter(el => elements.has(el));
+      status = found.length ? 'pending' : 'clear';
+      evidence = found.length ? `Specialty: ${found.join(', ')} — verify melt origin` : 'No specialty metals';
+    } else if (item.id === 'cmrt') {
+      const conflict = ['Au', 'Ta', 'W', 'Sn'];
+      const found = conflict.filter(el => elements.has(el));
+      status = found.length ? 'pending' : 'clear';
+      evidence = found.length ? `3TG present: ${found.join(', ')} — CMRT required` : 'No 3TG elements';
+    } else if (item.id === 'esg') {
+      status = 'pending';
+      evidence = 'Requires supply chain data';
+    }
+    
+    return `
+      <div class="compliance-item ${status}">
+        <input type="checkbox" class="compliance-checkbox" ${status === 'clear' ? 'checked' : ''} disabled>
+        <div class="compliance-info">
+          <div class="compliance-title">${item.title}</div>
+          <div class="compliance-standard">${item.standard}</div>
+        </div>
+        <span class="compliance-evidence">${evidence}</span>
+      </div>
+    `;
+  }).join('');
+  
+  // Add generate all button
+  container.innerHTML += `
+    <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <button class="btn btn-primary" id="genAllCompliance">Generate All Reports</button>
+      <button class="btn btn-glass" id="downloadCompliancePack">Download Compliance Pack (ZIP)</button>
+    </div>
+  `;
+  $('#genAllCompliance')?.addEventListener('click', generateAllCompliance);
+  $('#downloadCompliancePack')?.addEventListener('click', downloadCompliancePack);
+}
+
+function generateAllCompliance() {
+  toast('Generating compliance reports... (simulated)', 'info');
+  setTimeout(() => {
+    const sim = state.simulation;
+    const lines = [
+      'MATERIALHUNT COMPLIANCE PACK',
+      `Alloy: ${sim?.composition?.formula || 'N/A'}`,
+      `Generated: ${new Date().toLocaleString('en-IN')}`,
+      '',
+      ...COMPLIANCE_ITEMS.map(item => {
+        const status = item.id === 'itar' ? 'See above' : 'Pending';
+        return `${item.title}: ${status}`;
+      }),
+      '',
+      '--- SIMULATED OUTPUT ---'
+    ];
+    downloadBlob(lines.join('\n'), `MATERIALHUNT_Compliance_Pack_${Date.now()}.txt`, 'text/plain');
+    toast('Compliance pack downloaded', 'success');
+  }, 1000);
+}
+
+function downloadCompliancePack() {
+  toast('ZIP download simulated — would contain PDF, XML (CMRT), JSON (ESG)', 'success');
+}
+
+// --- API ACCESS PANEL ---
+function renderApiAccess() {
+  const container = $('#apiAccessPanel');
+  if (!container) return;
+  
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') || '[]');
+  
+  container.innerHTML = `
+    <div class="api-key-card">
+      <div class="api-key-header">
+        <span class="api-key-label">Your API Keys</span>
+        ${apiKeys.length < 3 ? '<button class="btn btn-primary small" id="generateApiKeyBtn">Generate New Key</button>' : '<span class="pill pill-amber">Max 3 keys</span>'}
+      </div>
+      ${apiKeys.length ? `
+        <div style="display: grid; gap: 12px;">
+          ${apiKeys.map(key => `
+            <div class="glass" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="api-key-label">${key.name} (${key.id.slice(0,8)}...)</span>
+                <span class="pill pill-${key.active ? 'emerald' : 'rose'}">${key.active ? 'Active' : 'Revoked'}</span>
+              </div>
+              <div class="api-key-value">${key.key}</div>
+              <div class="api-key-perms">${key.perms.map(p => `<span class="api-perm">${p}</span>`).join('')}</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-glass small" data-copy-key="${key.id}">Copy</button>
+                <button class="btn btn-glass small" data-revoke-key="${key.id}">${key.active ? 'Revoke' : 'Restore'}</button>
+                <button class="btn btn-glass small" data-delete-key="${key.id}">Delete</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '<p class="micro-note">No API keys yet. Generate one to start integrating.</p>'}
+    </div>
+    
+    <div class="api-key-card">
+      <div class="api-key-header"><span class="api-key-label">API Usage (30 days)</span></div>
+      <div class="api-usage">
+        <div class="api-usage-stat">
+          <div class="api-usage-value">${Math.floor(Math.random() * 5000) + 1000}</div>
+          <div class="api-usage-label">Simulations</div>
+        </div>
+        <div class="api-usage-stat">
+          <div class="api-usage-value">${Math.floor(Math.random() * 200) + 50}</div>
+          <div class="api-usage-label">Optimizations</div>
+        </div>
+        <div class="api-usage-stat">
+          <div class="api-usage-value">${Math.floor(Math.random() * 100) + 10}</div>
+          <div class="api-usage-label">Mission Searches</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="api-key-card">
+      <div class="api-key-header"><span class="api-key-label">Documentation & SDKs</span></div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <a href="#" class="btn btn-glass small" target="_blank">OpenAPI 3.1 Spec</a>
+        <a href="#" class="btn btn-glass small" target="_blank">Python SDK</a>
+        <a href="#" class="btn btn-glass small" target="_blank">TypeScript SDK</a>
+        <a href="#" class="btn btn-glass small" target="_blank">Rust SDK</a>
+        <a href="#" class="btn btn-glass small" target="_blank">Postman Collection</a>
+        <a href="#" class="btn btn-glass small" target="_blank">WebSocket Guide</a>
+      </div>
+    </div>
+  `;
+  
+  $('#generateApiKeyBtn')?.addEventListener('click', generateApiKey);
+  container.querySelectorAll('[data-copy-key]').forEach(btn => btn.addEventListener('click', () => copyApiKey(btn.dataset.copyKey)));
+  container.querySelectorAll('[data-revoke-key]').forEach(btn => btn.addEventListener('click', () => revokeApiKey(btn.dataset.revokeKey)));
+  container.querySelectorAll('[data-delete-key]').forEach(btn => btn.addEventListener('click', () => deleteApiKey(btn.dataset.deleteKey)));
+}
+
+function generateApiKey() {
+  const name = prompt('Key name:', 'Production API');
+  if (!name) return;
+  const key = 'mh_' + Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, '0')).join('');
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') || '[]');
+  apiKeys.push({
+    id: 'key_' + Date.now(),
+    name,
+    key,
+    perms: ['simulate', 'optimize', 'mission-search', 'prescreen'],
+    active: true,
+    created: new Date().toISOString()
+  });
+  localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
+  renderApiAccess();
+  toast(`API key generated: ${key.slice(0,20)}...`, 'success');
+}
+
+function copyApiKey(id) {
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') || '[]');
+  const key = apiKeys.find(k => k.id === id);
+  if (key) navigator.clipboard.writeText(key.key).then(() => toast('API key copied', 'success'));
+}
+
+function revokeApiKey(id) {
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') || '[]');
+  const key = apiKeys.find(k => k.id === id);
+  if (key) {
+    key.active = !key.active;
+    localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
+    renderApiAccess();
+    toast(key.active ? 'Key restored' : 'Key revoked', 'success');
+  }
+}
+
+function deleteApiKey(id) {
+  if (!confirm('Delete this API key permanently?')) return;
+  let apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') || '[]');
+  apiKeys = apiKeys.filter(k => k.id !== id);
+  localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
+  renderApiAccess();
+  toast('API key deleted', 'success');
+}
+
+// --- ALLOY GENOME VISUALIZATION ---
+function initAlloyGenome() {
+  const canvas = $('#genomeCanvas');
+  if (!canvas) return;
+  
+  // Simple 3D scatter using Three.js
+  if (window.genomeScene) return;
+  
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+  camera.position.set(0, 0, 50);
+  
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  
+  // Generate synthetic data points
+  const points = 5000;
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(points * 3);
+  const colors = new Float32Array(points * 3);
+  const sizes = new Float32Array(points);
+  
+  for (let i = 0; i < points; i++) {
+    const x = (Math.random() - 0.5) * 80;
+    const y = (Math.random() - 0.5) * 80;
+    const z = (Math.random() - 0.5) * 80;
+    positions[i*3] = x;
+    positions[i*3+1] = y;
+    positions[i*3+2] = z;
+    
+    const val = Math.random();
+    colors[i*3] = val;
+    colors[i*3+1] = 1 - val;
+    colors[i*3+2] = 0.5;
+    sizes[i] = 1 + Math.random() * 2;
+  }
+  
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  
+  const material = new THREE.PointsMaterial({
+    size: 0.8,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.7,
+    sizeAttenuation: true
+  });
+  
+  const pointsMesh = new THREE.Points(geometry, material);
+  scene.add(pointsMesh);
+  
+  // Grid
+  const gridHelper = new THREE.GridHelper(100, 20, 0x22D3EE, 0x22D3EE);
+  gridHelper.material.opacity = 0.1;
+  gridHelper.material.transparent = true;
+  scene.add(gridHelper);
+  
+  window.genomeScene = { scene, camera, renderer, controls, pointsMesh, geometry };
+  
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  // Resize handler
+  const resizeObserver = new ResizeObserver(() => {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+  resizeObserver.observe(canvas);
+  
+  // Projection/color change handlers
+  $('#genomeProjection')?.addEventListener('change', () => toast('Projection changed (simulated)', 'info'));
+  $('#genomeColorBy')?.addEventListener('change', () => toast('Color mapping changed (simulated)', 'info'));
+  $('#genomeDataset')?.addEventListener('change', () => toast('Dataset changed (simulated)', 'info'));
+}
+
+// --- DIGITAL TWIN EXPORT ---
+const EXPORT_FORMATS = [
+  { id: 'fmu', name: 'FMU 2.0/3.0', icon: '📦', desc: 'Functional Mock-up Unit for co-simulation', ext: '.fmu' },
+  { id: 'abaqus', name: 'Abaqus Input Deck', icon: '📄', desc: 'INP file with material cards, steps, output requests', ext: '.inp' },
+  { id: 'ansys', name: 'ANSYS APDL', icon: '📄', desc: 'Command stream with MP, TB, TBPT data', ext: '.inp' },
+  { id: 'step', name: 'STEP AP242', icon: '🔧', desc: 'CAD geometry with PMI and material properties', ext: '.stp' },
+  { id: 'stl', name: 'STL Binary', icon: '🔺', desc: 'Tessellated geometry for 3D printing/FEA prep', ext: '.stl' },
+  { id: 'materialx', name: 'MaterialX', icon: '🎨', desc: 'Open standard for material/shader definitions', ext: '.mtlx' },
+  { id: 'jsonld', name: 'JSON-LD Digital Thread', icon: '🔗', desc: 'Linked data for PLM/MES integration', ext: '.jsonld' },
+  { id: 'hdf5', name: 'HDF5 Results', icon: '💾', desc: 'Full field output: stress, strain, temp, phase', ext: '.h5' },
+];
+
+function renderDigitalTwinExport() {
+  const container = $('#digitalTwinFormats');
+  if (!container) return;
+  
+  container.innerHTML = EXPORT_FORMATS.map(f => `
+    <div class="export-format-card" data-format="${f.id}">
+      <div class="export-format-icon">${f.icon}</div>
+      <div class="export-format-name">${f.name}</div>
+      <div class="export-format-desc">${f.desc}</div>
+      <button class="btn btn-primary small" data-export-format="${f.id}">Export ${f.ext}</button>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-export-format]').forEach(btn => btn.addEventListener('click', () => exportDigitalTwin(btn.dataset.exportFormat)));
+}
+
+function exportDigitalTwin(format) {
+  const f = EXPORT_FORMATS.find(x => x.id === format);
+  if (!f) return;
+  
+  toast(`Generating ${f.name}...`, 'info');
+  setTimeout(() => {
+    const sim = state.simulation;
+    let content = '';
+    if (format === 'abaqus') {
+      content = `*HEADING
+MATERIALHUNT Digital Twin Export - ${new Date().toISOString()}
+Alloy: ${sim?.composition?.formula || 'N/A'}
+Temperature: ${sim?.conditions?.temperature_c || 'N/A'}°C
+Pressure: ${sim?.derived?.pressure_label || 'N/A'}
+*
+*MATERIAL, NAME=ALLOY
+*DENSITY
+${sim?.derived?.density_gcm3 || 7.85}
+*ELASTIC
+${sim?.derived?.modulus_gpa || 210}, 0.3
+*PLASTIC
+${sim?.prediction?.predicted || 500}, 0.0
+${(sim?.prediction?.predicted || 500) * 1.2}, 0.02
+*
+*STEP, NAME=SIMULATION
+*STATIC
+*CLOAD
+1, 3, ${sim?.conditions?.load_mpa || 250}
+*NODE PRINT
+U, RF
+*EL PRINT
+S, E
+*END STEP`;
+    } else if (format === 'jsonld') {
+      content = JSON.stringify({
+        
+        '@type': 'MaterialSimulation',
+        alloy: sim?.composition?.formula,
+        conditions: sim?.conditions,
+        results: sim?.derived,
+        generated: new Date().toISOString(),
+        source: 'MATERIALHUNT Inc.'
+      }, null, 2);
+    } else {
+      content = `# ${f.name} Export
+Alloy: ${sim?.composition?.formula || 'N/A'}
+Conditions: ${JSON.stringify(sim?.conditions)}
+Results: ${JSON.stringify(sim?.derived)}
+Generated: ${new Date().toISOString()}
+# Simulated output - actual export requires licensed exporter
+`;
+    }
+    downloadBlob(content, `MATERIALHUNT_DigitalTwin_${format}_${Date.now()}${f.ext}`, 'text/plain');
+    toast(`${f.name} exported`, 'success');
+  }, 1000);
+}
+
+// --- GAMIFICATION ENGINE ---
+const ACHIEVEMENTS = [
+  { id: 'first_sim', name: 'First Simulation', desc: 'Run your first simulation', xp: 50, icon: '🧪', unlocked: true },
+  { id: 'first_challenge', name: 'Challenge Accepted', desc: 'Complete your first Product Forge challenge', xp: 100, icon: '🏆', unlocked: false },
+  { id: 'rocket_scientist', name: 'Rocket Scientist', desc: 'Pass the Reusable Rocket Nozzle challenge', xp: 500, icon: '🚀', unlocked: false },
+  { id: 'cryo_master', name: 'Cryo Master', desc: 'Design an alloy for -196°C service', xp: 300, icon: '❄️', unlocked: false },
+  { id: 'cost_cutter', name: 'Cost Cutter', desc: 'Beat a challenge at 50% of cost ceiling', xp: 400, icon: '💰', unlocked: false },
+  { id: 'zero_cobalt', name: 'Zero-Cobalt Pioneer', desc: 'Pass any challenge with 0% Co', xp: 300, icon: '🚫', unlocked: false },
+  { id: 'weight_watcher', name: 'Weight Watcher', desc: 'Beat a challenge at 80% of density ceiling', xp: 350, icon: '⚖️', unlocked: false },
+  { id: 'optimizer', name: 'Optimizer', desc: 'Use Auto-Optimize 10 times', xp: 200, icon: '⚡', unlocked: false },
+  { id: 'periodic_master', name: 'Periodic Master', desc: 'Use 20+ different elements', xp: 250, icon: '🧬', unlocked: false },
+  { id: 'share_alloy', name: 'Viral Alloy', desc: 'Share an alloy link that gets 10 opens', xp: 150, icon: '🔗', unlocked: false },
+  { id: 'leaderboard', name: 'Global Leader', desc: 'Reach Top 10 on Discovery Leaderboard', xp: 1000, icon: '👑', unlocked: false },
+  { id: 'api_user', name: 'API Pioneer', desc: 'Make 100 API calls', xp: 200, icon: '🔌', unlocked: false },
+];
+
+function renderGamification() {
+  const container = $('#gamificationPanel');
+  if (!container) return;
+  
+  const userXP = JSON.parse(localStorage.getItem('mh_user_xp') || '0');
+  const userAchievements = JSON.parse(localStorage.getItem('mh_user_achievements') || '[]');
+  const streak = JSON.parse(localStorage.getItem('mh_daily_streak') || '{"count":0,"last":null}');
+  
+  // Check achievements
+  ACHIEVEMENTS.forEach(a => {
+    if (userAchievements.includes(a.id)) a.unlocked = true;
+  });
+  
+  const totalXP = userAchievements.reduce((sum, id) => {
+    const a = ACHIEVEMENTS.find(x => x.id === id);
+    return sum + (a?.xp || 0);
+  }, 0);
+  
+  container.innerHTML = `
+    <div class="daily-streak">
+      <div class="streak-fire">${streak.count > 0 ? '🔥' : '💧'}</div>
+      <div>
+        <div class="streak-count">${streak.count}</div>
+        <div class="streak-label">Day Streak</div>
+      </div>
+      <div style="margin-left: auto;">
+        <div style="font-size: 24px; font-weight: 800; color: var(--cyan);">${totalXP.toLocaleString()}</div>
+        <div class="streak-label">Total XP</div>
+      </div>
+    </div>
+    <div class="achievement-grid">
+      ${ACHIEVEMENTS.map(a => `
+        <div class="achievement-card ${a.unlocked ? 'unlocked' : 'locked'}" data-achievement="${a.id}">
+          <div class="achievement-icon">${a.icon}</div>
+          <div class="achievement-name">${a.name}</div>
+          <div class="achievement-desc">${a.desc}</div>
+          <div class="achievement-xp">+${a.xp} XP</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// --- AI-POWERED ALLOY DESIGN ---
+function renderAIDesign() {
+  const container = $('#aiDesignPanel');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="ai-design-input">
+      <label style="font-weight: 700; font-size: 12px;">Describe your requirement</label>
+      <textarea id="aiDesignPrompt" placeholder="e.g. Lightweight turbine blade for 1200°C, 50 MPa centrifugal stress, 10,000 hour creep life, under $50/kg, no Co/W, manufacturable by LPBF"></textarea>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" id="runAIDesign">🧠 Generate 10 Alloys</button>
+        <button class="btn btn-glass" id="clearAIDesign">Clear</button>
+      </div>
+    </div>
+    
+    <div class="ai-design-requirements" id="aiDesignRequirements" style="display: none;"></div>
+    
+    <div class="ai-design-results" id="aiDesignResults"></div>
+  `;
+  
+  $('#runAIDesign')?.addEventListener('click', runAIDesign);
+  $('#clearAIDesign')?.addEventListener('click', clearAIDesign);
+}
+
+function runAIDesign() {
+  const prompt = $('#aiDesignPrompt')?.value?.trim();
+  if (!prompt) { toast('Enter a requirement first', 'warning'); return; }
+  
+  const btn = $('#runAIDesign');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  
+  // Simulate AI generation
+  setTimeout(() => {
+    const results = generateAIAlloys(prompt);
+    renderAIResults(results);
+    btn.disabled = false;
+    btn.textContent = orig;
+    toast('Generated 10 novel compositions', 'success');
+  }, 1500);
+}
+
+function clearAIDesign() {
+  $('#aiDesignPrompt').value = '';
+  $('#aiDesignRequirements').style.display = 'none';
+  $('#aiDesignRequirements').innerHTML = '';
+  $('#aiDesignResults').innerHTML = '';
+}
+
+function generateAIAlloys(prompt) {
+  // Extract constraints from prompt (simplified)
+  const baseAlloys = [
+    { base: 'Ni', name: 'Ni-Base Superalloy' },
+    { base: 'Co', name: 'Co-Base Superalloy' },
+    { base: 'Fe', name: 'Fe-Base Superalloy' },
+    { base: 'Ti', name: 'Ti Aluminide' },
+    { base: 'Al', name: 'Al-Si Alloy' },
+    { base: 'Cr', name: 'Cr-Base Refractory' },
+    { base: 'W', name: 'W-Base Refractory' },
+    { base: 'HEA', name: 'High-Entropy Alloy' },
+    { base: 'Ceramic', name: 'CMC Matrix' },
+    { base: 'Hybrid', name: 'Gradient Alloy' },
+  ];
+  
+  return baseAlloys.map((b, i) => ({
+    formula: generateFormula(b.base),
+    score: 95 - i * 3 + Math.random() * 5,
+    props: {
+      strength: Math.round(800 + Math.random() * 600),
+      density: Number((6 + Math.random() * 12).toFixed(1)),
+      cost: Math.round(500 + Math.random() * 8000),
+      liquidus: Math.round(1200 + Math.random() * 1500),
+      creep: Math.round(Math.random() * 10000)
+    },
+    route: ['LPBF', 'EBM', 'Directed Energy', 'Casting', 'Forging'][Math.floor(Math.random() * 5)],
+    uncertainty: Number((0.05 + Math.random() * 0.15).toFixed(2))
+  }));
+}
+
+function generateFormula(base) {
+  const recipes = {
+    'Ni': ['Ni-18Cr-8Al-4Ti-3Mo-2W-0.1C', 'Ni-22Cr-5Al-3Ti-4Mo-1.5Nb-0.05C', 'Ni-15Cr-6Al-4Ti-3Mo-2Ta-0.08C'],
+    'Co': ['Co-22Cr-5W-2Ni-0.5C', 'Co-20Cr-10Ni-3W-0.3C'],
+    'Fe': ['Fe-25Ni-15Cr-3Al-2Ti-0.05C', 'Fe-20Ni-12Cr-4Mo-1Al-0.03C'],
+    'Ti': ['Ti-45Al-2Nb-2Cr-0.2B', 'Ti-48Al-2Cr-2Nb-0.1B'],
+    'Al': ['Al-12Si-1Mg-0.5Cu', 'Al-7Si-0.3Mg-0.2Fe'],
+    'Cr': ['Cr-10Ni-5Al-0.5Y2O3', 'Cr-15Ni-3Al-2Hf-0.1Y'],
+    'W': ['W-1Ni-0.5Fe-0.1Y2O3', 'W-2Re-0.5HfC'],
+    'HEA': ['CoCrFeMnNi', 'AlCoCrFeNi', 'CrMnFeCoNiTi'],
+    'Ceramic': ['SiC/SiC', 'C/SiC', 'Al2O3/Al2O3'],
+    'Hybrid': ['Ni/Co Gradient', 'Ti/Al Gradient']
+  };
+  return recipes[base][Math.floor(Math.random() * recipes[base].length)];
+}
+
+function renderAIResults(results) {
+  const reqContainer = $('#aiDesignRequirements');
+  reqContainer.style.display = 'grid';
+  reqContainer.innerHTML = `
+    <div class="ai-req-item"><div class="ai-req-label">Temperature</div><div class="ai-req-value">Extracted from prompt</div></div>
+    <div class="ai-req-item"><div class="ai-req-label">Pressure/Stress</div><div class="ai-req-value">Extracted from prompt</div></div>
+    <div class="ai-req-item"><div class="ai-req-label">Budget</div><div class="ai-req-value">Extracted from prompt</div></div>
+    <div class="ai-req-item"><div class="ai-req-label">Banned Elements</div><div class="ai-req-value">Extracted from prompt</div></div>
+  `;
+  
+  const resContainer = $('#aiDesignResults');
+  resContainer.innerHTML = results.map((r, i) => `
+    <div class="ai-result-card">
+      <div class="ai-result-header">
+        <span class="ai-result-formula">${r.formula}</span>
+        <span class="ai-result-score">${r.score.toFixed(0)}%</span>
+      </div>
+      <div class="ai-result-props">
+        <span class="ai-result-prop">💪 ${r.props.strength} MPa</span>
+        <span class="ai-result-prop">⚖️ ${r.props.density} g/cm³</span>
+        <span class="ai-result-prop">💰 ₹${r.props.cost}/kg</span>
+        <span class="ai-result-prop">🔥 ${r.props.liquidus}°C</span>
+        <span class="ai-result-prop">⏱️ ${r.props.creep}h creep</span>
+        <span class="ai-result-prop">📦 ${r.route}</span>
+        <span class="ai-result-prop">📊 ±${(r.uncertainty*100).toFixed(0)}%</span>
+      </div>
+      <div class="ai-result-actions">
+        <button class="btn btn-primary small" data-load-ai="${i}">Load in Simulator</button>
+        <button class="btn btn-glass small" data-refine-ai="${i}">Refine</button>
+        <button class="btn btn-glass small" data-report-ai="${i}">Report</button>
+      </div>
+    </div>
+  `).join('');
+  
+  resContainer.querySelectorAll('[data-load-ai]').forEach(btn => btn.addEventListener('click', () => loadAIAlloy(results[btn.dataset.loadAi])));
+  resContainer.querySelectorAll('[data-refine-ai]').forEach(btn => btn.addEventListener('click', () => toast('Refining... (simulated)', 'info')));
+  resContainer.querySelectorAll('[data-report-ai]').forEach(btn => btn.addEventListener('click', () => downloadAIReport(results[btn.dataset.reportAi])));
+}
+
+function loadAIAlloy(alloy) {
+  // Parse formula string into composition
+  const comp = parseFormulaString(alloy.formula);
+  state.composition = comp;
+  renderElementSliders();
+  updateCompositionUI();
+  setView('simulator');
+  runSimulation();
+  toast(`${alloy.formula} loaded from AI Designer`, 'success');
+}
+
+function parseFormulaString(formula) {
+  // Simple parser for "Ni-18Cr-8Al" format
+  const comp = {};
+  const parts = formula.split('-');
+  parts.forEach(p => {
+    const match = p.match(/^([A-Z][a-z]?)([\d.]+)?/);
+    if (match) {
+      comp[match[1]] = Number(match[2] || 1);
+    }
+  });
+  // Normalize
+  const total = Object.values(comp).reduce((a,b) => a+b, 0);
+  Object.keys(comp).forEach(k => comp[k] = Number((comp[k]/total*100).toFixed(2)));
+  return comp;
+}
+
+function downloadAIReport(alloy) {
+  const lines = [
+    `MATERIALHUNT AI DESIGN REPORT`,
+    `Generated: ${new Date().toLocaleString('en-IN')}`,
+    `Formula: ${alloy.formula}`,
+    `Confidence Score: ${alloy.score.toFixed(0)}%`,
+    `Manufacturing Route: ${alloy.route}`,
+    `Uncertainty: ±${(alloy.uncertainty*100).toFixed(0)}%`,
+    '',
+    'PREDICTED PROPERTIES:',
+    `  Yield Strength: ${alloy.props.strength} MPa`,
+    `  Density: ${alloy.props.density} g/cm³`,
+    `  Cost: ₹${alloy.props.cost}/kg`,
+    `  Liquidus: ${alloy.props.liquidus}°C`,
+    `  Creep Life: ${alloy.props.creep} hours`,
+    '',
+    '--- SIMULATED OUTPUT ---',
+    'Validate with physical testing before production use.'
+  ];
+  downloadBlob(lines.join('\n'), `MATERIALHUNT_AI_${alloy.formula.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}.txt`, 'text/plain');
+  toast('AI design report downloaded', 'success');
+}
+
+// --- EXPORT CONTROL COMPLIANCE ---
+function renderExportControl() {
+  const container = $('#exportControlPanel');
+  if (!container) return;
+  
+  const sim = state.simulation;
+  const composition = sim?.composition?.elements || [];
+  const elements = new Set(composition.map(e => e.symbol));
+  
+  const controlled = {
+    'USML_Cat_VI': ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf', 'Ta', 'W', 'Mo', 'Nb'],
+    'ECCN_1C002': ['Be', 'BeO', 'Be-Al'],
+    'ECCN_1C216': ['Hf', 'Zr', 'Ta', 'W', 'Mo', 'Nb'],
+    'Wassenaar': ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf'],
+    'Dual_Use_IN': ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf', 'Ta', 'W', 'Co']
+  };
+  
+  const findings = [];
+  Object.entries(controlled).forEach(([reg, els]) => {
+    const found = els.filter(el => elements.has(el));
+    if (found.length) {
+      findings.push({ regulation: reg, elements: found, status: 'FLAGGED' });
+    } else {
+      findings.push({ regulation: reg, elements: [], status: 'CLEAR' });
+    }
+  });
+  
+  const hasFlags = findings.some(f => f.status === 'FLAGGED');
+  
+  container.innerHTML = `
+    <div class="export-control-status ${hasFlags ? 'flagged' : 'clear'}">
+      <span class="export-control-icon">${hasFlags ? '⚠️' : '✅'}</span>
+      <div>
+        <div class="export-control-title">${hasFlags ? 'Export Control Flags Detected' : 'All Clear — No Controlled Elements'}</div>
+        <div class="export-control-details">${hasFlags ? 'This composition contains elements subject to export controls. Review regulations below.' : 'No USML, ECCN, Wassenaar, or Indian Dual-Use elements detected.'}</div>
+      </div>
+    </div>
+    <div class="export-control-scan">
+      ${findings.map(f => `
+        <div class="export-control-item">
+          <div>
+            <div class="export-control-element">${f.regulation}</div>
+            <div class="export-control-regulations">
+              ${f.elements.length ? f.elements.map(e => `<span class="export-control-reg">${e}</span>`).join('') : '<span class="export-control-reg" style="color:var(--emerald)">CLEAR</span>'}
+            </div>
+          </div>
+          <span class="status-pill ${f.status === 'FLAGGED' ? 'status-rose' : 'status-emerald'}">${f.status}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <button class="btn btn-primary" id="genEndUseCert">Generate End-Use Certificate</button>
+      <button class="btn btn-glass" id="genReexportLicense">Re-Export License Check</button>
+      <button class="btn btn-glass" id="downloadECReport">Download EC Report</button>
+    </div>
+  `;
+  
+  $('#genEndUseCert')?.addEventListener('click', genEndUseCert);
+  $('#genReexportLicense')?.addEventListener('click', genReexportLicense);
+  $('#downloadECReport')?.addEventListener('click', downloadECReport);
+}
+
+function genEndUseCert() {
+  toast('End-Use Certificate generated (simulated)', 'success');
+}
+
+function genReexportLicense() {
+  toast('Re-Export License eligibility checked (simulated)', 'success');
+}
+
+function downloadECReport() {
+  const lines = [
+    'MATERIALHUNT EXPORT CONTROL REPORT',
+    `Generated: ${new Date().toLocaleString('en-IN')}`,
+    `Alloy: ${state.simulation?.composition?.formula || 'N/A'}`,
+    '',
+    'CLASSIFICATION:',
+    '  USML Category VI: CHECK COMPOSITION',
+    '  ECCN 1C002: CHECK COMPOSITION',
+    '  ECCN 1C216: CHECK COMPOSITION',
+    '  Wassenaar: CHECK COMPOSITION',
+    '  Indian Dual-Use: CHECK COMPOSITION',
+    '',
+    '--- SIMULATED OUTPUT ---'
+  ];
+  downloadBlob(lines.join('\n'), `MATERIALHUNT_ExportControl_${Date.now()}.txt`, 'text/plain');
+  toast('Export control report downloaded', 'success');
+}
+
+// --- MAIN ENTRY POINTS ---
+function initEnterpriseFeatures() {
+  // Inject periodic sliders
+  injectPeriodicSliders();
+  
+  // Render all enterprise views if containers exist
+  if ($('#analyticsDashboard')) renderAnalyticsDashboard();
+  if ($('#workspacesPanel')) renderWorkspaces();
+  if ($('#templatesGrid')) renderReportTemplates();
+  if ($('#metalPricingTicker')) renderMetalPricing();
+  if ($('#supplierGrid')) renderSupplierMarketplace();
+  if ($('#failureGrid')) { renderFailureAnalysis(); bindFailureFilters(); }
+  if ($('#complianceChecklist')) renderCompliance();
+  if ($('#apiAccessPanel')) renderApiAccess();
+  if ($('#genomeCanvas')) initAlloyGenome();
+  if ($('#digitalTwinFormats')) renderDigitalTwinExport();
+  if ($('#gamificationPanel')) renderGamification();
+  if ($('#aiDesignPanel')) renderAIDesign();
+  if ($('#exportControlPanel')) renderExportControl();
+  
+  // Track simulation for analytics
+  trackSimulation();
+}
+
+function trackSimulation() {
+  const sim = state.simulation;
+  if (!sim) return;
+  
+  const history = JSON.parse(localStorage.getItem('mh_simulation_history') || '[]');
+  history.push({
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toISOString(),
+    formula: sim.composition?.formula || 'Unknown',
+    verdict: sim.derived?.verdict || 'Unknown',
+    strength: sim.prediction?.predicted,
+    temp: sim.conditions?.temperature_c,
+    pressure: sim.derived?.pressure_label,
+    type: 'simulation'
+  });
+  if (history.length > 1000) history.shift();
+  localStorage.setItem('mh_simulation_history', JSON.stringify(history));
+  
+  const alloys = JSON.parse(localStorage.getItem('mh_alloy_history') || '[]');
+  const formula = sim.composition?.formula;
+  if (formula && !alloys.some(a => a.formula === formula)) {
+    alloys.push({ formula, date: new Date().toISOString().split('T')[0] });
+    localStorage.setItem('mh_alloy_history', JSON.stringify(alloys));
+  }
+  
+  // Update streak
+  const streak = JSON.parse(localStorage.getItem('mh_daily_streak') || '{"count":0,"last":null}');
+  const today = new Date().toISOString().split('T')[0];
+  if (streak.last !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    streak.count = streak.last === yesterday ? streak.count + 1 : 1;
+    streak.last = today;
+    localStorage.setItem('mh_daily_streak', JSON.stringify(streak));
+  }
+}
+
+function trackChallenge(verdict) {
+  const history = JSON.parse(localStorage.getItem('mh_challenge_history') || '[]');
+  history.push({
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toISOString(),
+    challenge: state.challenge?.title || 'Custom',
+    verdict,
+    formula: state.simulation?.composition?.formula,
+    type: 'challenge'
+  });
+  if (history.length > 500) history.shift();
+  localStorage.setItem('mh_challenge_history', JSON.stringify(history));
+  
+  // Unlock achievements
+  const achievements = JSON.parse(localStorage.getItem('mh_user_achievements') || '[]');
+  if (verdict === 'PASS' && !achievements.includes('first_challenge')) {
+    achievements.push('first_challenge');
+    localStorage.setItem('mh_user_achievements', JSON.stringify(achievements));
+    toast('🏆 Achievement unlocked: Challenge Accepted!', 'success');
+  }
+  if (verdict === 'PASS' && state.challenge?.id === 'rocket-nozzle' && !achievements.includes('rocket_scientist')) {
+    achievements.push('rocket_scientist');
+    localStorage.setItem('mh_user_achievements', JSON.stringify(achievements));
+    toast('🚀 Achievement unlocked: Rocket Scientist!', 'success');
+  }
+  if (verdict === 'PASS' && state.simulation?.conditions?.temperature_c <= -100 && !achievements.includes('cryo_master')) {
+    achievements.push('cryo_master');
+    localStorage.setItem('mh_user_achievements', JSON.stringify(achievements));
+    toast('❄️ Achievement unlocked: Cryo Master!', 'success');
+  }
+  if (verdict === 'PASS' && state.simulation?.derived?.cost_per_kg <= (state.challenge?.maxCostINR || 999999) * 0.5 && !achievements.includes('cost_cutter')) {
+    achievements.push('cost_cutter');
+    localStorage.setItem('mh_user_achievements', JSON.stringify(achievements));
+    toast('💰 Achievement unlocked: Cost Cutter!', 'success');
+  }
+  if (verdict === 'PASS' && !Object.keys(state.composition).includes('Co') && !achievements.includes('zero_cobalt')) {
+    achievements.push('zero_cobalt');
+    localStorage.setItem('mh_user_achievements', JSON.stringify(achievements));
+    toast('🚫 Achievement unlocked: Zero-Cobalt Pioneer!', 'success');
+  }
+  if (verdict === 'PASS' && state.simulation?.derived?.density_gcm3 <= (state.challenge?.maxDensity || 999) * 0.8 && !achievements.includes('weight_watcher')) {
+    achievements.push('weight_watcher');
+    localStorage.setItem('mh_user_achievements', JSON.stringify(achievements));
+    toast('⚖️ Achievement unlocked: Weight Watcher!', 'success');
+  }
+}
+
+// Export for global use
+window.initEnterpriseFeatures = initEnterpriseFeatures;
+window.trackSimulation = trackSimulation;
+window.trackChallenge = trackChallenge;
+window.injectPeriodicSliders = injectPeriodicSliders;

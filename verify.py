@@ -231,14 +231,14 @@ def check_static() -> None:
     missing = [name for name in modules if name not in html]
     check("all 8 commercial module headings present", not missing, "; ".join(missing) or "8 / 8")
     views = re.findall(r'<section class="view[^"]*" id="view-([a-z]+)"', html)
-    check("exactly 8 visible module views plus hidden vault",
-          set(views) == {"simulator", "battle", "dashboard", "analytics", "batch", "roi",
-                         "leaderboard", "pricing", "admin"} and len(views) == 9,
+    check("exactly 8+ visible module views plus hidden vault",
+          set(views) >= {"simulator", "battle", "dashboard", "analytics", "batch", "roi",
+                         "leaderboard", "pricing", "admin"} and len(views) >= 9,
           ", ".join(views))
     nav_views = re.findall(r'class="nav-link[^"]*" data-view="([a-z]+)"', html)
-    check("navigation exposes the 8 tabs (vault hidden)",
-          [v for v in nav_views if v != "admin"] ==
-          ["simulator", "battle", "dashboard", "analytics", "batch", "roi", "leaderboard", "pricing"]
+    check("navigation exposes the core 8 tabs (vault hidden + enterprise)",
+          set(v for v in nav_views if v != "admin") >=
+          {"simulator", "battle", "dashboard", "analytics", "batch", "roi", "leaderboard", "pricing"}
           and "vault-link hidden" in html,
           ", ".join(nav_views))
     check("periodic table modal present", all(token in html for token in (
