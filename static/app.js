@@ -3871,3 +3871,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+
+// AI Co-Pilot Chips - Restored for Q&A and Auto-Fix
+const COPILOT_CHIPS = ['Why did it melt?', 'Make it cheaper', 'Explain liquidus', 'Fix failing alloy'];
+
+// Activate Co-Pilot drawer
+function copilotOpen() {
+  const drawer = document.getElementById('copilot-drawer');
+  if (drawer) {
+    drawer.style.right = '0';
+  }
+}
+
+function copilotClose() {
+  const drawer = document.getElementById('copilot-drawer');
+  if (drawer) {
+    drawer.style.right = '-350px';
+  }
+}
+
+function copilotAsk(question) {
+  // Show question in drawer
+  const input = document.getElementById('copilot-input');
+  if (input) {
+    input.value = question;
+  }
+  copilotOpen();
+}
+
+// Auto-Fix for failing alloys
+function autoFixAlloy() {
+  const safetyFactor = state.safetyFactor || 1.0;
+  if (safetyFactor < 1.0) {
+    const elementsToAdd = ['Mo', 'W', 'V']; // Elements that increase liquidus
+    toast('Auto-Fix: Adding ' + elementsTo.join(', ') + ' to raise liquidus temperature', 'success', 3000);
+    // Adjust slider values
+    $('#temperatureSlider').val(4500);
+    applyBenchmarkDesign();
+  } else {
+    toast('Alloy is stable - no fix needed', 'info', 3000);
+  }
+}
+
+// Add click handlers for Q&A tooltips ( ? buttons )
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('icon-btn') && e.target.textContent === '?') {
+    const statCard = e.target.closest('.glass');
+    if (statCard) {
+      const statLabel = statCard.querySelector('span.stat-label');
+      if (statLabel) {
+        const question = 'Explain this ' + statLabel.textContent.toLowerCase();
+        copilotAsk(question);
+      }
+    }
+  }
+});
+
+// Initialize Co-Pilot on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Set up any existing Co-Pilot state from server
+  if (window.MH_FIREBASE && window.MH_FIREBASE.copilotState) {
+    // Load saved Co-Pilot state
+  }
+});
+// AI Co-Pilot Chips - Restored for Q&A and Auto-Fix

@@ -37,12 +37,12 @@
 
       <nav class="main-nav nav-scroll" aria-label="Primary">
         <button class="nav-link active" data-view="simulator" title="3D Alloy &amp; Mission Simulator">3D Simulator</button>
-        <button class="nav-link" data-view="battle" title="Alloy A vs. B Battle Arena">Battle Arena</button>
+        <button class="nav-link" data-view="battle" title="Alloy A vs. B Comparative Analysis">Comparative Analysis</button>
         <button class="nav-link" data-view="dashboard" title="Multi-Material Pre-Screening &amp; PDF">Pre-Screening</button>
         <button class="nav-link" data-view="analytics" title="Deep Engineering Analytics">Analytics</button>
         <button class="nav-link" data-view="batch" title="Enterprise Batch CSV &amp; Custom Lab Data">Batch &amp; Lab Data</button>
         <button class="nav-link" data-view="roi" title="R&amp;D ROI Calculator">R&amp;D ROI</button>
-        <button class="nav-link" data-view="leaderboard" title="Global R&amp;D Leaderboard &amp; Feedback">Leaderboard</button>
+        <button class="nav-link" data-view="leaderboard" title="Global R&amp;D Discovery Registry &amp; Feedback">Discovery Registry</button>
         <button class="nav-link" data-view="pricing" title="Pricing, Corporate KYB &amp; Compliance">Pricing &amp; KYB</button>
         <button class="nav-link vault-link hidden" data-view="admin" id="vaultNav">Vault</button>
       </nav>
@@ -72,7 +72,7 @@
     <div class="summit-banner hidden" id="summitBanner">
       <span class="summit-pulse"></span>
       <strong>ENTERPRISE VIP</strong>
-      <span>Enterprise R&amp;D access granted · <em>VIP GRANT — FEE WAIVED (₹0)</em> · ENTERPRISE VIP · KYB VERIFIED</span>
+      <span>Enterprise R&amp;D access granted · <em>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</em> · ENTERPRISE VIP · KYB VERIFIED</span>
       <button class="banner-close" id="summitBannerClose" aria-label="Dismiss">×</button>
     </div>
 
@@ -372,7 +372,7 @@
         <div class="section-head">
           <div>
             <span class="panel-kicker">HEAD-TO-HEAD SCREENING</span>
-            <h2>Alloy A vs. B Battle Arena</h2>
+            <h2>Alloy A vs. B Comparative Analysis</h2>
             <p>Run two chemistries under identical service conditions. The arena compares strength, liquidus margin, density, cost and pressure containment simultaneously.</p>
           </div>
           <div class="sim-actions">
@@ -738,7 +738,7 @@
         </div>
         <div class="batch-actions">
           <button class="btn btn-glass small" id="batchExport" disabled>Export batch results CSV</button>
-          <button class="btn btn-glass small" id="batchPushLeaderboard" disabled>Publish best result to leaderboard</button>
+          <button class="btn btn-glass small" id="batchPushDiscovery Registry" disabled>Publish best result to leaderboard</button>
         </div>
       </section>
 
@@ -780,7 +780,7 @@
             <select id="roiTier" class="field-select">
               <option value="pro">Pro Lab · ₹4,999 / mo</option>
               <option value="enterprise">Enterprise R&amp;D · ₹19,999 / mo</option>
-              <option value="waived">VIP GRANT — FEE WAIVED (₹0)</option>
+              <option value="waived">ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</option>
             </select>
             <p class="micro-note">Assumes 65% of avoided experiments release lab capacity, and that pre-screened candidates move to validation with the same success rate.</p>
           </aside>
@@ -819,12 +819,12 @@
         <div class="section-head">
           <div>
             <span class="panel-kicker">GLOBAL R&amp;D DISCOVERY LEADERBOARD</span>
-            <h2>Global R&amp;D Discovery Leaderboard &amp; 0–5★ Feedback</h2>
+            <h2>Global R&amp;D Discovery Discovery Registry &amp; 0–5★ Feedback</h2>
             <p>Verified breakthroughs from enterprise labs, ranked by discovery score. Publish a simulation or rate the platform from 0 to 5 stars.</p>
           </div>
           <div class="sim-actions">
             <span class="status-pill status-emerald" id="leaderboardStatus">LIVE</span>
-            <button class="btn btn-glass small" id="refreshLeaderboard">Refresh</button>
+            <button class="btn btn-glass small" id="refreshDiscovery Registry">Refresh</button>
           </div>
         </div>
 
@@ -915,16 +915,16 @@
               <li>Everything in Pro Lab</li>
               <li>Corporate KYB verification</li>
               <li>Dual-use clearance workflow</li>
-              <li>Mission Co-Pilot and Battle Arena</li>
+              <li>Mission Co-Pilot and Comparative Analysis</li>
             </ul>
             <button class="btn btn-primary full" data-view="leaderboard">Join the leaderboard</button>
           </article>
           <article class="glass price-card vip-card">
-            <span class="price-tier">VIP GRANT</span>
+            <span class="price-tier">ENTERPRISE ACCESS GRANT</span>
             <strong class="price-value" id="vipPriceLabel">FEE WAIVED (₹0)</strong>
             <span class="price-cycle">pilot programme</span>
             <ul class="price-list">
-              <li>VIP GRANT — FEE WAIVED (₹0)</li>
+              <li>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</li>
               <li>ENTERPRISE VIP · KYB VERIFIED</li>
               <li>Interview-ready pilot sandbox</li>
               <li>Founder vault escalation</li>
@@ -1015,11 +1015,11 @@
               <div class="audit-list" id="adminAudit"></div>
             </article>
             <article class="glass admin-panel span-2">
-              <div class="panel-title-row"><h3>Global R&amp;D Discovery Leaderboard</h3><button class="text-btn" id="adminMintPilot">Mint pilot grant</button></div>
+              <div class="panel-title-row"><h3>Global R&amp;D Discovery Discovery Registry</h3><button class="text-btn" id="adminMintPilot">Mint pilot grant</button></div>
               <div class="table-wrap">
                 <table class="data-table admin-table">
                   <thead><tr><th>Rank</th><th>Team</th><th>Material</th><th>Predicted</th><th>Score</th></tr></thead>
-                  <tbody id="adminLeaderboard"><tr class="empty-row"><td colspan="5">Unlock the vault to load discoveries.</td></tr></tbody>
+                  <tbody id="adminDiscovery Registry"><tr class="empty-row"><td colspan="5">Unlock the vault to load discoveries.</td></tr></tbody>
                 </table>
               </div>
             </article>
@@ -1053,7 +1053,7 @@
       <div class="ef-col">
         <span class="ef-title">Modules</span>
         <a href="#" data-view="simulator">3D Alloy &amp; Mission Simulator</a>
-        <a href="#" data-view="battle">Alloy A vs. B Battle Arena</a>
+        <a href="#" data-view="battle">Alloy A vs. B Comparative Analysis</a>
         <a href="#" data-view="dashboard">Multi-Material Pre-Screening</a>
         <a href="#" data-view="analytics">Deep Engineering Analytics</a>
       </div>
@@ -1061,7 +1061,7 @@
         <span class="ef-title">Enterprise</span>
         <a href="#" data-view="batch">Batch CSV &amp; Lab Data</a>
         <a href="#" data-view="roi">R&amp;D ROI Calculator</a>
-        <a href="#" data-view="leaderboard">Global R&amp;D Leaderboard</a>
+        <a href="#" data-view="leaderboard">Global R&amp;D Discovery Registry</a>
         <a href="#" data-view="pricing">Pricing, KYB &amp; Compliance</a>
       </div>
       <div class="ef-col ef-compliance">
@@ -1079,7 +1079,7 @@
     </div>
     <div class="ef-bottom">
       <span>© <span id="footerYear">2026</span> MATERIALHUNT Inc. · All rights reserved.</span>
-      <span>VIP GRANT — FEE WAIVED (₹0) · Enterprise R&amp;D pilots available on request.</span>
+      <span>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0) · Enterprise R&amp;D pilots available on request.</span>
       <span class="ef-offline"><i class="dot dot-emerald"></i> Offline verified · no CDN, no telemetry</span>
     </div>
   </footer>
@@ -1153,7 +1153,7 @@
       <div class="auth-divider"><span>or walk in as a guest</span></div>
       <button class="btn btn-glass full" id="guestSummitBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.6 6.1L21 10l-5 4.4L17.5 21 12 17.6 6.5 21 8 14.4 3 10l6.4-.9L12 3Z"/></svg>
-        Instant Enterprise VIP · VIP GRANT — FEE WAIVED (₹0)
+        Instant Enterprise VIP · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)
       </button>
       <p class="auth-footnote">Enterprise VIP access is valid for this offline pilot session only. No card, no internet.</p>
     </div>
