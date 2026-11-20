@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "labels": {
+    "mode": {
+      "live_demo": "MATERIALHUNT Interactive R&D Sandbox — Instant Enterprise Trial Mode",
+      "live_pilot": "MATERIALHUNT Live Pilot",
+      "is_live": true,
+      "banner": "MATERIALHUNT Interactive R&D Sandbox"
+    },
+    "vip": {
+      "enterprise_access_grant": "ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)",
+      "enterprise_badge": "ENTERPRISE VIP · KYB VERIFIED",
+      "kyb_pending": "KYB VERIFICATION PENDING",
+      "callout": "Enterprise R&D Feature Unlock"
+    },
+    "admin": {
+      "gate": "mh_vault_99x",
+      "passkey": "MH_FOUNDER_2026#",
+      "vault_title": "MATERIALHUNT Founder Vault",
+      "locked_message": "3-attempt lockout in effect. Cooldown 15 minutes."
+    },
+    "leaderboard": {
+      "title": "Global R&D Discovery Registry",
+      "subtitle": "Verified material breakthroughs from enterprise labs",
+      "leader_title": "Top R&D Team",
+      "sub_labels": [
+        "Material",
+        "Strength",
+        "Density",
+        "Region",
+        "Confidence",
+        "Date"
+      ]
+    }
+  },
+  "waiver_label": "VIP GRANT — FEE WAIVED (₹0)",
+  "kyb_badge": "ENTERPRISE VIP · KYB VERIFIED"
+}

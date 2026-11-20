@@ -389,7 +389,7 @@ MATERIALHUNT_LABELS = {
         "banner": "MATERIALHUNT Interactive R&D Sandbox",
     },
     "vip": {
-        "summit_grant": "VIP GRANT — FEE WAIVED (₹0)",
+        "enterprise_access_grant": "ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)",
         "enterprise_badge": "ENTERPRISE VIP · KYB VERIFIED",
         "kyb_pending": "KYB VERIFICATION PENDING",
         "callout": "Enterprise R&D Feature Unlock",
@@ -401,7 +401,7 @@ MATERIALHUNT_LABELS = {
         "locked_message": "3-attempt lockout in effect. Cooldown 15 minutes.",
     },
     "leaderboard": {
-        "title": "Global R&D Discovery Leaderboard",
+        "title": "Global R&D Discovery Registry",
         "subtitle": "Verified material breakthroughs from enterprise labs",
         "leader_title": "Top R&D Team",
         "sub_labels": ["Material", "Strength", "Density", "Region", "Confidence", "Date"],

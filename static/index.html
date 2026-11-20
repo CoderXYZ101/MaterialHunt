@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="MATERIALHUNT Inc. — deep-tech materials intelligence: 3D alloy simulation, mission co-pilot, battle arena, enterprise pre-screening and R&D analytics. 100% offline." />
+  <meta name="description" content="MATERIALHUNT Inc. - deep-tech materials intelligence: 3D alloy simulation, mission co-pilot, comparative analysis, enterprise pre-screening and R&D analytics. 100% offline." />
   <meta name="theme-color" content="#070B14" />
   <title>MATERIALHUNT Inc. — Deep-Tech Materials Intelligence</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
@@ -37,13 +37,13 @@
 
       <nav class="main-nav nav-scroll" aria-label="Primary">
         <button class="nav-link active" data-view="simulator" title="3D Alloy & Mission Simulator">3D Simulator</button>
-        <button class="nav-link" data-view="battle" title="Alloy A vs. B Battle Arena">Battle Arena</button>
+        <button class="nav-link" data-view="battle" title="Alloy A vs. B Comparative Analysis">Comparative Analysis</button>
         <button class="nav-link" data-view="dashboard" title="Multi-Material Pre-Screening & PDF">Pre-Screening</button>
         <button class="nav-link" data-view="analytics" title="Deep Engineering Analytics">Analytics</button>
         <button class="nav-link" data-view="analytics-dashboard" title="Enterprise Usage Analytics Dashboard">Analytics Dashboard</button>
         <button class="nav-link" data-view="batch" title="Enterprise Batch CSV & Custom Lab Data">Batch & Lab Data</button>
         <button class="nav-link" data-view="roi" title="R&D ROI Calculator">R&D ROI</button>
-        <button class="nav-link" data-view="leaderboard" title="Global R&D Leaderboard & Feedback">Leaderboard</button>
+        <button class="nav-link" data-view="discovery-registry" title="Global R&D Discovery Registry & Feedback">Discovery Registry</button>
         <button class="nav-link" data-view="pricing" title="Pricing, Corporate KYB & Compliance">Pricing & KYB</button>
         <button class="nav-link" data-view="workspaces" title="Team Workspaces & Collaboration">Workspaces</button>
         <button class="nav-link" data-view="report-templates" title="AS9100, ISO, MIL-STD Certified Templates">Report Templates</button>
@@ -54,7 +54,7 @@
         <button class="nav-link" data-view="api-access" title="REST + WebSocket API, OpenAPI 3.1, SDKs">API Access</button>
         <button class="nav-link" data-view="alloy-genome" title="3D Property Manifold, 180M Composition Space">Alloy Genome</button>
         <button class="nav-link" data-view="digital-twin" title="FMU, Abaqus, CAD, MaterialX Export">Digital Twin</button>
-        <button class="nav-link" data-view="gamification" title="Streaks, Badges, XP, Cosmetics">Gamification</button>
+        <button class="nav-link" data-view="engagement-metrics" title="Consecutive Dayss, Badges, Eexperience-pointserience Points, Cosmetics">Engagement Metrics</button>
         <button class="nav-link" data-view="ai-design" title="Generative Alloy Design from Natural Language">AI Designer</button>
         <button class="nav-link" data-view="export-control" title="ITAR/EAR/Wassenaar Automated Screening">Export Control</button>
         <button class="nav-link vault-link hidden" data-view="admin" id="vaultNav">Vault</button>
@@ -85,11 +85,11 @@
       </div>
     </header>
 
-    <div class="summit-banner hidden" id="summitBanner">
-      <span class="summit-pulse"></span>
+    <div class="admin-access-banner hidden" id="admin-accessBanner">
+      <span class="admin-access-pulse"></span>
       <strong>ENTERPRISE VIP</strong>
-      <span>Enterprise R&amp;D access granted · <em>VIP GRANT — FEE WAIVED (₹0)</em> · ENTERPRISE VIP · KYB VERIFIED</span>
-      <button class="banner-close" id="summitBannerClose" aria-label="Dismiss">×</button>
+      <span>Enterprise R&amp;D access granted · <em>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</em> · ENTERPRISE VIP · KYB VERIFIED</span>
+      <button class="banner-close" id="admin-accessBannerClose" aria-label="Dismiss">×</button>
     </div>
 
     <main>
@@ -321,7 +321,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>
                 Auto-Optimize Alloy (Cheaper &amp; Lighter)
               </button>
-              <button class="btn btn-ghost full small" id="shareSpec" title="Copy a WhatsApp / LinkedIn / Slack share link with this alloy and challenge">
+              <button class="btn btn-ghost full small" id="shareSpec" title="Copy a WhatsApp / LinkedIn / Slack share link with this alloy and benchmark">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-3.9M8.6 13.4l6.8 3.9"/></svg>
                 Copy Shareable Spec Link
               </button>
@@ -360,23 +360,23 @@
 
             <div class="chart-grid sim-charts">
               <article class="chart-card glass">
-                <div class="chart-head"><div><span class="panel-kicker">STRESS-STRAIN</span><h3>25°C vs Operating <button class="ask-ai tiny-ai" data-ask="Explain this stress-strain curve, yield point and failure strain in simple terms">Ask AI</button></h3></div><span class="chart-tag" id="strainTag">—</span></div>
+                <div class="chart-head"><div><span class="panel-kicker">STRESS-STRAIN</span><h3>25°C vs Operating <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain this stress-strain curve, yield point and failure strain in simple terms">Ask AI</button></h3></div><span class="chart-tag" id="strainTag">—</span></div>
                 <div class="chart-box" id="simStressChart"></div>
               </article>
               <article class="chart-card glass">
-                <div class="chart-head"><div><span class="panel-kicker">THERMAL DEGRADATION</span><h3>Strength vs Temperature <button class="ask-ai tiny-ai" data-ask="Explain how temperature degrades strength and where the creep risk starts">Ask AI</button></h3></div><span class="chart-tag" id="thermalTag">—</span></div>
+                <div class="chart-head"><div><span class="panel-kicker">THERMAL DEGRADATION</span><h3>Strength vs Temperature <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain how temperature degrades strength and where the creep risk starts">Ask AI</button></h3></div><span class="chart-tag" id="thermalTag">—</span></div>
                 <div class="chart-box" id="simThermalChart"></div>
               </article>
             </div>
 
             <article class="chart-card glass">
-              <div class="chart-head"><div><span class="panel-kicker">SIX-AXIS ENGINEERING</span><h3>Custom Alloy Fingerprint <button class="ask-ai tiny-ai" data-ask="Explain this six-axis alloy fingerprint and which axis is limiting performance">Ask AI</button></h3></div><span class="chart-tag" id="simRadarTag">—</span></div>
+              <div class="chart-head"><div><span class="panel-kicker">SIX-AXIS ENGINEERING</span><h3>Custom Alloy Fingerprint <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain this six-axis alloy fingerprint and which axis is limiting performance">Ask AI</button></h3></div><span class="chart-tag" id="simRadarTag">—</span></div>
               <div class="chart-box radar-box" id="simRadarChart"></div>
             </article>
 
             <article class="advice-card glass">
               <div class="chart-head">
-                <div><span class="panel-kicker">AI METALLURGIST</span><h3>Hypothesis &amp; Processing Advice <button class="ask-ai tiny-ai" data-ask="Explain the hypothesis and the processing advice for this alloy in plain English">Ask AI</button></h3></div>
+                <div><span class="panel-kicker">AI METALLURGIST</span><h3>Hypothesis &amp; Processing Advice <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain the hypothesis and the processing advice for this alloy in plain English">Ask AI</button></h3></div>
                 <div class="advice-actions">
                   <button class="btn btn-glass small" id="downloadSpecTxt" title="Export machining and heat-treatment spec as .txt">Spec .txt</button>
                   <button class="btn btn-glass small" id="downloadSpecJson" title="Export machining and heat-treatment spec as .json">Spec .json</button>
@@ -415,17 +415,17 @@
           <div class="mission-results" id="missionResults"></div>
         </article>
 
-        <!-- ============ PRODUCT FORGE & STRESS-TEST CHALLENGES ============ -->
+        <!-- ============ PRODUCT FORGE & STRESS-TEST BENCHMARKS ============ -->
         <article class="glass forge-panel" id="forgePanel">
           <div class="forge-head">
             <div>
-              <span class="panel-kicker">PRODUCT FORGE · STRESS-TEST CHALLENGES</span>
+              <span class="panel-kicker">PRODUCT FORGE · STRESS-TEST BENCHMARKS</span>
               <h3>Forge a real part. Survive its worst day.</h3>
               <p class="panel-sub">Pick an engineering blueprint, tune the chemistry, then run the live stress test. Verdicts are PASS, MELT, BURST or OVERWEIGHT.</p>
             </div>
             <div class="forge-head-actions">
-              <label class="sr-only" for="challengeSelect">Blueprint</label>
-              <select id="challengeSelect" class="field-select">
+              <label class="sr-only" for="benchmarkSelect">Blueprint</label>
+              <select id="benchmarkSelect" class="field-select">
                 <option value="rocket-nozzle">Reusable Rocket Nozzle — 3,200°C + 80 MPa</option>
                 <option value="submersible">Deep-Sea Submersible Hull — 110 MPa + seawater</option>
                 <option value="ev-enclosure">EV Solid-State Battery Enclosure</option>
@@ -433,20 +433,20 @@
                 <option value="bone-implant">Orthopedic Bone Implant — zero toxic elements</option>
                 <option value="custom">Custom Part (define your own)</option>
               </select>
-              <button class="btn btn-primary small" id="runChallenge">Run Stress Test</button>
-              <button class="btn btn-glass small" id="openChallengeDesigner">Design Your Own Problem</button>
+              <button class="btn btn-primary small" id="runBenchmark">Run Stress Test</button>
+              <button class="btn btn-glass small" id="openBenchmarkDesigner">Design Your Own Problem</button>
             </div>
           </div>
           <div class="forge-grid">
             <div class="forge-blueprint">
-              <span class="forge-chip" id="challengeTag">AEROSPACE · REUSABLE</span>
-              <h4 id="challengeTitle">Reusable Rocket Nozzle</h4>
-              <p id="challengeBrief">A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.</p>
-              <ul class="forge-rules" id="challengeRules"></ul>
-              <div class="forge-standards" id="challengeStandards"></div>
+              <span class="forge-chip" id="benchmarkTag">AEROSPACE · REUSABLE</span>
+              <h4 id="benchmarkTitle">Reusable Rocket Nozzle</h4>
+              <p id="benchmarkBrief">A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.</p>
+              <ul class="forge-rules" id="benchmarkRules"></ul>
+              <div class="forge-standards" id="benchmarkStandards"></div>
               <div class="forge-share">
-                <button class="btn btn-ghost small" id="copyChallengeLink">Copy Challenge Link</button>
-                <button class="btn btn-ghost small" id="loadChallengeLink" title="Read ?challenge= from the current URL">Load Link Challenge</button>
+                <button class="btn btn-ghost small" id="copyBenchmarkLink">Copy Benchmark Link</button>
+                <button class="btn btn-ghost small" id="loadBenchmarkLink" title="Read ?benchmark= from the current URL">Load Link Benchmark</button>
               </div>
             </div>
             <div class="forge-telemetry">
@@ -459,10 +459,10 @@
                 <div><span>Safety factor</span><strong id="forgeSafety">—</strong><small id="forgeSafetyReq">min 1.20</small></div>
                 <div><span>Burst ratio</span><strong id="forgeBurst">—</strong><small id="forgeBurstReq">must stay below 1.00</small></div>
               </div>
-              <div class="xp-row">
-                <span>Challenge XP</span>
-                <div class="xp-track"><i id="forgeXpBar"></i></div>
-                <strong id="forgeXp">0 XP</strong>
+              <div class="experience-points-row">
+                <span>Benchmark Eexperience-pointserience Points</span>
+                <div class="experience-points-track"><i id="forgeXpBar"></i></div>
+                <strong id="forgeXp">0 Eexperience-pointserience Points</strong>
               </div>
               <div class="badge-row" id="forgeBadges"></div>
             </div>
@@ -472,29 +472,29 @@
               <p id="forgeVerdictSub">Select a blueprint and run the stress test.</p>
               <ul class="forge-fixes" id="forgeFixes"></ul>
               <button class="btn btn-primary full small" id="forgeAutoFix" disabled>⚡ Apply AI Fix</button>
-              <button class="btn btn-glass full small" id="forgePublish" disabled>Post Result to Leaderboard</button>
+              <button class="btn btn-glass full small" id="forgePublish" disabled>Post Result to Discovery Registry</button>
             </div>
           </div>
         </article>
       </section>
 
-      <!-- ================= 2. ALLOY A VS. B BATTLE ARENA ================= -->
+      <!-- ================= 2. SPECIMEN A VS. B COMPARATIVE ANALYSIS ================= -->
       <section class="view" id="view-battle">
         <div class="section-head">
           <div>
             <span class="panel-kicker">HEAD-TO-HEAD SCREENING</span>
-            <h2>Alloy A vs. B Battle Arena</h2>
+            <h2>Alloy A vs. B Comparative Analysis</h2>
             <p>Run two chemistries under identical service conditions. The arena compares strength, liquidus margin, density, cost and pressure containment simultaneously.</p>
           </div>
           <div class="sim-actions">
             <span class="status-pill status-cyan" id="battleStatus">STANDBY</span>
-            <button class="btn btn-primary small" id="runBattle">Fight</button>
+            <button class="btn btn-primary small" id="runBattle">Execute Analysis</button>
           </div>
         </div>
 
         <div class="battle-grid">
           <article class="glass battle-card" id="battleCardA">
-            <div class="battle-card-head"><span class="battle-tag tag-a">ALLOY A</span><h3 id="battleNameA">316L</h3></div>
+            <div class="battle-card-head"><span class="battle-tag tag-a">SPECIMEN A</span><h3 id="battleNameA">316L</h3></div>
             <label class="field-label" for="battlePresetA">Chemistry preset</label>
             <select id="battlePresetA" class="field-select">
               <option value="316L">316L stainless</option>
@@ -504,7 +504,7 @@
               <option value="Al7075">Al-7075</option>
               <option value="custom">Custom mixture…</option>
             </select>
-            <label class="field-label" for="battleImportA">Import authentic designation</label>
+            <label class="field-label" for="battleImportA">Import validated designation</label>
             <select id="battleImportA" class="field-select battle-import">
               <option value="">— validated handbook alloy —</option>
               <option>Ti-6Al-4V ELI</option>
@@ -528,19 +528,19 @@
               <div class="range-head"><label for="battleVelA">Velocity</label><output id="battleVelAOut">0 km/h</output></div>
               <input id="battleVelA" type="range" min="0" max="3500" step="5" value="0" />
             </div>
-            <div class="battle-verdict" id="battleVerdictA">Awaiting fight</div>
+            <div class="battle-verdict" id="battleVerdictA">Awaiting analysis</div>
             <ul class="battle-stats" id="battleStatsA"></ul>
           </article>
 
           <div class="battle-center glass">
-            <span class="battle-vs">VS</span>
-            <div class="battle-winner" id="battleWinner">No result yet</div>
+            <span class="battle-vs">versus</span>
+            <div class="battle-winner" id="battleWinner">No result available</div>
             <div class="battle-scoreline" id="battleScoreline">A 0 · 0 B</div>
-            <button class="btn btn-glass small" id="swapBattle">Swap sides</button>
+            <button class="btn btn-glass small" id="swapBattle">Swap specimens</button>
           </div>
 
           <article class="glass battle-card" id="battleCardB">
-            <div class="battle-card-head"><span class="battle-tag tag-b">ALLOY B</span><h3 id="battleNameB">Ti-6Al-4V</h3></div>
+            <div class="battle-card-head"><span class="battle-tag tag-b">SPECIMEN B</span><h3 id="battleNameB">Ti-6Al-4V</h3></div>
             <label class="field-label" for="battlePresetB">Chemistry preset</label>
             <select id="battlePresetB" class="field-select">
               <option value="316L">316L stainless</option>
@@ -550,7 +550,7 @@
               <option value="Al7075">Al-7075</option>
               <option value="custom">Custom mixture…</option>
             </select>
-            <label class="field-label" for="battleImportB">Import authentic designation</label>
+            <label class="field-label" for="battleImportB">Import validated designation</label>
             <select id="battleImportB" class="field-select battle-import">
               <option value="">— validated handbook alloy —</option>
               <option>Ti-6Al-4V ELI</option>
@@ -574,7 +574,7 @@
               <div class="range-head"><label for="battleVelB">Velocity</label><output id="battleVelBOut">0 km/h</output></div>
               <input id="battleVelB" type="range" min="0" max="3500" step="5" value="0" />
             </div>
-            <div class="battle-verdict" id="battleVerdictB">Awaiting fight</div>
+            <div class="battle-verdict" id="battleVerdictB">Awaiting analysis</div>
             <ul class="battle-stats" id="battleStatsB"></ul>
           </article>
         </div>
@@ -593,7 +593,7 @@
         <div class="table-wrap glass battle-table-wrap">
           <table class="data-table">
             <thead><tr><th>Metric</th><th>Alloy A</th><th>Alloy B</th><th>Winner</th></tr></thead>
-            <tbody id="battleResults"><tr class="empty-row"><td colspan="4">Run the arena to compare two chemistries.</td></tr></tbody>
+            <tbody id="battleResults"><tr class="empty-row"><td colspan="4">Execute analysis to compare two chemistries.</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -630,7 +630,7 @@
             <div class="check-grid">
               <label class="check-chip"><input type="checkbox" class="dataset-check" value="steels" checked /><span>Yield Strength</span></label>
               <label class="check-chip"><input type="checkbox" class="dataset-check" value="glass" checked /><span>Glass Forming</span></label>
-              <label class="check-chip"><input type="checkbox" class="dataset-check" value="expt_gap" checked /><span>Band Gap</span></label>
+              <label class="check-chip"><input type="checkbox" class="dataset-check" value="eexperience-pointst_gap" checked /><span>Band Gap</span></label>
             </div>
 
             <label class="field-label" for="searchInput">Formula search</label>
@@ -721,7 +721,7 @@
 
         <div class="risk-grid">
           <article class="glass risk-panel">
-            <div class="panel-title-row"><h3>Supply-Chain &amp; Geopolitical Risk Radar</h3><span class="pill pill-amber">live exposure</span></div>
+            <div class="panel-title-row"><h3>Supply-Chain &amp; Geopolitical Risk Radar</h3><span class="pill pill-amber">live eexperience-pointsosure</span></div>
             <div class="risk-list" id="riskRadar"></div>
           </article>
           <article class="glass risk-panel">
@@ -733,7 +733,7 @@
         <div class="chart-grid">
           <article class="chart-card glass span-2">
             <div class="chart-head">
-              <div><span class="panel-kicker">ASHBY SELECTION MAP</span><h3>Specific Strength vs Raw Cost <button class="ask-ai tiny-ai" data-ask="Explain the Ashby map: how do I read specific strength versus raw cost when choosing an alloy">Ask AI</button></h3></div>
+              <div><span class="panel-kicker">ASHBY SELECTION MAP</span><h3>Specific Strength vs Raw Cost <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain the Ashby map: how do I read specific strength versus raw cost when choosing an alloy">Ask AI</button></h3></div>
               <span class="chart-tag">Bubble size = confidence</span>
             </div>
             <div class="chart-box" id="ashbyChart"></div>
@@ -770,7 +770,7 @@
         <div class="analytics-grid">
           <article class="chart-card glass span-2">
             <div class="chart-head">
-              <div><span class="panel-kicker">BENCHMARK LEADERBOARD</span><h3>Linear vs Random Forest vs Gradient Boosting</h3></div>
+              <div><span class="panel-kicker">BENCHMARK DISCOVERY REGISTRY</span><h3>Linear vs Random Forest vs Gradient Boosting</h3></div>
               <span class="chart-tag">R² · MAE · RMSE</span>
             </div>
             <div class="table-wrap">
@@ -786,7 +786,7 @@
               <select id="importanceDataset" class="mini-select">
                 <option value="steels">Steels</option>
                 <option value="glass">Glass</option>
-                <option value="expt_gap">Expt Gap</option>
+                <option value="eexperience-pointst_gap">Eexperience-pointst Gap</option>
               </select>
             </div>
             <div class="chart-box" id="analyticsImportanceChart"></div>
@@ -910,7 +910,7 @@
         </div>
         <div class="batch-actions">
           <button class="btn btn-glass small" id="batchExport" disabled>Export batch results CSV</button>
-          <button class="btn btn-glass small" id="batchPushLeaderboard" disabled>Publish best result to leaderboard</button>
+          <button class="btn btn-glass small" id="batchPushDiscovery Registry" disabled>Publish best result to discovery-registry</button>
         </div>
       </section>
 
@@ -929,11 +929,11 @@
           <aside class="glass roi-controls">
             <div class="panel-title-row"><h3>Assumptions</h3><span class="mini-tag">INR</span></div>
             <div class="range-field">
-              <div class="range-head"><label for="roiExperiments">Experiments / month</label><output id="roiExperimentsOut">40</output></div>
-              <input id="roiExperiments" type="range" min="5" max="200" step="5" value="40" />
+              <div class="range-head"><label for="roiEexperience-pointseriments">Eexperience-pointseriments / month</label><output id="roiEexperience-pointserimentsOut">40</output></div>
+              <input id="roiEexperience-pointseriments" type="range" min="5" max="200" step="5" value="40" />
             </div>
             <div class="range-field">
-              <div class="range-head"><label for="roiCost">Cost per experiment</label><output id="roiCostOut">₹45,000</output></div>
+              <div class="range-head"><label for="roiCost">Cost per eexperience-pointseriment</label><output id="roiCostOut">₹45,000</output></div>
               <input id="roiCost" type="range" min="5000" max="300000" step="5000" value="45000" />
             </div>
             <div class="range-field">
@@ -941,7 +941,7 @@
               <input id="roiReduction" type="range" min="5" max="80" step="1" value="42" />
             </div>
             <div class="range-field">
-              <div class="range-head"><label for="roiDays">Cycle time / experiment</label><output id="roiDaysOut">18 days</output></div>
+              <div class="range-head"><label for="roiDays">Cycle time / eexperience-pointseriment</label><output id="roiDaysOut">18 days</output></div>
               <input id="roiDays" type="range" min="3" max="60" step="1" value="18" />
             </div>
             <div class="range-field">
@@ -952,9 +952,9 @@
             <select id="roiTier" class="field-select">
               <option value="pro">Pro Lab · ₹4,999 / mo</option>
               <option value="enterprise">Enterprise R&amp;D · ₹19,999 / mo</option>
-              <option value="waived">VIP GRANT — FEE WAIVED (₹0)</option>
+              <option value="waived">ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</option>
             </select>
-            <p class="micro-note">Assumes 65% of avoided experiments release lab capacity, and that pre-screened candidates move to validation with the same success rate.</p>
+            <p class="micro-note">Assumes 65% of avoided eexperience-pointseriments release lab capacity, and that pre-screened candidates move to validation with the same success rate.</p>
           </aside>
 
           <div class="roi-output">
@@ -965,7 +965,7 @@
               <div class="roi-quick">
                 <div><span>Payback</span><strong id="roiPayback">—</strong></div>
                 <div><span>12-month ROI</span><strong id="roiPercent">—</strong></div>
-                <div><span>Experiments avoided</span><strong id="roiAvoided">—</strong></div>
+                <div><span>Eexperience-pointseriments avoided</span><strong id="roiAvoided">—</strong></div>
                 <div><span>Engineering days saved</span><strong id="roiDaysSaved">—</strong></div>
               </div>
             </div>
@@ -975,7 +975,7 @@
             </article>
             <article class="glass roi-note">
               <h3>Why the model holds</h3>
-              <p>Every avoided experiment frees furnace, characterization and metallographer time. At an 18-day cycle, a 42% pre-screen reduction compounds into months of schedule recovery — the real ROI is time-to-market, not only cash.</p>
+              <p>Every avoided eexperience-pointseriment frees furnace, characterization and metallographer time. At an 18-day cycle, a 42% pre-screen reduction compounds into months of schedule recovery — the real ROI is time-to-market, not only cash.</p>
               <div class="roi-bars">
                 <div><span>Raw test avoidance</span><div class="bar"><i id="roiBar1"></i></div><strong id="roiRaw">—</strong></div>
                 <div><span>Team capacity released</span><div class="bar"><i id="roiBar2"></i></div><strong id="roiCapacity">—</strong></div>
@@ -986,28 +986,28 @@
         </div>
       </section>
 
-      <!-- ================= 7. GLOBAL R&D LEADERBOARD & FEEDBACK ================= -->
-      <section class="view" id="view-leaderboard">
+      <!-- ================= 7. GLOBAL R&D DISCOVERY REGISTRY & FEEDBACK ================= -->
+      <section class="view" id="view-discovery-registry">
         <div class="section-head">
           <div>
-            <span class="panel-kicker">GLOBAL R&amp;D DISCOVERY LEADERBOARD</span>
-            <h2>Global R&amp;D Discovery Leaderboard &amp; 0–5★ Feedback</h2>
+            <span class="panel-kicker">GLOBAL R&amp;D DISCOVERY DISCOVERY REGISTRY</span>
+            <h2>Global R&amp;D Discovery Discovery Registry &amp; 0–5★ Feedback</h2>
             <p>Verified breakthroughs from enterprise labs, ranked by discovery score. Publish a simulation or rate the platform from 0 to 5 stars.</p>
           </div>
           <div class="sim-actions">
-            <span class="status-pill status-emerald" id="leaderboardStatus">LIVE</span>
-            <button class="btn btn-glass small" id="refreshLeaderboard">Refresh</button>
+            <span class="status-pill status-emerald" id="discovery-registryStatus">LIVE</span>
+            <button class="btn btn-glass small" id="refreshDiscovery Registry">Refresh</button>
           </div>
         </div>
 
-        <div class="leader-stats" id="leaderboardStats"></div>
+        <div class="leader-stats" id="discovery-registryStats"></div>
 
         <div class="table-wrap glass">
           <table class="data-table leader-table">
             <thead>
               <tr><th>Rank</th><th>R&amp;D Team</th><th>Material</th><th>Predicted</th><th>Confidence</th><th>Discovery note</th><th>Date</th></tr>
             </thead>
-            <tbody id="leaderboardBody"><tr class="empty-row"><td colspan="7">Loading verified discoveries…</td></tr></tbody>
+            <tbody id="discovery-registryBody"><tr class="empty-row"><td colspan="7">Loading verified discoveries…</td></tr></tbody>
           </table>
         </div>
 
@@ -1061,8 +1061,8 @@
             <span class="price-cycle">forever · no card</span>
             <ul class="price-list">
               <li>3D simulator + all 118 elements</li>
-              <li>Product Forge &amp; stress-test challenges</li>
-              <li>Battle Arena + leaderboard</li>
+              <li>Validation Benchmarks &amp; stress-test benchmarks</li>
+              <li>Comparative Analysis + Discovery Registry</li>
               <li>Community-grade dossier preview</li>
             </ul>
             <button class="btn btn-glass full" data-view="simulator">Open the free studio</button>
@@ -1075,7 +1075,7 @@
               <li>Board-ready PDF dossier per credit</li>
               <li>Batch CSV screening credits</li>
               <li>Machining + heat-treatment spec export</li>
-              <li>Shareable spec and challenge links</li>
+              <li>Shareable spec and benchmark links</li>
             </ul>
             <button class="btn btn-primary full" id="buyCreditsBtn">Buy a ₹999 credit pack</button>
           </article>
@@ -1187,11 +1187,11 @@
               <div class="audit-list" id="adminAudit"></div>
             </article>
             <article class="glass admin-panel span-2">
-              <div class="panel-title-row"><h3>Global R&amp;D Discovery Leaderboard</h3><button class="text-btn" id="adminMintPilot">Mint pilot grant</button></div>
+              <div class="panel-title-row"><h3>Global R&amp;D Discovery Discovery Registry</h3><button class="text-btn" id="adminMintPilot">Mint pilot grant</button></div>
               <div class="table-wrap">
                 <table class="data-table admin-table">
                   <thead><tr><th>Rank</th><th>Team</th><th>Material</th><th>Predicted</th><th>Score</th></tr></thead>
-                  <tbody id="adminLeaderboard"><tr class="empty-row"><td colspan="5">Unlock the vault to load discoveries.</td></tr></tbody>
+                  <tbody id="adminDiscovery Registry"><tr class="empty-row"><td colspan="5">Unlock the vault to load discoveries.</td></tr></tbody>
                 </table>
               </div>
             </article>
@@ -1218,7 +1218,7 @@
           <div>
             <span class="panel-kicker">COLLABORATIVE R&D</span>
             <h2>Team Workspaces</h2>
-            <p>Share alloys, co-edit challenges, track team discoveries, and manage enterprise permissions.</p>
+            <p>Share alloys, co-edit benchmarks, track team discoveries, and manage enterprise permissions.</p>
           </div>
           <button class="btn btn-primary" id="createWorkspaceBtn">Create Workspace</button>
         </div>
@@ -1309,7 +1309,7 @@
           <div>
             <span class="panel-kicker">DEVELOPER PLATFORM</span>
             <h2>API Access & Integration</h2>
-            <p>REST + WebSocket API for simulation, optimization, mission search, and leaderboard. OpenAPI 3.1 spec, SDKs for Python/TypeScript/Rust.</p>
+            <p>REST + WebSocket API for simulation, optimization, mission search, and discovery-registry. OpenAPI 3.1 spec, SDKs for Python/TypeScript/Rust.</p>
           </div>
           <button class="btn btn-primary" id="generateApiKeyBtn">Generate API Key</button>
         </div>
@@ -1322,7 +1322,7 @@
           <div>
             <span class="panel-kicker">DEEP-TECH VISUALIZATION</span>
             <h2>Alloy Genome Visualization</h2>
-            <p>Interactive 3D property manifold — explore 180M composition space with PCA/t-SNE/UMAP, property gradients, and similarity clustering.</p>
+            <p>Interactive 3D property manifold — eexperience-pointslore 180M composition space with PCA/t-SNE/UMAP, property gradients, and similarity clustering.</p>
           </div>
           <span class="status-pill status-emerald" id="genomeStatus">GPU ACCELERATED</span>
         </div>
@@ -1330,17 +1330,17 @@
           <div class="genome-controls">
             <div class="genome-control-group"><label>Projection</label><select id="genomeProjection"><option value="pca">PCA (3D)</option><option value="tsne">t-SNE</option><option value="umap">UMAP</option></select></div>
             <div class="genome-control-group"><label>Color By</label><select id="genomeColorBy"><option value="strength">Yield Strength</option><option value="density">Density</option><option value="cost">Cost/kg</option><option value="liquidus">Liquidus</option><option value="phase">Phase State</option></select></div>
-            <div class="genome-control-group"><label>Dataset</label><select id="genomeDataset"><option value="all">All Candidates</option><option value="steels">Steels</option><option value="glass">Glass</option><option value="expt_gap">Expt Gap</option></select></div>
+            <div class="genome-control-group"><label>Dataset</label><select id="genomeDataset"><option value="all">All Candidates</option><option value="steels">Steels</option><option value="glass">Glass</option><option value="eexperience-pointst_gap">Eexperience-pointst Gap</option></select></div>
           </div>
           <canvas class="genome-canvas" id="genomeCanvas"></canvas>
         </div>
       </section>
 
-      <!-- ================= DIGITAL TWIN EXPORT ================= -->
+      <!-- ================= DIGITAL TWIN EEexperience-pointserience PointsORT ================= -->
       <section class="view" id="view-digital-twin">
         <div class="section-head">
           <div>
-            <span class="panel-kicker">SIMULATION EXPORT</span>
+            <span class="panel-kicker">SIMULATION EEexperience-pointserience PointsORT</span>
             <h2>Digital Twin Export</h2>
             <p>Export complete simulation state as FMU (FMI 2.0/3.0), Abaqus/Ansys input decks, CAD geometries (STEP/STL), MaterialX, or JSON-LD for digital thread integration.</p>
           </div>
@@ -1349,17 +1349,17 @@
         <div class="export-format-grid glass" id="digitalTwinFormats"></div>
       </section>
 
-      <!-- ================= GAMIFICATION ENGINE ================= -->
-      <section class="view" id="view-gamification">
+      <!-- ================= ENGAGEMENT METRICS ENGINE ================= -->
+      <section class="view" id="view-engagement-metrics">
         <div class="section-head">
           <div>
             <span class="panel-kicker">ENGAGEMENT LAYER</span>
-            <h2>Gamification & Achievements</h2>
-            <p>Daily streaks, alloy discovery badges, challenge leaderboards, XP progression, and unlockable cosmetics for the 3D viewer.</p>
+            <h2>Engagement Metrics & Milestones</h2>
+            <p>Daily consecutive-dayss, alloy discovery badges, benchmark discovery-registrys, Eexperience-pointserience Points progression, and unlockable cosmetics for the 3D viewer.</p>
           </div>
-          <span class="status-pill status-violet" id="gamificationStatus">ACTIVE</span>
+          <span class="status-pill status-violet" id="engagement-metricsStatus">ACTIVE</span>
         </div>
-        <div class="gamification-panel glass" id="gamificationPanel"></div>
+        <div class="engagement-metrics-panel glass" id="engagement-metricsPanel"></div>
       </section>
 
       <!-- ================= AI-POWERED ALLOY DESIGN ================= -->
@@ -1375,7 +1375,7 @@
         <div class="ai-design-panel glass" id="aiDesignPanel"></div>
       </section>
 
-      <!-- ================= EXPORT CONTROL COMPLIANCE ================= -->
+      <!-- ================= EEexperience-pointserience PointsORT CONTROL COMPLIANCE ================= -->
       <section class="view" id="view-export-control">
         <div class="section-head">
           <div>
@@ -1415,7 +1415,7 @@
       <div class="ef-col">
         <span class="ef-title">Modules</span>
         <a href="#" data-view="simulator">3D Alloy &amp; Mission Simulator</a>
-        <a href="#" data-view="battle">Alloy A vs. B Battle Arena</a>
+        <a href="#" data-view="battle">Alloy A vs. B Comparative Analysis</a>
         <a href="#" data-view="dashboard">Multi-Material Pre-Screening</a>
         <a href="#" data-view="analytics">Deep Engineering Analytics</a>
       </div>
@@ -1423,7 +1423,7 @@
         <span class="ef-title">Enterprise</span>
         <a href="#" data-view="batch">Batch CSV &amp; Lab Data</a>
         <a href="#" data-view="roi">R&amp;D ROI Calculator</a>
-        <a href="#" data-view="leaderboard">Global R&amp;D Leaderboard</a>
+        <a href="#" data-view="discovery-registry">Global R&amp;D Discovery Registry</a>
         <a href="#" data-view="pricing">Pricing, KYB &amp; Compliance</a>
       </div>
       <div class="ef-col ef-compliance">
@@ -1441,7 +1441,7 @@
     </div>
     <div class="ef-bottom">
       <span>© <span id="footerYear">2026</span> MATERIALHUNT Inc. · All rights reserved.</span>
-      <span>VIP GRANT — FEE WAIVED (₹0) · Enterprise R&amp;D pilots available on request.</span>
+      <span>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0) · Enterprise R&amp;D pilots available on request.</span>
       <span class="ef-offline"><i class="dot dot-emerald"></i> Offline verified · Firebase Hosting build</span>
     </div>
   </footer>
@@ -1529,9 +1529,9 @@
 
       <p class="form-error" id="authError"></p>
       <div class="auth-divider"><span>or walk in as a guest</span></div>
-      <button class="btn btn-glass full" id="guestSummitBtn">
+      <button class="btn btn-glass full" id="guestAdmin AccessBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.6 6.1L21 10l-5 4.4L17.5 21 12 17.6 6.5 21 8 14.4 3 10l6.4-.9L12 3Z"/></svg>
-        Instant Enterprise VIP · VIP GRANT — FEE WAIVED (₹0)
+        Instant Enterprise VIP · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)
       </button>
       <p class="auth-footnote">Enterprise VIP access is valid for this offline pilot session only. No card, no internet.</p>
     </div>
@@ -1577,39 +1577,39 @@
     </form>
   </aside>
 
-  <!-- ================= CHALLENGE DESIGNER ================= -->
-  <div class="modal-backdrop hidden" id="challengeModal">
-    <div class="auth-modal glass challenge-modal" role="dialog" aria-modal="true" aria-labelledby="challengeModalTitle">
-      <button class="modal-close" id="closeChallengeModal" aria-label="Close">×</button>
+  <!-- ================= BENCHMARK DESIGNER ================= -->
+  <div class="modal-backdrop hidden" id="benchmarkModal">
+    <div class="auth-modal glass benchmark-modal" role="dialog" aria-modal="true" aria-labelledby="benchmarkModalTitle">
+      <button class="modal-close" id="closeBenchmarkModal" aria-label="Close">×</button>
       <div class="auth-brand">
         <span class="brand-mark small"><svg viewBox="0 0 40 40" fill="none"><path d="M20 3 34.5 11.3v17.4L20 37 5.5 28.7V11.3Z" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="20" r="4.2" fill="currentColor"/></svg></span>
-        <div><span class="panel-kicker">PRODUCT FORGE</span><h2 id="challengeModalTitle">Design &amp; Code Your Own Problem</h2></div>
+        <div><span class="panel-kicker">PRODUCT FORGE</span><h2 id="benchmarkModalTitle">Design &amp; Code Your Own Problem</h2></div>
       </div>
       <p class="panel-sub">Use the sliders, or edit the safe declarative constraint block. No code is executed — only these four keys are read.</p>
-      <div class="challenge-form">
+      <div class="benchmark-form">
         <div class="field-two-col">
-          <div><label class="field-label" for="challengeName">Challenge title</label><input id="challengeName" type="text" maxlength="60" value="My Custom Part" /></div>
-          <div><label class="field-label" for="challengeTemp">Target temperature (°C)</label><input id="challengeTemp" type="number" min="-273" max="4500" step="10" value="1800" /></div>
+          <div><label class="field-label" for="benchmarkName">Benchmark title</label><input id="benchmarkName" type="text" maxlength="60" value="My Custom Part" /></div>
+          <div><label class="field-label" for="benchmarkTemp">Target temperature (°C)</label><input id="benchmarkTemp" type="number" min="-273" max="4500" step="10" value="1800" /></div>
         </div>
         <div class="field-two-col">
-          <div><label class="field-label" for="challengeCost">Max cost (INR/kg)</label><input id="challengeCost" type="number" min="0" max="50000" step="50" value="1200" /></div>
-          <div><label class="field-label" for="challengeBurst">Min burst pressure (MPa)</label><input id="challengeBurst" type="number" min="0" max="5000" step="5" value="150" /></div>
+          <div><label class="field-label" for="benchmarkCost">Max cost (INR/kg)</label><input id="benchmarkCost" type="number" min="0" max="50000" step="50" value="1200" /></div>
+          <div><label class="field-label" for="benchmarkBurst">Min burst pressure (MPa)</label><input id="benchmarkBurst" type="number" min="0" max="5000" step="5" value="150" /></div>
         </div>
-        <label class="field-label" for="challengeBanned">Banned elements (comma separated)</label>
-        <input id="challengeBanned" type="text" value="Co, Be" />
-        <label class="field-label" for="challengeJson">Declarative constraint block</label>
-        <textarea id="challengeJson" rows="7" spellcheck="false">{
+        <label class="field-label" for="benchmarkBanned">Banned elements (comma separated)</label>
+        <input id="benchmarkBanned" type="text" value="Co, Be" />
+        <label class="field-label" for="benchmarkJson">Declarative constraint block</label>
+        <textarea id="benchmarkJson" rows="7" spellcheck="false">{
   "maxCostINR": 1200,
   "minBurstMPa": 150,
   "bannedElements": ["Co", "Be"],
   "targetTempC": 1800
 }</textarea>
-        <p class="form-error" id="challengeError"></p>
-        <div class="challenge-actions">
-          <button class="btn btn-glass" id="challengeFromSliders">Sync sliders → block</button>
-          <button class="btn btn-primary" id="challengeApply">Generate Challenge</button>
+        <p class="form-error" id="benchmarkError"></p>
+        <div class="benchmark-actions">
+          <button class="btn btn-glass" id="benchmarkFromSliders">Sync sliders → block</button>
+          <button class="btn btn-primary" id="benchmarkApply">Generate Benchmark</button>
         </div>
-        <p class="micro-note">A shareable link is written to the address bar, e.g. <code>?challenge=maxCostINR-1200_minBurstMPa-150</code>.</p>
+        <p class="micro-note">A shareable link is written to the address bar, e.g. <code>?benchmark=maxCostINR-1200_minBurstMPa-150</code>.</p>
       </div>
     </div>
   </div>
@@ -1723,7 +1723,7 @@
       <input id="copilotInput" type="text" maxlength="400" placeholder="Ask anything: why did it melt, how do I cut cost…" autocomplete="off" />
       <button class="btn btn-primary small" type="submit">Ask</button>
     </form>
-    <p class="micro-note">Answers use the current alloy, temperature, pressure and challenge. Screening advice is not a certified test report.</p>
+    <p class="micro-note">Answers use the current alloy, temperature, pressure and benchmark. Screening advice is not a certified test report.</p>
   </aside>
 
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
@@ -1736,13 +1736,13 @@
 </html><div class="ef-col ef-modules">
         <span class="ef-title">Modules</span>
         <a href="#" data-view="simulator">3D Alloy & Mission Simulator</a>
-        <a href="#" data-view="battle">Alloy A vs. B Battle Arena</a>
+        <a href="#" data-view="battle">Alloy A vs. B Comparative Analysis</a>
         <a href="#" data-view="dashboard">Multi-Material Pre-Screening</a>
         <a href="#" data-view="analytics">Deep Engineering Analytics</a>
         <a href="#" data-view="analytics-dashboard">Usage Analytics Dashboard</a>
         <a href="#" data-view="batch">Batch CSV & Lab Data</a>
         <a href="#" data-view="roi">R&D ROI Calculator</a>
-        <a href="#" data-view="leaderboard">Global R&D Leaderboard</a>
+        <a href="#" data-view="leaderboard">Global R&D Discovery Registry</a>
         <a href="#" data-view="pricing">Pricing, KYB & Compliance</a>
         <a href="#" data-view="workspaces">Team Workspaces</a>
         <a href="#" data-view="report-templates">Report Templates</a>
@@ -1753,7 +1753,7 @@
         <a href="#" data-view="api-access">API Access</a>
         <a href="#" data-view="alloy-genome">Alloy Genome</a>
         <a href="#" data-view="digital-twin">Digital Twin Export</a>
-        <a href="#" data-view="gamification">Gamification</a>
+        <a href="#" data-view="engagement-metrics">Engagement Metrics</a>
         <a href="#" data-view="ai-design">AI Alloy Design</a>
         <a href="#" data-view="export-control">Export Control</a>
       </div>TYPE html>
@@ -1761,7 +1761,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="MATERIALHUNT Inc. — deep-tech materials intelligence: 3D alloy simulation, mission co-pilot, battle arena, enterprise pre-screening and R&D analytics. 100% offline." />
+  <meta name="description" content="MATERIALHUNT Inc. - deep-tech materials intelligence: 3D alloy simulation, mission co-pilot, comparative analysis, enterprise pre-screening and R&D analytics. 100% offline." />
   <meta name="theme-color" content="#070B14" />
   <title>MATERIALHUNT Inc. — Deep-Tech Materials Intelligence</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
@@ -1795,13 +1795,13 @@
 
       <nav class="main-nav nav-scroll" aria-label="Primary">
         <button class="nav-link active" data-view="simulator" title="3D Alloy & Mission Simulator">3D Simulator</button>
-        <button class="nav-link" data-view="battle" title="Alloy A vs. B Battle Arena">Battle Arena</button>
+        <button class="nav-link" data-view="battle" title="Alloy A vs. B Comparative Analysis">Comparative Analysis</button>
         <button class="nav-link" data-view="dashboard" title="Multi-Material Pre-Screening & PDF">Pre-Screening</button>
         <button class="nav-link" data-view="analytics" title="Deep Engineering Analytics">Analytics</button>
         <button class="nav-link" data-view="analytics-dashboard" title="Enterprise Usage Analytics Dashboard">Analytics Dashboard</button>
         <button class="nav-link" data-view="batch" title="Enterprise Batch CSV & Custom Lab Data">Batch & Lab Data</button>
         <button class="nav-link" data-view="roi" title="R&D ROI Calculator">R&D ROI</button>
-        <button class="nav-link" data-view="leaderboard" title="Global R&D Leaderboard & Feedback">Leaderboard</button>
+        <button class="nav-link" data-view="discovery-registry" title="Global R&D Discovery Registry & Feedback">Discovery Registry</button>
         <button class="nav-link" data-view="pricing" title="Pricing, Corporate KYB & Compliance">Pricing & KYB</button>
         <button class="nav-link" data-view="workspaces" title="Team Workspaces & Collaboration">Workspaces</button>
         <button class="nav-link" data-view="report-templates" title="AS9100, ISO, MIL-STD Certified Templates">Report Templates</button>
@@ -1812,7 +1812,7 @@
         <button class="nav-link" data-view="api-access" title="REST + WebSocket API, OpenAPI 3.1, SDKs">API Access</button>
         <button class="nav-link" data-view="alloy-genome" title="3D Property Manifold, 180M Composition Space">Alloy Genome</button>
         <button class="nav-link" data-view="digital-twin" title="FMU, Abaqus, CAD, MaterialX Export">Digital Twin</button>
-        <button class="nav-link" data-view="gamification" title="Streaks, Badges, XP, Cosmetics">Gamification</button>
+        <button class="nav-link" data-view="engagement-metrics" title="Consecutive Dayss, Badges, Eexperience-pointserience Points, Cosmetics">Engagement Metrics</button>
         <button class="nav-link" data-view="ai-design" title="Generative Alloy Design from Natural Language">AI Designer</button>
         <button class="nav-link" data-view="export-control" title="ITAR/EAR/Wassenaar Automated Screening">Export Control</button>
         <button class="nav-link vault-link hidden" data-view="admin" id="vaultNav">Vault</button>
@@ -1843,11 +1843,11 @@
       </div>
     </header>
 
-    <div class="summit-banner hidden" id="summitBanner">
-      <span class="summit-pulse"></span>
+    <div class="admin-access-banner hidden" id="admin-accessBanner">
+      <span class="admin-access-pulse"></span>
       <strong>ENTERPRISE VIP</strong>
-      <span>Enterprise R&amp;D access granted · <em>VIP GRANT — FEE WAIVED (₹0)</em> · ENTERPRISE VIP · KYB VERIFIED</span>
-      <button class="banner-close" id="summitBannerClose" aria-label="Dismiss">×</button>
+      <span>Enterprise R&amp;D access granted · <em>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</em> · ENTERPRISE VIP · KYB VERIFIED</span>
+      <button class="banner-close" id="admin-accessBannerClose" aria-label="Dismiss">×</button>
     </div>
 
     <main>
@@ -2079,7 +2079,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>
                 Auto-Optimize Alloy (Cheaper &amp; Lighter)
               </button>
-              <button class="btn btn-ghost full small" id="shareSpec" title="Copy a WhatsApp / LinkedIn / Slack share link with this alloy and challenge">
+              <button class="btn btn-ghost full small" id="shareSpec" title="Copy a WhatsApp / LinkedIn / Slack share link with this alloy and benchmark">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-3.9M8.6 13.4l6.8 3.9"/></svg>
                 Copy Shareable Spec Link
               </button>
@@ -2118,23 +2118,23 @@
 
             <div class="chart-grid sim-charts">
               <article class="chart-card glass">
-                <div class="chart-head"><div><span class="panel-kicker">STRESS-STRAIN</span><h3>25°C vs Operating <button class="ask-ai tiny-ai" data-ask="Explain this stress-strain curve, yield point and failure strain in simple terms">Ask AI</button></h3></div><span class="chart-tag" id="strainTag">—</span></div>
+                <div class="chart-head"><div><span class="panel-kicker">STRESS-STRAIN</span><h3>25°C vs Operating <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain this stress-strain curve, yield point and failure strain in simple terms">Ask AI</button></h3></div><span class="chart-tag" id="strainTag">—</span></div>
                 <div class="chart-box" id="simStressChart"></div>
               </article>
               <article class="chart-card glass">
-                <div class="chart-head"><div><span class="panel-kicker">THERMAL DEGRADATION</span><h3>Strength vs Temperature <button class="ask-ai tiny-ai" data-ask="Explain how temperature degrades strength and where the creep risk starts">Ask AI</button></h3></div><span class="chart-tag" id="thermalTag">—</span></div>
+                <div class="chart-head"><div><span class="panel-kicker">THERMAL DEGRADATION</span><h3>Strength vs Temperature <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain how temperature degrades strength and where the creep risk starts">Ask AI</button></h3></div><span class="chart-tag" id="thermalTag">—</span></div>
                 <div class="chart-box" id="simThermalChart"></div>
               </article>
             </div>
 
             <article class="chart-card glass">
-              <div class="chart-head"><div><span class="panel-kicker">SIX-AXIS ENGINEERING</span><h3>Custom Alloy Fingerprint <button class="ask-ai tiny-ai" data-ask="Explain this six-axis alloy fingerprint and which axis is limiting performance">Ask AI</button></h3></div><span class="chart-tag" id="simRadarTag">—</span></div>
+              <div class="chart-head"><div><span class="panel-kicker">SIX-AXIS ENGINEERING</span><h3>Custom Alloy Fingerprint <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain this six-axis alloy fingerprint and which axis is limiting performance">Ask AI</button></h3></div><span class="chart-tag" id="simRadarTag">—</span></div>
               <div class="chart-box radar-box" id="simRadarChart"></div>
             </article>
 
             <article class="advice-card glass">
               <div class="chart-head">
-                <div><span class="panel-kicker">AI METALLURGIST</span><h3>Hypothesis &amp; Processing Advice <button class="ask-ai tiny-ai" data-ask="Explain the hypothesis and the processing advice for this alloy in plain English">Ask AI</button></h3></div>
+                <div><span class="panel-kicker">AI METALLURGIST</span><h3>Hypothesis &amp; Processing Advice <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain the hypothesis and the processing advice for this alloy in plain English">Ask AI</button></h3></div>
                 <div class="advice-actions">
                   <button class="btn btn-glass small" id="downloadSpecTxt" title="Export machining and heat-treatment spec as .txt">Spec .txt</button>
                   <button class="btn btn-glass small" id="downloadSpecJson" title="Export machining and heat-treatment spec as .json">Spec .json</button>
@@ -2173,17 +2173,17 @@
           <div class="mission-results" id="missionResults"></div>
         </article>
 
-        <!-- ============ PRODUCT FORGE & STRESS-TEST CHALLENGES ============ -->
+        <!-- ============ PRODUCT FORGE & STRESS-TEST BENCHMARKS ============ -->
         <article class="glass forge-panel" id="forgePanel">
           <div class="forge-head">
             <div>
-              <span class="panel-kicker">PRODUCT FORGE · STRESS-TEST CHALLENGES</span>
+              <span class="panel-kicker">PRODUCT FORGE · STRESS-TEST BENCHMARKS</span>
               <h3>Forge a real part. Survive its worst day.</h3>
               <p class="panel-sub">Pick an engineering blueprint, tune the chemistry, then run the live stress test. Verdicts are PASS, MELT, BURST or OVERWEIGHT.</p>
             </div>
             <div class="forge-head-actions">
-              <label class="sr-only" for="challengeSelect">Blueprint</label>
-              <select id="challengeSelect" class="field-select">
+              <label class="sr-only" for="benchmarkSelect">Blueprint</label>
+              <select id="benchmarkSelect" class="field-select">
                 <option value="rocket-nozzle">Reusable Rocket Nozzle — 3,200°C + 80 MPa</option>
                 <option value="submersible">Deep-Sea Submersible Hull — 110 MPa + seawater</option>
                 <option value="ev-enclosure">EV Solid-State Battery Enclosure</option>
@@ -2191,20 +2191,20 @@
                 <option value="bone-implant">Orthopedic Bone Implant — zero toxic elements</option>
                 <option value="custom">Custom Part (define your own)</option>
               </select>
-              <button class="btn btn-primary small" id="runChallenge">Run Stress Test</button>
-              <button class="btn btn-glass small" id="openChallengeDesigner">Design Your Own Problem</button>
+              <button class="btn btn-primary small" id="runBenchmark">Run Stress Test</button>
+              <button class="btn btn-glass small" id="openBenchmarkDesigner">Design Your Own Problem</button>
             </div>
           </div>
           <div class="forge-grid">
             <div class="forge-blueprint">
-              <span class="forge-chip" id="challengeTag">AEROSPACE · REUSABLE</span>
-              <h4 id="challengeTitle">Reusable Rocket Nozzle</h4>
-              <p id="challengeBrief">A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.</p>
-              <ul class="forge-rules" id="challengeRules"></ul>
-              <div class="forge-standards" id="challengeStandards"></div>
+              <span class="forge-chip" id="benchmarkTag">AEROSPACE · REUSABLE</span>
+              <h4 id="benchmarkTitle">Reusable Rocket Nozzle</h4>
+              <p id="benchmarkBrief">A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.</p>
+              <ul class="forge-rules" id="benchmarkRules"></ul>
+              <div class="forge-standards" id="benchmarkStandards"></div>
               <div class="forge-share">
-                <button class="btn btn-ghost small" id="copyChallengeLink">Copy Challenge Link</button>
-                <button class="btn btn-ghost small" id="loadChallengeLink" title="Read ?challenge= from the current URL">Load Link Challenge</button>
+                <button class="btn btn-ghost small" id="copyBenchmarkLink">Copy Benchmark Link</button>
+                <button class="btn btn-ghost small" id="loadBenchmarkLink" title="Read ?benchmark= from the current URL">Load Link Benchmark</button>
               </div>
             </div>
             <div class="forge-telemetry">
@@ -2217,10 +2217,10 @@
                 <div><span>Safety factor</span><strong id="forgeSafety">—</strong><small id="forgeSafetyReq">min 1.20</small></div>
                 <div><span>Burst ratio</span><strong id="forgeBurst">—</strong><small id="forgeBurstReq">must stay below 1.00</small></div>
               </div>
-              <div class="xp-row">
-                <span>Challenge XP</span>
-                <div class="xp-track"><i id="forgeXpBar"></i></div>
-                <strong id="forgeXp">0 XP</strong>
+              <div class="experience-points-row">
+                <span>Benchmark Eexperience-pointserience Points</span>
+                <div class="experience-points-track"><i id="forgeXpBar"></i></div>
+                <strong id="forgeXp">0 Eexperience-pointserience Points</strong>
               </div>
               <div class="badge-row" id="forgeBadges"></div>
             </div>
@@ -2230,29 +2230,29 @@
               <p id="forgeVerdictSub">Select a blueprint and run the stress test.</p>
               <ul class="forge-fixes" id="forgeFixes"></ul>
               <button class="btn btn-primary full small" id="forgeAutoFix" disabled>⚡ Apply AI Fix</button>
-              <button class="btn btn-glass full small" id="forgePublish" disabled>Post Result to Leaderboard</button>
+              <button class="btn btn-glass full small" id="forgePublish" disabled>Post Result to Discovery Registry</button>
             </div>
           </div>
         </article>
       </section>
 
-      <!-- ================= 2. ALLOY A VS. B BATTLE ARENA ================= -->
+      <!-- ================= 2. SPECIMEN A VS. B COMPARATIVE ANALYSIS ================= -->
       <section class="view" id="view-battle">
         <div class="section-head">
           <div>
             <span class="panel-kicker">HEAD-TO-HEAD SCREENING</span>
-            <h2>Alloy A vs. B Battle Arena</h2>
+            <h2>Alloy A vs. B Comparative Analysis</h2>
             <p>Run two chemistries under identical service conditions. The arena compares strength, liquidus margin, density, cost and pressure containment simultaneously.</p>
           </div>
           <div class="sim-actions">
             <span class="status-pill status-cyan" id="battleStatus">STANDBY</span>
-            <button class="btn btn-primary small" id="runBattle">Fight</button>
+            <button class="btn btn-primary small" id="runBattle">Execute Analysis</button>
           </div>
         </div>
 
         <div class="battle-grid">
           <article class="glass battle-card" id="battleCardA">
-            <div class="battle-card-head"><span class="battle-tag tag-a">ALLOY A</span><h3 id="battleNameA">316L</h3></div>
+            <div class="battle-card-head"><span class="battle-tag tag-a">SPECIMEN A</span><h3 id="battleNameA">316L</h3></div>
             <label class="field-label" for="battlePresetA">Chemistry preset</label>
             <select id="battlePresetA" class="field-select">
               <option value="316L">316L stainless</option>
@@ -2262,7 +2262,7 @@
               <option value="Al7075">Al-7075</option>
               <option value="custom">Custom mixture…</option>
             </select>
-            <label class="field-label" for="battleImportA">Import authentic designation</label>
+            <label class="field-label" for="battleImportA">Import validated designation</label>
             <select id="battleImportA" class="field-select battle-import">
               <option value="">— validated handbook alloy —</option>
               <option>Ti-6Al-4V ELI</option>
@@ -2286,19 +2286,19 @@
               <div class="range-head"><label for="battleVelA">Velocity</label><output id="battleVelAOut">0 km/h</output></div>
               <input id="battleVelA" type="range" min="0" max="3500" step="5" value="0" />
             </div>
-            <div class="battle-verdict" id="battleVerdictA">Awaiting fight</div>
+            <div class="battle-verdict" id="battleVerdictA">Awaiting analysis</div>
             <ul class="battle-stats" id="battleStatsA"></ul>
           </article>
 
           <div class="battle-center glass">
-            <span class="battle-vs">VS</span>
-            <div class="battle-winner" id="battleWinner">No result yet</div>
+            <span class="battle-vs">versus</span>
+            <div class="battle-winner" id="battleWinner">No result available</div>
             <div class="battle-scoreline" id="battleScoreline">A 0 · 0 B</div>
-            <button class="btn btn-glass small" id="swapBattle">Swap sides</button>
+            <button class="btn btn-glass small" id="swapBattle">Swap specimens</button>
           </div>
 
           <article class="glass battle-card" id="battleCardB">
-            <div class="battle-card-head"><span class="battle-tag tag-b">ALLOY B</span><h3 id="battleNameB">Ti-6Al-4V</h3></div>
+            <div class="battle-card-head"><span class="battle-tag tag-b">SPECIMEN B</span><h3 id="battleNameB">Ti-6Al-4V</h3></div>
             <label class="field-label" for="battlePresetB">Chemistry preset</label>
             <select id="battlePresetB" class="field-select">
               <option value="316L">316L stainless</option>
@@ -2308,7 +2308,7 @@
               <option value="Al7075">Al-7075</option>
               <option value="custom">Custom mixture…</option>
             </select>
-            <label class="field-label" for="battleImportB">Import authentic designation</label>
+            <label class="field-label" for="battleImportB">Import validated designation</label>
             <select id="battleImportB" class="field-select battle-import">
               <option value="">— validated handbook alloy —</option>
               <option>Ti-6Al-4V ELI</option>
@@ -2332,7 +2332,7 @@
               <div class="range-head"><label for="battleVelB">Velocity</label><output id="battleVelBOut">0 km/h</output></div>
               <input id="battleVelB" type="range" min="0" max="3500" step="5" value="0" />
             </div>
-            <div class="battle-verdict" id="battleVerdictB">Awaiting fight</div>
+            <div class="battle-verdict" id="battleVerdictB">Awaiting analysis</div>
             <ul class="battle-stats" id="battleStatsB"></ul>
           </article>
         </div>
@@ -2351,7 +2351,7 @@
         <div class="table-wrap glass battle-table-wrap">
           <table class="data-table">
             <thead><tr><th>Metric</th><th>Alloy A</th><th>Alloy B</th><th>Winner</th></tr></thead>
-            <tbody id="battleResults"><tr class="empty-row"><td colspan="4">Run the arena to compare two chemistries.</td></tr></tbody>
+            <tbody id="battleResults"><tr class="empty-row"><td colspan="4">Execute analysis to compare two chemistries.</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -2388,7 +2388,7 @@
             <div class="check-grid">
               <label class="check-chip"><input type="checkbox" class="dataset-check" value="steels" checked /><span>Yield Strength</span></label>
               <label class="check-chip"><input type="checkbox" class="dataset-check" value="glass" checked /><span>Glass Forming</span></label>
-              <label class="check-chip"><input type="checkbox" class="dataset-check" value="expt_gap" checked /><span>Band Gap</span></label>
+              <label class="check-chip"><input type="checkbox" class="dataset-check" value="eexperience-pointst_gap" checked /><span>Band Gap</span></label>
             </div>
 
             <label class="field-label" for="searchInput">Formula search</label>
@@ -2479,7 +2479,7 @@
 
         <div class="risk-grid">
           <article class="glass risk-panel">
-            <div class="panel-title-row"><h3>Supply-Chain &amp; Geopolitical Risk Radar</h3><span class="pill pill-amber">live exposure</span></div>
+            <div class="panel-title-row"><h3>Supply-Chain &amp; Geopolitical Risk Radar</h3><span class="pill pill-amber">live eexperience-pointsosure</span></div>
             <div class="risk-list" id="riskRadar"></div>
           </article>
           <article class="glass risk-panel">
@@ -2491,7 +2491,7 @@
         <div class="chart-grid">
           <article class="chart-card glass span-2">
             <div class="chart-head">
-              <div><span class="panel-kicker">ASHBY SELECTION MAP</span><h3>Specific Strength vs Raw Cost <button class="ask-ai tiny-ai" data-ask="Explain the Ashby map: how do I read specific strength versus raw cost when choosing an alloy">Ask AI</button></h3></div>
+              <div><span class="panel-kicker">ASHBY SELECTION MAP</span><h3>Specific Strength vs Raw Cost <button class="ask-ai tiny-ai" data-ask="Eexperience-pointslain the Ashby map: how do I read specific strength versus raw cost when choosing an alloy">Ask AI</button></h3></div>
               <span class="chart-tag">Bubble size = confidence</span>
             </div>
             <div class="chart-box" id="ashbyChart"></div>
@@ -2528,7 +2528,7 @@
         <div class="analytics-grid">
           <article class="chart-card glass span-2">
             <div class="chart-head">
-              <div><span class="panel-kicker">BENCHMARK LEADERBOARD</span><h3>Linear vs Random Forest vs Gradient Boosting</h3></div>
+              <div><span class="panel-kicker">BENCHMARK DISCOVERY REGISTRY</span><h3>Linear vs Random Forest vs Gradient Boosting</h3></div>
               <span class="chart-tag">R² · MAE · RMSE</span>
             </div>
             <div class="table-wrap">
@@ -2544,7 +2544,7 @@
               <select id="importanceDataset" class="mini-select">
                 <option value="steels">Steels</option>
                 <option value="glass">Glass</option>
-                <option value="expt_gap">Expt Gap</option>
+                <option value="eexperience-pointst_gap">Eexperience-pointst Gap</option>
               </select>
             </div>
             <div class="chart-box" id="analyticsImportanceChart"></div>
@@ -2668,7 +2668,7 @@
         </div>
         <div class="batch-actions">
           <button class="btn btn-glass small" id="batchExport" disabled>Export batch results CSV</button>
-          <button class="btn btn-glass small" id="batchPushLeaderboard" disabled>Publish best result to leaderboard</button>
+          <button class="btn btn-glass small" id="batchPushDiscovery Registry" disabled>Publish best result to discovery-registry</button>
         </div>
       </section>
 
@@ -2687,11 +2687,11 @@
           <aside class="glass roi-controls">
             <div class="panel-title-row"><h3>Assumptions</h3><span class="mini-tag">INR</span></div>
             <div class="range-field">
-              <div class="range-head"><label for="roiExperiments">Experiments / month</label><output id="roiExperimentsOut">40</output></div>
-              <input id="roiExperiments" type="range" min="5" max="200" step="5" value="40" />
+              <div class="range-head"><label for="roiEexperience-pointseriments">Eexperience-pointseriments / month</label><output id="roiEexperience-pointserimentsOut">40</output></div>
+              <input id="roiEexperience-pointseriments" type="range" min="5" max="200" step="5" value="40" />
             </div>
             <div class="range-field">
-              <div class="range-head"><label for="roiCost">Cost per experiment</label><output id="roiCostOut">₹45,000</output></div>
+              <div class="range-head"><label for="roiCost">Cost per eexperience-pointseriment</label><output id="roiCostOut">₹45,000</output></div>
               <input id="roiCost" type="range" min="5000" max="300000" step="5000" value="45000" />
             </div>
             <div class="range-field">
@@ -2699,7 +2699,7 @@
               <input id="roiReduction" type="range" min="5" max="80" step="1" value="42" />
             </div>
             <div class="range-field">
-              <div class="range-head"><label for="roiDays">Cycle time / experiment</label><output id="roiDaysOut">18 days</output></div>
+              <div class="range-head"><label for="roiDays">Cycle time / eexperience-pointseriment</label><output id="roiDaysOut">18 days</output></div>
               <input id="roiDays" type="range" min="3" max="60" step="1" value="18" />
             </div>
             <div class="range-field">
@@ -2710,9 +2710,9 @@
             <select id="roiTier" class="field-select">
               <option value="pro">Pro Lab · ₹4,999 / mo</option>
               <option value="enterprise">Enterprise R&amp;D · ₹19,999 / mo</option>
-              <option value="waived">VIP GRANT — FEE WAIVED (₹0)</option>
+              <option value="waived">ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</option>
             </select>
-            <p class="micro-note">Assumes 65% of avoided experiments release lab capacity, and that pre-screened candidates move to validation with the same success rate.</p>
+            <p class="micro-note">Assumes 65% of avoided eexperience-pointseriments release lab capacity, and that pre-screened candidates move to validation with the same success rate.</p>
           </aside>
 
           <div class="roi-output">
@@ -2723,7 +2723,7 @@
               <div class="roi-quick">
                 <div><span>Payback</span><strong id="roiPayback">—</strong></div>
                 <div><span>12-month ROI</span><strong id="roiPercent">—</strong></div>
-                <div><span>Experiments avoided</span><strong id="roiAvoided">—</strong></div>
+                <div><span>Eexperience-pointseriments avoided</span><strong id="roiAvoided">—</strong></div>
                 <div><span>Engineering days saved</span><strong id="roiDaysSaved">—</strong></div>
               </div>
             </div>
@@ -2733,7 +2733,7 @@
             </article>
             <article class="glass roi-note">
               <h3>Why the model holds</h3>
-              <p>Every avoided experiment frees furnace, characterization and metallographer time. At an 18-day cycle, a 42% pre-screen reduction compounds into months of schedule recovery — the real ROI is time-to-market, not only cash.</p>
+              <p>Every avoided eexperience-pointseriment frees furnace, characterization and metallographer time. At an 18-day cycle, a 42% pre-screen reduction compounds into months of schedule recovery — the real ROI is time-to-market, not only cash.</p>
               <div class="roi-bars">
                 <div><span>Raw test avoidance</span><div class="bar"><i id="roiBar1"></i></div><strong id="roiRaw">—</strong></div>
                 <div><span>Team capacity released</span><div class="bar"><i id="roiBar2"></i></div><strong id="roiCapacity">—</strong></div>
@@ -2744,28 +2744,28 @@
         </div>
       </section>
 
-      <!-- ================= 7. GLOBAL R&D LEADERBOARD & FEEDBACK ================= -->
-      <section class="view" id="view-leaderboard">
+      <!-- ================= 7. GLOBAL R&D DISCOVERY REGISTRY & FEEDBACK ================= -->
+      <section class="view" id="view-discovery-registry">
         <div class="section-head">
           <div>
-            <span class="panel-kicker">GLOBAL R&amp;D DISCOVERY LEADERBOARD</span>
-            <h2>Global R&amp;D Discovery Leaderboard &amp; 0–5★ Feedback</h2>
+            <span class="panel-kicker">GLOBAL R&amp;D DISCOVERY DISCOVERY REGISTRY</span>
+            <h2>Global R&amp;D Discovery Discovery Registry &amp; 0–5★ Feedback</h2>
             <p>Verified breakthroughs from enterprise labs, ranked by discovery score. Publish a simulation or rate the platform from 0 to 5 stars.</p>
           </div>
           <div class="sim-actions">
-            <span class="status-pill status-emerald" id="leaderboardStatus">LIVE</span>
-            <button class="btn btn-glass small" id="refreshLeaderboard">Refresh</button>
+            <span class="status-pill status-emerald" id="discovery-registryStatus">LIVE</span>
+            <button class="btn btn-glass small" id="refreshDiscovery Registry">Refresh</button>
           </div>
         </div>
 
-        <div class="leader-stats" id="leaderboardStats"></div>
+        <div class="leader-stats" id="discovery-registryStats"></div>
 
         <div class="table-wrap glass">
           <table class="data-table leader-table">
             <thead>
               <tr><th>Rank</th><th>R&amp;D Team</th><th>Material</th><th>Predicted</th><th>Confidence</th><th>Discovery note</th><th>Date</th></tr>
             </thead>
-            <tbody id="leaderboardBody"><tr class="empty-row"><td colspan="7">Loading verified discoveries…</td></tr></tbody>
+            <tbody id="discovery-registryBody"><tr class="empty-row"><td colspan="7">Loading verified discoveries…</td></tr></tbody>
           </table>
         </div>
 
@@ -2819,8 +2819,8 @@
             <span class="price-cycle">forever · no card</span>
             <ul class="price-list">
               <li>3D simulator + all 118 elements</li>
-              <li>Product Forge &amp; stress-test challenges</li>
-              <li>Battle Arena + leaderboard</li>
+              <li>Validation Benchmarks &amp; stress-test benchmarks</li>
+              <li>Comparative Analysis + Discovery Registry</li>
               <li>Community-grade dossier preview</li>
             </ul>
             <button class="btn btn-glass full" data-view="simulator">Open the free studio</button>
@@ -2833,7 +2833,7 @@
               <li>Board-ready PDF dossier per credit</li>
               <li>Batch CSV screening credits</li>
               <li>Machining + heat-treatment spec export</li>
-              <li>Shareable spec and challenge links</li>
+              <li>Shareable spec and benchmark links</li>
             </ul>
             <button class="btn btn-primary full" id="buyCreditsBtn">Buy a ₹999 credit pack</button>
           </article>
@@ -2945,11 +2945,11 @@
               <div class="audit-list" id="adminAudit"></div>
             </article>
             <article class="glass admin-panel span-2">
-              <div class="panel-title-row"><h3>Global R&amp;D Discovery Leaderboard</h3><button class="text-btn" id="adminMintPilot">Mint pilot grant</button></div>
+              <div class="panel-title-row"><h3>Global R&amp;D Discovery Discovery Registry</h3><button class="text-btn" id="adminMintPilot">Mint pilot grant</button></div>
               <div class="table-wrap">
                 <table class="data-table admin-table">
                   <thead><tr><th>Rank</th><th>Team</th><th>Material</th><th>Predicted</th><th>Score</th></tr></thead>
-                  <tbody id="adminLeaderboard"><tr class="empty-row"><td colspan="5">Unlock the vault to load discoveries.</td></tr></tbody>
+                  <tbody id="adminDiscovery Registry"><tr class="empty-row"><td colspan="5">Unlock the vault to load discoveries.</td></tr></tbody>
                 </table>
               </div>
             </article>
@@ -2976,7 +2976,7 @@
           <div>
             <span class="panel-kicker">COLLABORATIVE R&D</span>
             <h2>Team Workspaces</h2>
-            <p>Share alloys, co-edit challenges, track team discoveries, and manage enterprise permissions.</p>
+            <p>Share alloys, co-edit benchmarks, track team discoveries, and manage enterprise permissions.</p>
           </div>
           <button class="btn btn-primary" id="createWorkspaceBtn">Create Workspace</button>
         </div>
@@ -3067,7 +3067,7 @@
           <div>
             <span class="panel-kicker">DEVELOPER PLATFORM</span>
             <h2>API Access & Integration</h2>
-            <p>REST + WebSocket API for simulation, optimization, mission search, and leaderboard. OpenAPI 3.1 spec, SDKs for Python/TypeScript/Rust.</p>
+            <p>REST + WebSocket API for simulation, optimization, mission search, and discovery-registry. OpenAPI 3.1 spec, SDKs for Python/TypeScript/Rust.</p>
           </div>
           <button class="btn btn-primary" id="generateApiKeyBtn">Generate API Key</button>
         </div>
@@ -3080,7 +3080,7 @@
           <div>
             <span class="panel-kicker">DEEP-TECH VISUALIZATION</span>
             <h2>Alloy Genome Visualization</h2>
-            <p>Interactive 3D property manifold — explore 180M composition space with PCA/t-SNE/UMAP, property gradients, and similarity clustering.</p>
+            <p>Interactive 3D property manifold — eexperience-pointslore 180M composition space with PCA/t-SNE/UMAP, property gradients, and similarity clustering.</p>
           </div>
           <span class="status-pill status-emerald" id="genomeStatus">GPU ACCELERATED</span>
         </div>
@@ -3088,17 +3088,17 @@
           <div class="genome-controls">
             <div class="genome-control-group"><label>Projection</label><select id="genomeProjection"><option value="pca">PCA (3D)</option><option value="tsne">t-SNE</option><option value="umap">UMAP</option></select></div>
             <div class="genome-control-group"><label>Color By</label><select id="genomeColorBy"><option value="strength">Yield Strength</option><option value="density">Density</option><option value="cost">Cost/kg</option><option value="liquidus">Liquidus</option><option value="phase">Phase State</option></select></div>
-            <div class="genome-control-group"><label>Dataset</label><select id="genomeDataset"><option value="all">All Candidates</option><option value="steels">Steels</option><option value="glass">Glass</option><option value="expt_gap">Expt Gap</option></select></div>
+            <div class="genome-control-group"><label>Dataset</label><select id="genomeDataset"><option value="all">All Candidates</option><option value="steels">Steels</option><option value="glass">Glass</option><option value="eexperience-pointst_gap">Eexperience-pointst Gap</option></select></div>
           </div>
           <canvas class="genome-canvas" id="genomeCanvas"></canvas>
         </div>
       </section>
 
-      <!-- ================= DIGITAL TWIN EXPORT ================= -->
+      <!-- ================= DIGITAL TWIN EEexperience-pointserience PointsORT ================= -->
       <section class="view" id="view-digital-twin">
         <div class="section-head">
           <div>
-            <span class="panel-kicker">SIMULATION EXPORT</span>
+            <span class="panel-kicker">SIMULATION EEexperience-pointserience PointsORT</span>
             <h2>Digital Twin Export</h2>
             <p>Export complete simulation state as FMU (FMI 2.0/3.0), Abaqus/Ansys input decks, CAD geometries (STEP/STL), MaterialX, or JSON-LD for digital thread integration.</p>
           </div>
@@ -3107,17 +3107,17 @@
         <div class="export-format-grid glass" id="digitalTwinFormats"></div>
       </section>
 
-      <!-- ================= GAMIFICATION ENGINE ================= -->
-      <section class="view" id="view-gamification">
+      <!-- ================= ENGAGEMENT METRICS ENGINE ================= -->
+      <section class="view" id="view-engagement-metrics">
         <div class="section-head">
           <div>
             <span class="panel-kicker">ENGAGEMENT LAYER</span>
-            <h2>Gamification & Achievements</h2>
-            <p>Daily streaks, alloy discovery badges, challenge leaderboards, XP progression, and unlockable cosmetics for the 3D viewer.</p>
+            <h2>Engagement Metrics & Milestones</h2>
+            <p>Daily consecutive-dayss, alloy discovery badges, benchmark discovery-registrys, Eexperience-pointserience Points progression, and unlockable cosmetics for the 3D viewer.</p>
           </div>
-          <span class="status-pill status-violet" id="gamificationStatus">ACTIVE</span>
+          <span class="status-pill status-violet" id="engagement-metricsStatus">ACTIVE</span>
         </div>
-        <div class="gamification-panel glass" id="gamificationPanel"></div>
+        <div class="engagement-metrics-panel glass" id="engagement-metricsPanel"></div>
       </section>
 
       <!-- ================= AI-POWERED ALLOY DESIGN ================= -->
@@ -3133,7 +3133,7 @@
         <div class="ai-design-panel glass" id="aiDesignPanel"></div>
       </section>
 
-      <!-- ================= EXPORT CONTROL COMPLIANCE ================= -->
+      <!-- ================= EEexperience-pointserience PointsORT CONTROL COMPLIANCE ================= -->
       <section class="view" id="view-export-control">
         <div class="section-head">
           <div>
@@ -3173,7 +3173,7 @@
       <div class="ef-col">
         <span class="ef-title">Modules</span>
         <a href="#" data-view="simulator">3D Alloy &amp; Mission Simulator</a>
-        <a href="#" data-view="battle">Alloy A vs. B Battle Arena</a>
+        <a href="#" data-view="battle">Alloy A vs. B Comparative Analysis</a>
         <a href="#" data-view="dashboard">Multi-Material Pre-Screening</a>
         <a href="#" data-view="analytics">Deep Engineering Analytics</a>
       </div>
@@ -3181,7 +3181,7 @@
         <span class="ef-title">Enterprise</span>
         <a href="#" data-view="batch">Batch CSV &amp; Lab Data</a>
         <a href="#" data-view="roi">R&amp;D ROI Calculator</a>
-        <a href="#" data-view="leaderboard">Global R&amp;D Leaderboard</a>
+        <a href="#" data-view="discovery-registry">Global R&amp;D Discovery Registry</a>
         <a href="#" data-view="pricing">Pricing, KYB &amp; Compliance</a>
       </div>
       <div class="ef-col ef-compliance">
@@ -3199,7 +3199,7 @@
     </div>
     <div class="ef-bottom">
       <span>© <span id="footerYear">2026</span> MATERIALHUNT Inc. · All rights reserved.</span>
-      <span>VIP GRANT — FEE WAIVED (₹0) · Enterprise R&amp;D pilots available on request.</span>
+      <span>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0) · Enterprise R&amp;D pilots available on request.</span>
       <span class="ef-offline"><i class="dot dot-emerald"></i> Offline verified · Firebase Hosting build</span>
     </div>
   </footer>
@@ -3287,9 +3287,9 @@
 
       <p class="form-error" id="authError"></p>
       <div class="auth-divider"><span>or walk in as a guest</span></div>
-      <button class="btn btn-glass full" id="guestSummitBtn">
+      <button class="btn btn-glass full" id="guestAdmin AccessBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.6 6.1L21 10l-5 4.4L17.5 21 12 17.6 6.5 21 8 14.4 3 10l6.4-.9L12 3Z"/></svg>
-        Instant Enterprise VIP · VIP GRANT — FEE WAIVED (₹0)
+        Instant Enterprise VIP · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)
       </button>
       <p class="auth-footnote">Enterprise VIP access is valid for this offline pilot session only. No card, no internet.</p>
     </div>
@@ -3335,39 +3335,39 @@
     </form>
   </aside>
 
-  <!-- ================= CHALLENGE DESIGNER ================= -->
-  <div class="modal-backdrop hidden" id="challengeModal">
-    <div class="auth-modal glass challenge-modal" role="dialog" aria-modal="true" aria-labelledby="challengeModalTitle">
-      <button class="modal-close" id="closeChallengeModal" aria-label="Close">×</button>
+  <!-- ================= BENCHMARK DESIGNER ================= -->
+  <div class="modal-backdrop hidden" id="benchmarkModal">
+    <div class="auth-modal glass benchmark-modal" role="dialog" aria-modal="true" aria-labelledby="benchmarkModalTitle">
+      <button class="modal-close" id="closeBenchmarkModal" aria-label="Close">×</button>
       <div class="auth-brand">
         <span class="brand-mark small"><svg viewBox="0 0 40 40" fill="none"><path d="M20 3 34.5 11.3v17.4L20 37 5.5 28.7V11.3Z" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="20" r="4.2" fill="currentColor"/></svg></span>
-        <div><span class="panel-kicker">PRODUCT FORGE</span><h2 id="challengeModalTitle">Design &amp; Code Your Own Problem</h2></div>
+        <div><span class="panel-kicker">PRODUCT FORGE</span><h2 id="benchmarkModalTitle">Design &amp; Code Your Own Problem</h2></div>
       </div>
       <p class="panel-sub">Use the sliders, or edit the safe declarative constraint block. No code is executed — only these four keys are read.</p>
-      <div class="challenge-form">
+      <div class="benchmark-form">
         <div class="field-two-col">
-          <div><label class="field-label" for="challengeName">Challenge title</label><input id="challengeName" type="text" maxlength="60" value="My Custom Part" /></div>
-          <div><label class="field-label" for="challengeTemp">Target temperature (°C)</label><input id="challengeTemp" type="number" min="-273" max="4500" step="10" value="1800" /></div>
+          <div><label class="field-label" for="benchmarkName">Benchmark title</label><input id="benchmarkName" type="text" maxlength="60" value="My Custom Part" /></div>
+          <div><label class="field-label" for="benchmarkTemp">Target temperature (°C)</label><input id="benchmarkTemp" type="number" min="-273" max="4500" step="10" value="1800" /></div>
         </div>
         <div class="field-two-col">
-          <div><label class="field-label" for="challengeCost">Max cost (INR/kg)</label><input id="challengeCost" type="number" min="0" max="50000" step="50" value="1200" /></div>
-          <div><label class="field-label" for="challengeBurst">Min burst pressure (MPa)</label><input id="challengeBurst" type="number" min="0" max="5000" step="5" value="150" /></div>
+          <div><label class="field-label" for="benchmarkCost">Max cost (INR/kg)</label><input id="benchmarkCost" type="number" min="0" max="50000" step="50" value="1200" /></div>
+          <div><label class="field-label" for="benchmarkBurst">Min burst pressure (MPa)</label><input id="benchmarkBurst" type="number" min="0" max="5000" step="5" value="150" /></div>
         </div>
-        <label class="field-label" for="challengeBanned">Banned elements (comma separated)</label>
-        <input id="challengeBanned" type="text" value="Co, Be" />
-        <label class="field-label" for="challengeJson">Declarative constraint block</label>
-        <textarea id="challengeJson" rows="7" spellcheck="false">{
+        <label class="field-label" for="benchmarkBanned">Banned elements (comma separated)</label>
+        <input id="benchmarkBanned" type="text" value="Co, Be" />
+        <label class="field-label" for="benchmarkJson">Declarative constraint block</label>
+        <textarea id="benchmarkJson" rows="7" spellcheck="false">{
   "maxCostINR": 1200,
   "minBurstMPa": 150,
   "bannedElements": ["Co", "Be"],
   "targetTempC": 1800
 }</textarea>
-        <p class="form-error" id="challengeError"></p>
-        <div class="challenge-actions">
-          <button class="btn btn-glass" id="challengeFromSliders">Sync sliders → block</button>
-          <button class="btn btn-primary" id="challengeApply">Generate Challenge</button>
+        <p class="form-error" id="benchmarkError"></p>
+        <div class="benchmark-actions">
+          <button class="btn btn-glass" id="benchmarkFromSliders">Sync sliders → block</button>
+          <button class="btn btn-primary" id="benchmarkApply">Generate Benchmark</button>
         </div>
-        <p class="micro-note">A shareable link is written to the address bar, e.g. <code>?challenge=maxCostINR-1200_minBurstMPa-150</code>.</p>
+        <p class="micro-note">A shareable link is written to the address bar, e.g. <code>?benchmark=maxCostINR-1200_minBurstMPa-150</code>.</p>
       </div>
     </div>
   </div>
@@ -3481,7 +3481,7 @@
       <input id="copilotInput" type="text" maxlength="400" placeholder="Ask anything: why did it melt, how do I cut cost…" autocomplete="off" />
       <button class="btn btn-primary small" type="submit">Ask</button>
     </form>
-    <p class="micro-note">Answers use the current alloy, temperature, pressure and challenge. Screening advice is not a certified test report.</p>
+    <p class="micro-note">Answers use the current alloy, temperature, pressure and benchmark. Screening advice is not a certified test report.</p>
   </aside>
 
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>

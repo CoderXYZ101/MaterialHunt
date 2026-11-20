@@ -1,0 +1,3 @@
+waiver label is VIP GRANT — FEE WAIVED (₹0)",
+          body.get("waiver_label") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)" if isinstance(body, dict) else False,
+          str(body.get("waiver_label") if isinstance(body, dict) else ""))
