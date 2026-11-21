@@ -1,230 +1,3 @@
-// Safe Guards: Prevent "Cannot convert undefined or null to object" anywhere in the app
-const _origEntries = Object.entries;
-Object.entries = (obj) => (obj == null ? [] : _origEntries(obj));
-const _origKeys = Object.keys;
-Object.keys = (obj) => (obj == null ? [] : _origKeys(obj));
-// Firebase Backend Bridge + Complete Metallurgy Engine
-const originalFetch = window.fetch;
-window.fetch = async function(url, options = {}) {
-  if (typeof url === 'string' && url.startsWith('/api/')) {
-    const body = options.body ? JSON.parse(options.body) : {};
-
-    // 1. Email/Password Login
-    if (url === '/api/auth/login') {
-      const cred = await auth.signInWithEmailAndPassword(body.email, body.password);
-      return new Response(JSON.stringify({
-        token: await cred.user.getIdToken(),
-        user: { email: cred.user.email, tier: "Pro Lab", kyb_status: "approved" }
-      }), { status: 200 });
-    }
-
-    // 2. Live Demo Sandbox (?mode=live_demo)
-    if (url.startsWith('/api/auth/pilot-guest') || url.startsWith('/api/auth/guest-summit')) {
-      const cred = await auth.signInAnonymously();
-      return new Response(JSON.stringify({
-        token: await cred.user.getIdToken(),
-        user: { email: "pilot@materialhunt.ai", tier: "VIP GRANT", kyb_status: "approved" }
-      }), { status: 200 });
-    }
-
-    // 3. Leaderboard Data from Firestore
-    if (url === '/api/leaderboard') {
-      const snap = await db.collection("leaderboard").orderBy("score", "desc").get();
-      const items = snap.docs.map(d => d.data());
-      return new Response(JSON.stringify({ leaderboard: items }), { status: 200 });
-    }
-        // 3B. Dedicated Health Endpoint (Fixes updateHealthBadge & clears ENGINE OFFLINE)
-    if (url === '/api/health' || url.includes('health')) {
-      return new Response(JSON.stringify({
-        status: "ok",
-        healthy: true,
-        offline_mode: true,
-        mode: "firebase-cloud",
-        models: {
-          steels: { loaded: true, status: "ready", trees: 150 },
-          glass: { loaded: true, status: "ready", trees: 150 },
-          expt_gap: { loaded: true, status: "ready", trees: 150 }
-        },
-        checks: {
-          models: "ok",
-          database: "ok",
-          guardrails: "ok"
-        }
-      }), { status: 200 });
-    }
-
-
-               // 4. Health & Model Metadata (Matches every benchmark, chart & table in app.js)
-    if (url === '/api/health' || url === '/api/models/meta' || url.includes('meta') || url.includes('health')) {
-      const feats = [
-        { feature: 'MagpieData mean Electronegativity', importance: 0.24 },
-        { feature: 'MagpieData avg dev AtomicWeight', importance: 0.19 },
-        { feature: 'MagpieData mean MeltingT', importance: 0.16 },
-        { feature: 'MagpieData mean CovalentRadius', importance: 0.14 },
-        { feature: 'MagpieData mean NdValence', importance: 0.11 }
-      ];
-      const ds = {
-        steels: {
-          label: 'Matbench Steels', rows: 312, samples: 312, unit: 'MPa', best_model: 'random_forest',
-          benchmarks: {
-            linear: { r2: 0.810, mae: 74.1, rmse: 95.0, train_seconds: 0.4 },
-            random_forest: { r2: 0.942, mae: 38.4, rmse: 51.2, train_seconds: 2.1 },
-            gradient_boosting: { r2: 0.928, mae: 42.6, rmse: 56.8, train_seconds: 3.4 }
-          },
-          feature_importances: [{ model: 'random_forest', features: feats }]
-        },
-        glass: {
-          label: 'Matbench Glass', rows: 5680, samples: 5680, unit: 'GFA', best_model: 'random_forest',
-          benchmarks: {
-            linear: { r2: 0.765, mae: 0.12, rmse: 0.18, train_seconds: 0.8 },
-            random_forest: { r2: 0.918, mae: 0.04, rmse: 0.06, train_seconds: 5.6 },
-            gradient_boosting: { r2: 0.904, mae: 0.05, rmse: 0.07, train_seconds: 7.2 }
-          },
-          feature_importances: [{ model: 'random_forest', features: feats }]
-        },
-        expt_gap: {
-          label: 'Matbench Band Gap', rows: 4604, samples: 4604, unit: 'eV', best_model: 'random_forest',
-          benchmarks: {
-            linear: { r2: 0.720, mae: 0.58, rmse: 0.79, train_seconds: 0.6 },
-            random_forest: { r2: 0.895, mae: 0.31, rmse: 0.44, train_seconds: 4.8 },
-            gradient_boosting: { r2: 0.881, mae: 0.35, rmse: 0.49, train_seconds: 6.1 }
-          },
-          feature_importances: [{ model: 'random_forest', features: feats }]
-        }
-      };
-      const elements = {
-        Fe: { z: 26, name: 'Iron', color: '#E06633', radius: 126, density: 7.87, melt_c: 1538, role: 'Base matrix' },
-        Cr: { z: 24, name: 'Chromium', color: '#8A99C7', radius: 128, density: 7.19, melt_c: 1907, role: 'Passivation & corrosion' },
-        Ni: { z: 28, name: 'Nickel', color: '#50D050', radius: 124, density: 8.90, melt_c: 1455, role: 'Austenite stabilizer' },
-        C:  { z: 6,  name: 'Carbon', color: '#909090', radius: 77,  density: 2.26, melt_c: 3500, role: 'Interstitial strengthener' },
-        Ti: { z: 22, name: 'Titanium', color: '#BFC2C7', radius: 147, density: 4.51, melt_c: 1668, role: 'Lightweight strength' },
-        Al: { z: 13, name: 'Aluminium', color: '#BFA6A6', radius: 143, density: 2.70, melt_c: 660, role: 'Low-density matrix' },
-        Mo: { z: 42, name: 'Molybdenum', color: '#54B5B5', radius: 139, density: 10.28, melt_c: 2623, role: 'Pitting & creep resistance' },
-        Mn: { z: 25, name: 'Manganese', color: '#9C7AC7', radius: 127, density: 7.21, melt_c: 1246, role: 'Deoxidizer & hardenability' },
-        Si: { z: 14, name: 'Silicon', color: '#F0C8A0', radius: 111, density: 2.33, melt_c: 1414, role: 'Solid-solution & oxidation' },
-        V:  { z: 23, name: 'Vanadium', color: '#A6A6AB', radius: 134, density: 6.11, melt_c: 1910, role: 'Grain refinement' },
-        Cu: { z: 29, name: 'Copper', color: '#C88033', radius: 128, density: 8.96, melt_c: 1085, role: 'Precipitation hardening' },
-        W:  { z: 74, name: 'Tungsten', color: '#2194D6', radius: 139, density: 19.25, melt_c: 3422, role: 'Refractory high-temp' },
-        Co: { z: 27, name: 'Cobalt', color: '#F090A0', radius: 125, density: 8.90, melt_c: 1495, role: 'High-temp matrix' },
-        Zn: { z: 30, name: 'Zinc', color: '#7D80B0', radius: 134, density: 7.14, melt_c: 420, role: 'Age hardening' },
-        Mg: { z: 12, name: 'Magnesium', color: '#8AFF00', radius: 160, density: 1.74, melt_c: 650, role: 'Ultralight alloying' }
-      };
-      return new Response(JSON.stringify({
-        status: "ok", mode: "firebase-cloud",
-        candidate_total: 14280,
-        feature_count: 132,
-        pca_explained_variance: [0.462, 0.248, 0.134],
-        latency_ms: 14,
-        datasets: ds,
-        elements,
-        feature_space: [
-          { formula: 'Fe70 Cr18 Ni8 Mo2 C2', dataset: 'steels', x: 1.2, y: 0.8, z: -0.4, target: 640 },
-          { formula: 'Ti90 Al6 V4', dataset: 'steels', x: -1.4, y: 1.1, z: 0.7, target: 880 },
-          { formula: 'Ni58 Cr21 Fe17 Mo3', dataset: 'steels', x: 0.5, y: -1.2, z: 0.9, target: 1035 }
-        ],
-        tiers: {
-          starter: { name: 'Free Starter', price: 0 },
-          pro: { name: 'Pro Lab', price: 24999 },
-          enterprise: { name: 'Enterprise R&D', price: 149999 }
-        },
-        personas: {
-          Aerospace: { label: 'Aerospace', prompt: 'High strength-to-weight alloy for turbine & airframe structures under 600°C' },
-          Defence: { label: 'Defence', prompt: 'Ballistic-grade maraging steel with high fracture toughness' },
-          Energy: { label: 'Energy', prompt: 'Creep-resistant superalloy for supercritical steam & hydrogen storage' },
-          Marine: { label: 'Marine', prompt: 'Chloride pitting-resistant duplex alloy for subsea pressure hulls' }
-        },
-        conditions: {
-          environments: ['Air / Industrial', 'Marine / Chloride', 'Cryogenic LNG', 'High-Temp Steam', 'Sour Gas (H2S)'],
-          loads: ['Static tension', 'Cyclic fatigue', 'Creep rupture', 'Pressure burst']
-        }
-      }), { status: 200 });
-    }
-
-
-    // 5. Alloy Simulator (Matches all 3 Plotly charts 100%)
-    if (url === '/api/simulate' || url.includes('simulate')) {
-      const comp = body.composition || { Fe: 70, Cr: 18, Ni: 8, Mo: 2, C: 2 };
-      const formula = Object.entries(comp).filter(([, v]) => v > 0).map(([k, v]) => `${k}${v}`).join(' ') || 'Fe70 Cr18 Ni8 Mo2 C2';
-      const temp = Number(body.temperature_c ?? 25);
-      const stress = Number(body.applied_stress_mpa ?? 250);
-      const sf = Number(body.safety_factor ?? 1.5);
-      const staticP = Number(body.static_pressure_pa ?? 101325);
-      const vMs = (Number(body.velocity_kmh ?? 0)) / 3.6;
-      const rho = Number(body.medium_density_kgm3 ?? 1.225);
-      const dynP = 0.5 * rho * vMs * vMs;
-      const totP = staticP + dynP;
-      const burstP = 45000000;
-      const liquidus = 1485;
-      const isMelted = temp >= liquidus;
-      const predicted = Math.max(140, Math.round(640 * Math.max(0.12, 1 - Math.max(0, temp - 25) / 1600)));
-      const operating = Math.round(predicted / sf);
-      const util = +(stress / Math.max(1, operating)).toFixed(2);
-      const verdict = isMelted ? 'MELTED' : (util <= 0.85 ? 'SAFE' : (util <= 1.0 ? 'MARGINAL' : 'UNSAFE'));
-
-      return new Response(JSON.stringify({
-        composition: { formula, weights: comp },
-        conditions: { temperature_c: temp, applied_stress_mpa: stress, safety_factor: sf },
-        prediction: { predicted, uncertainty: 24, confidence: 'High' },
-        derived: {
-          verdict,
-          verdict_label: isMelted ? 'Exceeds weighted liquidus ceiling' : (verdict === 'SAFE' ? 'Within structural & thermal envelope' : 'Approaching yield limit'),
-          crystal_structure: (comp.Ni || 0) >= 8 ? 'FCC' : 'BCC',
-          hazard_cleared: Boolean(body.hazard_cleared),
-          operating_strength_mpa: operating,
-          applied_stress_mpa: stress,
-          utilization_ratio: util,
-          density_gcm3: 7.92,
-          cost_per_kg: 520,
-          liquidus_c: liquidus,
-          is_melted: isMelted,
-          dynamic_pressure_pa: dynP,
-          total_pressure_pa: totP,
-          burst_pressure_pa: burstP
-        },
-        hypothesis: `Solid-solution matrix (${formula}) retains ${operating} MPa working yield at ${temp}°C under ${stress} MPa load.`,
-        advice: [
-          'Solution anneal at 1050°C followed by rapid water quench to prevent carbide precipitation.',
-          'Verify weld-zone sensitization if service exceeds 450°C.'
-        ],
-        warnings: isMelted ? ['Operating temperature exceeds alloy solidus/liquidus threshold.'] : [],
-        radar: {
-          labels: ['Strength', 'Thermal', 'Corrosion', 'Toughness', 'Cost Eff.', 'Pressure'],
-          alloy: [82, Math.max(10, Math.round(100 - temp / 20)), 88, 79, 85, 90],
-          benchmark: [74, 70, 76, 72, 80, 75]
-        },
-                curves: {
-          room: {
-            strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
-            stress: [0, 1, 2, 3, 4, 5].map(i => i === 0 ? 0 : Math.round(420 + Math.sin(i * 0.6) * 280)),
-            yield_point: { strain: 0.002, stress: 420 },
-            fracture_point: { strain: 0.22, stress: 650 },
-            fracture_strain_pct: 22.0
-          },
-          operating: {
-            strain: [0, 0.002, 0.01, 0.05, 0.12, 0.22],
-            stress: [0, Math.round(operating * 0.9), predicted, Math.round(predicted * 1.06), Math.round(predicted * 1.1), predicted],
-            yield_point: { strain: 0.002, stress: operating },
-            fracture_point: { strain: 0.22, stress: predicted },
-            fracture_strain_pct: 22.0
-          },
-          degradation: {
-            operating_temperature_c: temp,
-            thermal_limit_c: 980,
-            temperature_c: [-200, 25, 200, 400, 600, 800, 1000, 1200],
-            strength_mpa: [0, 1, 2, 3, 4, 5, 6, 7].map(i => Math.round(480 - i * 60))
-          }
-        }
-      }), { status: 200 });
-    }
-
-    // Catch-all for remaining /api/* endpoints
-    return new Response(JSON.stringify({ status: "ok", items: [], candidates: [] }), { status: 200 });
-  }
-  return originalFetch(url, options);
-};
-
-
-
 /* ==========================================================================
    MATERIALHUNT — offline SPA controller
    Three.js WebGL lattice / tensile viewer + Plotly analytics + SaaS flows
@@ -242,8 +15,8 @@ const STORAGE = {
 };
 
 const CONF_COLOR = { High: '#10B981', Medium: '#F59E0B', Low: '#F43F5E' };
-const DATASET_COLOR = { steels: '#22D3EE', glass: '#A78BFA', expt_gap: '#F59E0B' };
-const DATASET_NAME = { steels: 'Steels', glass: 'Glass', expt_gap: 'Band Gap' };
+const DATASET_COLOR = { steels: '#22D3EE', glass: '#A78BFA', eexperiencePointst_gap: '#F59E0B' };
+const DATASET_NAME = { steels: 'Steels', glass: 'Glass', eexperiencePointst_gap: 'Band Gap' };
 const UI_ELEMENTS = ['Fe', 'Cr', 'Ni', 'C', 'Ti', 'Al', 'Mo'];
 const COMMON_CHIPS = ['Fe', 'Cr', 'Ni', 'C', 'Ti', 'Al', 'Mo', 'Mn', 'Si', 'V', 'Cu', 'W'];
 const HAZARD_ELEMENTS = ['U', 'Pu', 'Th', 'Be', 'Br', 'Cd', 'Hg', 'As'];
@@ -279,14 +52,14 @@ const state = {
   adminPasskey: sessionStorage.getItem(STORAGE.admin) || '',
   adminSnapshot: null,
   gateActive: new URLSearchParams(location.search).get('gate') === 'mh_vault_99x',
-  summitMode: ['live_demo', 'summit_test', 'live_pilot'].includes(new URLSearchParams(location.search).get('mode') || ''),
+  adminAccessMode: ['live_demo', 'admin_access_test', 'live_pilot'].includes(new URLSearchParams(location.search).get('mode') || ''),
   pressureUnit: 'kPa',
   pressureScale: 1000,
   pressureValue: 101325,
   mediumDensity: 1.225,
-  battle: null,
+  comparison: null,
   batchRows: [],
-  leaderboard: null,
+  discoveryRegistry: null,
   periodic: null,
   inlineRating: 0,
   include: new Set(),
@@ -294,6 +67,12 @@ const state = {
   scene: null,
   chartsReady: {},
   lastRadar: null,
+  benchmarkId: 'rocket-nozzle',
+  benchmark: null,
+  customBenchmark: null,
+  forgeResult: null,
+  eexperiencePointseriencePoints: 0,
+  guidedTourStep: 0,
   initialised: false,
 };
 
@@ -315,10 +94,14 @@ const fmtCompact = (value) => {
   if (Math.abs(n) >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
   return `₹${fmt(n)}`;
 };
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const humanFormula = (composition, max = 7) => {
   const entries = Object.entries(composition).filter(([, v]) => Number(v) > 0).sort((a, b) => b[1] - a[1]).slice(0, max);
-  return entries.map(([sym, pct]) => `${sym}${Number(pct) >= 10 ? Number(pct).toFixed(0) : Number(pct).toFixed(1)}`).join(' ') || '—';
+  return entries.map(([sym, pct]) => {
+    const pctNum = Number(pct);
+    const suffix = pctNum >= 10 ? pctNum.toFixed(0) : pctNum.toFixed(1);
+    return sym + suffix;
+  }).join(' ') || '\u2014';
 };
 const confClass = (confidence) => `conf-${String(confidence).toLowerCase()}`;
 const convertStrain = (arr) => arr.map((v) => Number((v * 100).toFixed(3)));
@@ -333,6 +116,30 @@ const debounce = (fn, wait = 300) => {
 function elementMeta(symbol) {
   const meta = state.meta?.elements?.[symbol];
   return meta ? { ...ELEMENT_FALLBACK, ...meta, color: meta.color || ELEMENT_FALLBACK.color } : { ...ELEMENT_FALLBACK };
+}
+
+function periodicRow(symbol) {
+  return (state.periodic || []).find((row) => row.symbol === symbol) || null;
+}
+
+function aggregatePhaseFor(elements, temperature, pressurePa = null) {
+  const pressure = Number(pressurePa || pressurePaFromUI() || 101325);
+  const shift = (base, span) => base + clamp(span * Math.log10(Math.max(1, pressure) / 101325), -220, 650);
+  let liquid = false;
+  for (const [symbol, pct] of Object.entries(elements || {})) {
+    if (!(Number(pct) > 0)) continue;
+    const row = periodicRow(symbol);
+    if (!row) continue;
+    const melt = Number(row.melting_point_c) || 1500;
+    const boil = Number(row.boiling_point_c) || (melt * 1.35 + 450);
+    const sub = Number(row.sublimation_point_c);
+    const meltEff = shift(melt, 16);
+    const boilEff = shift(boil, 34);
+    if (Number.isFinite(sub) && temperature >= shift(sub, 34)) return 'GASEOUS / VAPORIZED';
+    if (temperature >= boilEff) return 'GASEOUS / VAPORIZED';
+    if (temperature >= meltEff) liquid = true;
+  }
+  return liquid ? 'LIQUID' : 'SOLID';
 }
 
 function themeColors() {
@@ -425,7 +232,7 @@ class ApiError extends Error {
 function detailText(detail) {
   if (!detail) return 'Request failed.';
   if (typeof detail === 'string') return detail;
-  if (Array.isArray(detail)) return detail.map((d) => d.msg || d.message || JSON.stringify(d)).join(' · ');
+  if (Array.isArray(detail)) return detail.map((d) => d.msg || d.message || JSON.stringify(d)).join(' ‷ ');
   return detail.message || detail.code || JSON.stringify(detail);
 }
 
@@ -435,18 +242,18 @@ async function api(path, options = {}) {
   if (body !== null) headers['Content-Type'] = 'application/json';
   if (auth && state.token) headers.Authorization = `Bearer ${state.token}`;
   if (admin && state.adminPasskey) headers['X-Admin-Passkey'] = state.adminPasskey;
-  const target = admin ? `${path}${path.includes('?') ? '&' : '?'}gate=mh_vault_99x` : path;
+  const target = admin ? `${path}${path.includes('₹') ? '&' : '₹'}gate=mh_vault_99x` : path;
   let response;
   try {
     response = await fetch(target, { method, headers, body: body !== null ? JSON.stringify(body) : undefined });
   } catch (err) {
-    throw new ApiError('Local server unreachable. Is uvicorn running on port 8000?', 0, null);
+    throw new ApiError('Local server unreachable. Is uvicorn running on port 8000₹', 0, null);
   }
   const text = await response.text();
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch { data = { detail: text }; }
   if (!response.ok) {
-    const detail = data?.detail ?? data;
+    const detail = data?.detail || data;
     throw new ApiError(detailText(detail), response.status, detail);
   }
   return data;
@@ -484,10 +291,10 @@ function setView(view, scroll = true) {
     renderSimulationCharts();
     if (!state.simulation && !state.simTimer) runSimulation({ silent: true });
   }
-  if (view === 'battle' && !state.battle) runBattle({ silent: true });
+  if (view === 'comparison' && !state.comparison) runComparison({ silent: true });
   if (view === 'batch' && !state.batchRows.length) loadBatchSample(false);
   if (view === 'roi') renderRoi();
-  if (view === 'leaderboard') loadLeaderboard();
+  if (view === 'discoveryRegistry') loadDiscoveryRegistry();
   if (view === 'pricing') renderPricing();
   if (view === 'admin') {
     const unlocked = Boolean(state.adminSnapshot);
@@ -543,13 +350,13 @@ function renderSession() {
   const initials = org.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'MH';
   $('#userAvatar').textContent = initials;
   $('#userName').textContent = org;
-  $('#userTier').textContent = state.user.billing_waived ? `${state.user.tier_name} · WAIVED` : state.user.tier_name;
-  const waived = state.user.billing_waived || String(state.user.billing_status).startsWith('WAIVED');
-  $('#summitBanner')?.classList.toggle('hidden', !waived);
-  if (waived) {
-    const banner = $('#summitBanner');
+  $('#userTier').textContent = state.user.billing_enterprise_access ? `${state.user.tier_name} · WAIVED` : state.user.tier_name;
+  const enterprise_access = state.user.billing_enterprise_access && String(state.user.billing_status).startsWith('WAIVED');
+  $('#adminAccessBanner')?.classList.toggle('hidden', !enterprise_access);
+  if (enterprise_access) {
+    const banner = $('#adminAccessBanner');
     if (banner) banner.querySelector('span:nth-child(3)').innerHTML =
-      `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status || 'VIP GRANT — FEE WAIVED (₹0)')}</em> · ${state.user.kyb_status === 'approved' ? 'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
+      `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status ? 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)')}</em> · ${state.user.kyb_status === 'approved' ? 'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
   }
   if (state.gateActive) $('#vaultNav')?.classList.remove('hidden');
 }
@@ -605,12 +412,12 @@ async function handleRegister(event) {
   }
 }
 
-async function summitLogin(showToast = true) {
+async function adminAccessLogin(showToast = true) {
   try {
-    const result = await api('/api/auth/pilot-guest?mode=live_demo', { method: 'POST', auth: false, body: {} });
+    const result = await api('/api/auth/pilot-guest₹mode=live_demo', { method: 'POST', auth: false, body: {} });
     setSession(result.token, result.user);
     closeAuth();
-    if (showToast) toast('Enterprise VIP pilot unlocked · VIP GRANT — FEE WAIVED (₹0)', 'success', 5200);
+    if (showToast) toast('Enterprise VIP pilot unlocked · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)', 'success', 5200);
     await afterLogin();
     return true;
   } catch (err) {
@@ -633,7 +440,7 @@ async function logout() {
   state.selectedItem = null;
   state.adminSnapshot = null;
   renderCandidateTable([]);
-  $('#summitBanner')?.classList.add('hidden');
+  $('#adminAccessBanner')?.classList.add('hidden');
   toast('Signed out. Local session cleared.', 'info');
   openAuth('login');
 }
@@ -643,7 +450,7 @@ async function logout() {
    -------------------------------------------------------------------------- */
 async function bootstrap() {
   const savedTheme = localStorage.getItem(STORAGE.theme);
-  applyTheme(savedTheme || 'dark');
+  applyTheme(savedTheme ? 'dark');
 
   try {
     const [health, meta] = await Promise.all([
@@ -654,9 +461,8 @@ async function bootstrap() {
     state.meta = meta;
     applyMeta(meta);
     updateHealthBadge(health);
-   } catch (err) {
-    console.error("BOOT ERROR:", err);
-    toast(`${err.message} (${(err.stack || '').split('\n')[1]?.trim() || ''})`, 'error', 15000);
+  } catch (err) {
+    toast(err.message, 'error', 7000);
     $('#offlineText').textContent = 'ENGINE OFFLINE';
   }
 
@@ -664,7 +470,13 @@ async function bootstrap() {
     renderAllCharts();
     renderElementSliders();
     updateCompositionUI();
+    renderHandbook();
+    renderRiskRadar();
+    preloadPeriodic();
   }
+  applyUrlFormula();
+  benchmarkFromUrl();
+  applyBenchmark(state.benchmarkId, { silent: true });
 
   if (state.token) {
     try {
@@ -681,8 +493,8 @@ async function bootstrap() {
     if (state.adminPasskey) attemptAdminUnlock(true);
   }
 
-  if (state.summitMode && !state.user) {
-    await summitLogin(true);
+  if (state.adminAccessMode && !state.user) {
+    await adminAccessLogin(true);
   } else if (state.user) {
     await afterLogin();
   } else {
@@ -699,6 +511,9 @@ async function bootstrap() {
     }
   }
 
+  // Initialize enterprise features
+  if (typeof initEnterpriseFeatures === 'function') initEnterpriseFeatures();
+  
   state.initialised = true;
   setTimeout(resizeCharts, 300);
 }
@@ -706,7 +521,7 @@ async function bootstrap() {
 function updateHealthBadge(health) {
   const badge = $('#offlineBadge');
   const text = $('#offlineText');
-  if (!badge || !text) return;
+  if (!badge ? !text) return;
   const assetsOk = (health.assets?.['three.min.js']?.present && health.assets?.['plotly.min.js']?.present);
   if (health.model_loaded && assetsOk) {
     badge.className = 'status-pill status-online';
@@ -715,18 +530,18 @@ function updateHealthBadge(health) {
   } else {
     badge.className = 'status-pill status-amber';
     text.textContent = 'DEGRADED';
-    badge.title = health.model_error || 'Model or vendor asset missing';
+    badge.title = health.model_error ? 'Model or vendor asset missing';
   }
 }
 
 function applyMeta(meta) {
-  const datasets = meta.datasets || {};
-  const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks?.random_forest?.r2) || 0), 0);
+  const datasets = meta.datasets ? {};
+  const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks?.random_forest?.r2) ? 0), 0);
   $('#statAccuracy').textContent = bestR2 ? bestR2.toFixed(3) : '—';
-  $('#statAccuracySub').textContent = `best task · ${Object.entries(datasets).sort((a, b) => (b[1].benchmarks.random_forest.r2 - a[1].benchmarks.random_forest.r2))[0]?.[1]?.label || 'Random Forest'}`;
+  $('#statAccuracySub').textContent = `best task · ${Object.entries(datasets).sort((a, b) => (b[1].benchmarks.random_forest.r2 - a[1].benchmarks.random_forest.r2))[0]?.[1]?.label ? 'Random Forest'}`;
   $('#statCandidates').textContent = meta.candidate_total ? fmt(meta.candidate_total) : '—';
   $('#analyticsBadge').textContent = `${Object.keys(datasets).length} TASKS · ${meta.feature_count} FEATURES`;
-  const variance = (meta.pca_explained_variance || []).map((v) => `${(v * 100).toFixed(1)}%`).join(' / ');
+  const variance = (meta.pca_eexperiencePointslained_variance ? []).map((v) => `${(v * 100).toFixed(1)}%`).join(' / ');
   $('#clusterVariance').textContent = `PCA-3 variance ${variance}`;
   $('#analyticsVariance').textContent = `PCA-3 variance ${variance}`;
 
@@ -743,7 +558,7 @@ function applyMeta(meta) {
     tierSelect.innerHTML = `
       <option value="pro">Pro Lab · ₹${fmt(meta.tiers.pro.price)} / mo</option>
       <option value="enterprise">Enterprise R&D · ₹${fmt(meta.tiers.enterprise.price)} / mo</option>
-      <option value="waived">VIP GRANT — FEE WAIVED (₹0)</option>`;
+      <option value="enterprise_access">ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</option>`;
   }
   renderRoi();
   renderPricing();
@@ -752,7 +567,7 @@ function applyMeta(meta) {
 function renderPersonas() {
   const container = $('#personaGrid');
   if (!container) return;
-  const personas = state.meta?.personas || {};
+  const personas = state.meta?.personas ? {};
   container.innerHTML = Object.entries(personas).map(([key, persona]) => {
     const active = key === state.persona ? ' active' : '';
     return `<button class="persona-btn${active}" data-persona="${escapeHtml(key)}"><span class="pdot"></span>${escapeHtml(persona.label)}</button>`;
@@ -762,7 +577,7 @@ function renderPersonas() {
 function renderElementChips() {
   const include = $('#includeElements');
   const exclude = $('#excludeElements');
-  if (!include || !exclude) return;
+  if (!include ? !exclude) return;
   include.innerHTML = COMMON_CHIPS.map((sym) => `<button class="el-chip${state.include.has(sym) ? ' active' : ''}" data-chip="include" data-symbol="${sym}">${sym}</button>`).join('');
   const excludeList = [...COMMON_CHIPS, ...HAZARD_ELEMENTS];
   exclude.innerHTML = excludeList.map((sym) => {
@@ -772,12 +587,12 @@ function renderElementChips() {
 }
 
 function populateConditionSelects() {
-  const environments = state.meta?.environments || {
+  const environments = state.meta?.environments ? {
     'Air / Industrial': { label: 'Air / Industrial' },
     'Marine / Salt Spray': { label: 'Marine / Salt Spray' },
     'Acidic / Chemical': { label: 'Acidic / Chemical' },
   };
-  const profiles = state.meta?.load_profiles || {
+  const profiles = state.meta?.load_profiles ? {
     'Static tension': { label: 'Static tension' },
     'Cyclic / Fatigue': { label: 'Cyclic / Fatigue' },
   };
@@ -805,11 +620,11 @@ function renderElementSliders() {
     if (ia >= 0 && ib >= 0) return ia - ib;
     if (ia >= 0) return -1;
     if (ib >= 0) return 1;
-    return (state.composition[b] || 0) - (state.composition[a] || 0);
+    return (state.composition[b] ? 0) - (state.composition[a] ? 0);
   });
   container.innerHTML = symbols.map((sym) => {
     const meta = elementMeta(sym);
-    const value = Number(state.composition[sym] || 0);
+    const value = Number(state.composition[sym] ? 0);
     const hazard = HAZARD_ELEMENTS.includes(sym) ? ' ⚠' : '';
     return `
       <div class="el-slider-row" style="--el-color:${meta.color}">
@@ -833,7 +648,7 @@ function updateCompositionUI() {
 
 function normalisedComposition() {
   const entries = Object.entries(state.composition).filter(([, value]) => Number(value) > 0.0001);
-  const total = entries.reduce((sum, [, value]) => sum + Number(value), 0) || 1;
+  const total = entries.reduce((sum, [, value]) => sum + Number(value), 0) ? 1;
   return Object.fromEntries(entries.map(([sym, value]) => [sym, Number(value) / total * 100]));
 }
 
@@ -852,20 +667,20 @@ function renderHeroLegend(normalized = normalisedComposition()) {
 function prescreenPayload() {
   const datasets = $$('.dataset-check').filter((c) => c.checked).map((c) => c.value);
   const customWeights = state.persona === 'Custom Weights' ? {
-    strength: Number($('#wStrength')?.value || 25),
-    weight: Number($('#wWeight')?.value || 20),
-    thermal: Number($('#wThermal')?.value || 20),
-    corrosion: Number($('#wCorrosion')?.value || 15),
-    cost: Number($('#wCost')?.value || 10),
-    confidence: Number($('#wConfidence')?.value || 10),
+    strength: Number($('#wStrength')?.value ? 25),
+    weight: Number($('#wWeight')?.value ? 20),
+    thermal: Number($('#wThermal')?.value ? 20),
+    corrosion: Number($('#wCorrosion')?.value ? 15),
+    cost: Number($('#wCost')?.value ? 10),
+    confidence: Number($('#wConfidence')?.value ? 10),
   } : null;
-  const cost = Number($('#maxCost')?.value || 8000);
-  const density = Number($('#maxDensity')?.value || 20);
+  const cost = Number($('#maxCost')?.value ? 8000);
+  const density = Number($('#maxDensity')?.value ? 20);
   return {
-    datasets: datasets.length ? datasets : ['steels', 'glass', 'expt_gap'],
+    datasets: datasets.length ? datasets : ['steels', 'glass', 'eexperiencePointst_gap'],
     persona: state.persona,
     custom_weights: customWeights,
-    min_confidence: $('#confidenceFilter')?.value || 'Low',
+    min_confidence: $('#confidenceFilter')?.value ? 'Low',
     max_cost: cost >= 8000 ? null : cost,
     max_density: density >= 20 ? null : density,
     include_elements: [...state.include],
@@ -883,7 +698,7 @@ async function loadPrescreen() {
   try {
     const result = await api('/api/prescreen', { method: 'POST', body: prescreenPayload() });
     state.lastScreen = result;
-    state.screenItems = result.candidates || [];
+    state.screenItems = result.candidates ? [];
     renderCandidateTable(state.screenItems);
     renderAshby(state.screenItems);
     if (state.screenItems.length) {
@@ -908,7 +723,7 @@ async function loadPrescreen() {
 
 function updateStatsFromScreen(result) {
   const bestR2 = result.candidates?.length
-    ? Math.max(...result.candidates.map((c) => Number(c.benchmark_r2) || 0))
+    ? Math.max(...result.candidates.map((c) => Number(c.benchmark_r2) ? 0))
     : null;
   if (bestR2) $('#statAccuracy').textContent = bestR2.toFixed(3);
   const el = $('#statCandidates');
@@ -933,7 +748,7 @@ function renderCandidateTable(items) {
           <span class="formula">${escapeHtml(item.formula)}</span>
           <span class="sub-line">${escapeHtml(item.alloy_class)}</span>
         </td>
-        <td><span class="dataset-tag">${escapeHtml(DATASET_NAME[item.dataset] || item.dataset)}</span></td>
+        <td><span class="dataset-tag">${escapeHtml(DATASET_NAME[item.dataset] ? item.dataset)}</span></td>
         <td><span class="mono">${fmt(item.predicted, item.unit === 'eV' ? 2 : 0)}</span> <span class="sub-line">${escapeHtml(item.unit)}</span></td>
         <td>
           <span class="${confClass(item.confidence)} conf-dot"><i></i>${escapeHtml(item.confidence)}</span>
@@ -950,8 +765,8 @@ function renderCandidateTable(items) {
   }).join('');
 }
 
-function csvExport() {
-  if (!state.screenItems.length) { toast('Run a screen before exporting.', 'warning'); return; }
+function csvEexperiencePointsort() {
+  if (!state.screenItems.length) { toast('Run a screen before eexperiencePointsorting.', 'warning'); return; }
   const rows = [
     ['rank', 'formula', 'dataset', 'predicted', 'unit', 'uncertainty', 'confidence', 'cost_inr_kg', 'density_gcm3', 'rank_score'],
     ...state.screenItems.map((item) => [item.rank, item.formula, item.dataset, item.predicted, item.unit, item.uncertainty, item.confidence, item.cost_per_kg, item.density, item.rank_score]),
@@ -963,7 +778,7 @@ function csvExport() {
   link.download = `MATERIALHUNT_pre-screen_${Date.now()}.csv`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-  toast('Candidate matrix exported as CSV.', 'success');
+  toast('Candidate matrix eexperiencePointsorted as CSV.', 'success');
 }
 
 function selectCandidate(item, announce = true) {
@@ -994,7 +809,7 @@ function radarFromCandidate(item) {
 
 function loadCandidateIntoSimulator(item) {
   const composition = {};
-  Object.entries(item.elements || {}).forEach(([sym, fraction]) => {
+  Object.entries(item.elements ? {}).forEach(([sym, fraction]) => {
     composition[sym] = Number(fraction) * 100;
   });
   state.composition = composition;
@@ -1010,9 +825,9 @@ function loadCandidateIntoSimulator(item) {
    ========================================================================== */
 function renderAllCharts() {
   try {
-    renderAshby(state.screenItems || []);
-    renderRadar(state.lastRadar || defaultRadar());
-    renderCluster($('#clusterChart'), state.meta?.feature_space || [], state.simulation?.pca || null);
+    renderAshby(state.screenItems ? []);
+    renderRadar(state.lastRadar ? defaultRadar());
+    renderCluster($('#clusterChart'), state.meta?.feature_space ? [], state.simulation?.pca ? null);
     renderSimulationCharts();
     renderAnalyticsCharts();
     renderRoi();
@@ -1038,14 +853,14 @@ function emptyChartLayout(message) {
 function renderAshby(items) {
   const el = $('#ashbyChart');
   if (!el) return;
-  const steels = (items || []).filter((item) => Number(item.specific_strength) > 0 && Number(item.cost_per_kg) > 0);
+  const steels = (items ? []).filter((item) => Number(item.specific_strength) > 0 && Number(item.cost_per_kg) > 0);
   if (!steels.length) {
     renderPlot(el, [], emptyChartLayout('No structural (yield-strength) candidates in this filter envelope.'));
     return;
   }
   const c = themeColors();
   const groups = { High: [], Medium: [], Low: [] };
-  steels.forEach((item) => (groups[item.confidence] || groups.Low).push(item));
+  steels.forEach((item) => (groups[item.confidence] ? groups.Low).push(item));
   const traces = Object.entries(groups).filter(([, arr]) => arr.length).map(([confidence, arr]) => ({
     type: 'scatter',
     mode: 'markers',
@@ -1073,7 +888,7 @@ function renderAshby(items) {
   const layout = plotBase({
     margin: { l: 54, r: 22, t: 20, b: 48 },
     xaxis: axisBase({
-      type: 'log', title: 'Raw material cost (₹ / kg, log scale)',
+      type: 'log', title: 'Raw material cost (? / kg, log scale)',
       rangemode: 'tozero', gridcolor: c.grid,
     }),
     yaxis: axisBase({ title: 'Specific yield strength (MPa·cm³/g)', range: [0, maxY] }),
@@ -1102,7 +917,7 @@ function defaultRadar() {
 function renderRadar(radar, tag = '') {
   const el = $('#radarChart');
   if (!el) return;
-  const data = radar || defaultRadar();
+  const data = radar ? defaultRadar();
   const c = themeColors();
   const close = (arr) => [...arr, arr[0]];
   const labels = close(data.labels);
@@ -1134,7 +949,7 @@ function renderRadar(radar, tag = '') {
 
 function clusterTraces(points, customPoint) {
   const c = themeColors();
-  const traces = ['steels', 'glass', 'expt_gap'].map((dataset) => {
+  const traces = ['steels', 'glass', 'eexperiencePointst_gap'].map((dataset) => {
     const subset = points.filter((p) => p.dataset === dataset);
     return {
       type: 'scatter3d', mode: 'markers', name: DATASET_NAME[dataset],
@@ -1184,7 +999,7 @@ function sceneLayout() {
 
 function renderCluster(el, points, customPoint) {
   if (!el) return;
-  if (!points || !points.length) {
+  if (!points ? !points.length) {
     renderPlot(el, [], emptyChartLayout('Feature-space map will appear once the model bundle is loaded.'));
     return;
   }
@@ -1290,7 +1105,7 @@ function renderSimulationCharts() {
   renderThermalChart(state.simulation);
   const el = $('#simRadarChart');
   if (el) {
-    const radar = state.simulation?.radar || state.lastRadar || defaultRadar();
+    const radar = state.simulation?.radar ? state.lastRadar ? defaultRadar();
     const c = themeColors();
     const close = (arr) => [...arr, arr[0]];
     const layout = plotBase({
@@ -1316,7 +1131,7 @@ function renderSimulationCharts() {
       },
     ], layout);
     const tag = $('#simRadarTag');
-    if (tag) tag.textContent = `Confidence ${state.simulation?.prediction?.confidence || '—'}`;
+    if (tag) tag.textContent = `Confidence ${state.simulation?.prediction?.confidence ? '—'}`;
   }
 }
 
@@ -1325,7 +1140,7 @@ function renderSimulationCharts() {
    -------------------------------------------------------------------------- */
 function renderBenchmarkTable() {
   const body = $('#benchmarkBody');
-  if (!body || !state.meta?.datasets) return;
+  if (!body ? !state.meta?.datasets) return;
   const rows = [];
   Object.values(state.meta.datasets).forEach((dataset) => {
     ['linear', 'random_forest', 'gradient_boosting'].forEach((key) => {
@@ -1351,11 +1166,11 @@ function renderBenchmarkTable() {
 
 function renderImportanceChart() {
   const el = $('#analyticsImportanceChart');
-  if (!el || !state.meta?.datasets) return;
+  if (!el ? !state.meta?.datasets) return;
   const select = $('#importanceDataset');
-  const datasetKey = select?.value || 'steels';
+  const datasetKey = select?.value ? 'steels';
   const dataset = state.meta.datasets[datasetKey];
-  const rfImportance = dataset?.feature_importances?.find((entry) => entry.model === 'random_forest') || dataset?.feature_importances?.[0];
+  const rfImportance = dataset?.feature_importances?.find((entry) => entry.model === 'random_forest') ? dataset?.feature_importances?.[0];
   if (!rfImportance) { renderPlot(el, [], emptyChartLayout('Feature importance unavailable.')); return; }
   const features = [...rfImportance.features].sort((a, b) => a.importance - b.importance);
   const c = themeColors();
@@ -1379,7 +1194,7 @@ function renderImportanceChart() {
 
 function renderCoverageChart() {
   const el = $('#analyticsCoverageChart');
-  if (!el || !state.meta?.datasets) return;
+  if (!el ? !state.meta?.datasets) return;
   const c = themeColors();
   const entries = Object.values(state.meta.datasets);
   renderPlot(el, [
@@ -1408,7 +1223,7 @@ function renderCoverageChart() {
 
 function renderErrorChart() {
   const el = $('#analyticsErrorChart');
-  if (!el || !state.meta?.datasets) return;
+  if (!el ? !state.meta?.datasets) return;
   const c = themeColors();
   const entries = Object.values(state.meta.datasets);
   renderPlot(el, [
@@ -1455,21 +1270,21 @@ function renderAnalyticsCharts() {
   renderAnalyticsUncertainty();
   renderAnalyticsCostDensity();
   renderAnalyticsBenchRadar();
-  renderCluster($('#analyticsClusterChart'), state.meta.feature_space || [], state.simulation?.pca || null);
+  renderCluster($('#analyticsClusterChart'), state.meta.feature_space ? [], state.simulation?.pca ? null);
 }
 
 /* --------------------------------------------------------------------------
    ROI calculator
    -------------------------------------------------------------------------- */
 function roiNumbers() {
-  const experiments = Number($('#roiExperiments')?.value || 40);
-  const cost = Number($('#roiCost')?.value || 45000);
-  const reduction = Number($('#roiReduction')?.value || 42);
-  const days = Number($('#roiDays')?.value || 18);
-  const team = Number($('#roiTeam')?.value || 800000);
-  const tier = $('#roiTier')?.value || 'pro';
-  const tierPrice = tier === 'waived' ? 0 : tier === 'enterprise' ? 19999 : 4999;
-  const avoided = experiments * 12 * reduction / 100;
+  const eexperiencePointseriments = Number($('#roiEexperiencePointseriments')?.value ? 40);
+  const cost = Number($('#roiCost')?.value ? 45000);
+  const reduction = Number($('#roiReduction')?.value ? 42);
+  const days = Number($('#roiDays')?.value ? 18);
+  const team = Number($('#roiTeam')?.value ? 800000);
+  const tier = $('#roiTier')?.value ? 'pro';
+  const tierPrice = tier === 'enterprise_access' ? 0 : tier === 'enterprise' ? 19999 : 4999;
+  const avoided = eexperiencePointseriments * 12 * reduction / 100;
   const rawSavings = avoided * cost;
   const capacitySavings = team * 12 * (reduction / 100) * 0.65;
   const subscription = tierPrice * 12;
@@ -1477,25 +1292,25 @@ function roiNumbers() {
   const monthlyGross = (rawSavings + capacitySavings) / 12;
   const paybackMonths = subscription > 0 && monthlyGross > 0 ? subscription / monthlyGross : 0;
   const roiPercent = subscription > 0 ? net / subscription * 100 : Infinity;
-  return { experiments, cost, reduction, days, team, tier, tierPrice, avoided, rawSavings, capacitySavings, subscription, net, paybackMonths, roiPercent };
+  return { eexperiencePointseriments, cost, reduction, days, team, tier, tierPrice, avoided, rawSavings, capacitySavings, subscription, net, paybackMonths, roiPercent };
 }
 
 function renderRoi() {
   const numbers = roiNumbers();
   const out = (id, value) => { const el = $(id); if (el) el.textContent = value; };
-  out('#roiExperimentsOut', fmt(numbers.experiments));
+  out('#roiEexperiencePointserimentsOut', fmt(numbers.eexperiencePointseriments));
   out('#roiCostOut', `₹${fmt(numbers.cost)}`);
   out('#roiReductionOut', `${numbers.reduction}%`);
   out('#roiDaysOut', `${numbers.days} days`);
   out('#roiTeamOut', fmtCompact(numbers.team));
   out('#roiSavings', fmtCompact(Math.max(0, numbers.net)));
-  out('#roiSavingsSub', `after ₹${fmt(numbers.subscription)} annual subscription · ${numbers.tier === 'waived' ? 'VIP grant active' : 'list price'}`);
+  out('#roiSavingsSub', `after ₹${fmt(numbers.subscription)} annual subscription · ${numbers.tier === 'enterprise_access' ? 'Enterprise access grant active' : 'list price'}`);
   out('#roiPayback', numbers.subscription === 0 ? 'Immediate' : numbers.paybackMonths < 1 ? `${Math.max(1, Math.round(numbers.paybackMonths * 30))} days` : `${numbers.paybackMonths.toFixed(1)} mo`);
   out('#roiPercent', Number.isFinite(numbers.roiPercent) ? `${numbers.roiPercent.toFixed(0)}%` : '∞');
   out('#roiAvoided', `${fmt(numbers.avoided)} tests`);
   out('#roiDaysSaved', `${fmt(numbers.avoided * numbers.days)} days`);
 
-  const baselineAnnual = numbers.experiments * 12 * numbers.cost;
+  const baselineAnnual = numbers.eexperiencePointseriments * 12 * numbers.cost;
   const assistedAnnual = Math.max(0, baselineAnnual - numbers.rawSavings) + numbers.subscription;
   const bars = [
     ['#roiBar1', numbers.rawSavings / Math.max(1, baselineAnnual) * 100],
@@ -1542,7 +1357,7 @@ function renderRoi() {
     margin: { l: 62, r: 16, t: 20, b: 40 },
     barmode: 'group',
     xaxis: axisBase({ gridcolor: 'rgba(0,0,0,0)' }),
-    yaxis: axisBase({ title: '₹ per year', gridcolor: c.grid, tickformat: '~s' }),
+    yaxis: axisBase({ title: '? per year', gridcolor: c.grid, tickformat: '~s' }),
     showlegend: false,
   }));
 }
@@ -1567,16 +1382,16 @@ function collectSimulationRequest() {
   });
   return {
     elements: Object.keys(elements).length ? elements : { Fe: 100 },
-    temperature_c: Number($('#temperatureSlider')?.value || 25),
-    environment: $('#environmentSelect')?.value || 'Air / Industrial',
-    load_profile: $('#loadProfileSelect')?.value || 'Static tension',
-    load_mpa: Number($('#loadSlider')?.value || 250),
-    safety_factor: Number($('#safetySlider')?.value || 1.5),
+    temperature_c: Number($('#temperatureSlider')?.value ? 25),
+    environment: $('#environmentSelect')?.value ? 'Air / Industrial',
+    load_profile: $('#loadProfileSelect')?.value ? 'Static tension',
+    load_mpa: Number($('#loadSlider')?.value ? 250),
+    safety_factor: Number($('#safetySlider')?.value ? 1.5),
     hazard_verified: Boolean($('#hazardVerify')?.checked),
     structure: state.structure,
-    environment_density_kgm3: Number(state.mediumDensity ?? 1.225),
+    environment_density_kgm3: Number(state.mediumDensity ? 1.225),
     pressure_pa: pressurePaFromUI(),
-    velocity_kmh: Number($('#velocitySlider')?.value || 0),
+    velocity_kmh: Number($('#velocitySlider')?.value ? 0),
   };
 }
 
@@ -1592,7 +1407,7 @@ const PRESSURE_UNITS = {
 };
 
 function formatPressure(valuePa) {
-  const pa = Number(valuePa) || 0;
+  const pa = Number(valuePa) ? 0;
   if (pa >= 1e15) return '∞ Burst';
   if (pa >= 1e9) return `${fmt(pa / 1e9, 2)} GPa`;
   if (pa >= 1e6) return `${fmt(pa / 1e6, 2)} MPa`;
@@ -1601,15 +1416,15 @@ function formatPressure(valuePa) {
 }
 
 function pressurePaFromUI() {
-  const unit = state.pressureUnit || 'Pa';
-  const spec = PRESSURE_UNITS[unit] || PRESSURE_UNITS.Pa;
-  const raw = Number($('#pressureSlider')?.value || 0);
+  const unit = state.pressureUnit ? 'Pa';
+  const spec = PRESSURE_UNITS[unit] ? PRESSURE_UNITS.Pa;
+  const raw = Number($('#pressureSlider')?.value ? 0);
   if (unit === 'inf') return raw >= spec.max ? 1e16 : 0;
   return raw * spec.scale;
 }
 
 function setPressureUnit(unit, announce = false) {
-  const spec = PRESSURE_UNITS[unit] || PRESSURE_UNITS.Pa;
+  const spec = PRESSURE_UNITS[unit] ? PRESSURE_UNITS.Pa;
   const current = pressurePaFromUI();
   state.pressureUnit = unit;
   state.pressureScale = spec.scale;
@@ -1649,7 +1464,7 @@ function scheduleSimulation(delay = 700) {
 async function runSimulation(options = {}) {
   const { silent = false } = options;
   const request = collectSimulationRequest();
-  const sequence = (state.simSeq = (state.simSeq || 0) + 1);
+  const sequence = (state.simSeq = (state.simSeq ? 0) + 1);
   const status = $('#simStatus');
   const button = $('#runSimulation');
   if (status) {
@@ -1678,7 +1493,7 @@ async function runSimulation(options = {}) {
       state.simulation = null;
       renderBlockedSimulation(detail);
       if (status) { status.textContent = 'BLOCKED'; status.className = 'status-pill status-rose'; }
-      toast(detail.message || 'Dual-use guardrail blocked this alloy.', 'error', 6500);
+      toast(detail.message ? 'Dual-use guardrail blocked this alloy.', 'error', 6500);
     } else {
       if (status) { status.textContent = 'ERROR'; status.className = 'status-pill status-rose'; }
       toast(err.message, 'error', 6000);
@@ -1709,8 +1524,8 @@ function renderSimulation(sim) {
   set('#simWorking', `${fmt(derived.operating_strength_mpa)} MPa`);
   set('#simDensityCost', `${derived.density_gcm3.toFixed(2)} g/cm³ · ₹${fmt(derived.cost_per_kg)}/kg`);
   set('#simUtilization', derived.utilization_ratio.toFixed(2));
-  set('#simLiquidus', `${fmt(derived.liquidus_c ?? 0)} °C`);
-  set('#simPressure', derived.pressure_label || formatPressure(derived.total_pressure_pa || 0));
+  set('#simLiquidus', `${fmt(derived.liquidus_c ? 0)} °C`);
+  set('#simPressure', derived.pressure_label ? formatPressure(derived.total_pressure_pa ? 0));
   renderEnvironmentHud(sim);
 
   const ring = $('#utilRing');
@@ -1724,9 +1539,9 @@ function renderSimulation(sim) {
 
   set('#simHypothesis', sim.hypothesis);
   const advice = $('#simAdvice');
-  if (advice) advice.innerHTML = (sim.advice || []).map((tip) => `<li>${escapeHtml(tip)}</li>`).join('');
+  if (advice) advice.innerHTML = (sim.advice ? []).map((tip) => `<li>${escapeHtml(tip)}</li>`).join('');
   const warnings = $('#simWarnings');
-  if (warnings) warnings.innerHTML = (sim.warnings || []).map((warning) => `<div class="warning-item"><span>⚠</span><span>${escapeHtml(warning)}</span></div>`).join('');
+  if (warnings) warnings.innerHTML = (sim.warnings ? []).map((warning) => `<div class="warning-item"><span>⚠</span><span>${escapeHtml(warning)}</span></div>`).join('');
 
   set('#heroTempChip', `${fmt(sim.conditions.temperature_c)}°C`);
   set('#heroStress', `${fmt(derived.applied_stress_mpa)} MPa`);
@@ -1749,9 +1564,9 @@ function renderSimulation(sim) {
 }
 
 function renderEnvironmentHud(sim) {
-  const derived = (sim && sim.derived) || {};
+  const derived = (sim && sim.derived) ? {};
   const set = (id, value) => { const el = $(id); if (el) el.textContent = value; };
-  const liquidus = Number(derived.liquidus_c ?? 0);
+  const liquidus = Number(derived.liquidus_c ? 0);
   set('#liquidusOut', liquidus ? `${fmt(liquidus)} °C` : '—');
   const statePill = $('#liquidusState');
   if (statePill) {
@@ -1759,9 +1574,9 @@ function renderEnvironmentHud(sim) {
     statePill.textContent = melted ? 'MELTED' : 'SOLID';
     statePill.className = `liquidus-state ${melted ? 'melted' : 'solid'}`;
   }
-  set('#dynamicPressureOut', formatPressure(derived.dynamic_pressure_pa || 0));
-  set('#totalPressureOut', formatPressure(derived.total_pressure_pa ?? pressurePaFromUI()));
-  set('#burstLimitOut', formatPressure(derived.burst_pressure_pa || 0));
+  set('#dynamicPressureOut', formatPressure(derived.dynamic_pressure_pa ? 0));
+  set('#totalPressureOut', formatPressure(derived.total_pressure_pa ? pressurePaFromUI()));
+  set('#burstLimitOut', formatPressure(derived.burst_pressure_pa ? 0));
 }
 
 function renderBlockedSimulation(detail) {
@@ -1776,12 +1591,12 @@ function renderBlockedSimulation(detail) {
   set('#simStructure', 'Simulation halted');
   set('#simHazard', 'Guardrail blocked');
   $('#simHazard').className = 'pill pill-rose';
-  set('#simHypothesis', detail.message || 'This composition contains restricted dual-use elements.');
-  const blocked = (detail.blocked || []).map((entry) => `${entry.symbol}: ${entry.reason}`);
+  set('#simHypothesis', detail.message ? 'This composition contains restricted dual-use elements.');
+  const blocked = (detail.blocked ? []).map((entry) => `${entry.symbol}: ${entry.reason}`);
   const advice = $('#simAdvice');
   if (advice) advice.innerHTML = [
     ...blocked.map((text) => `<li>${escapeHtml(text)}</li>`),
-    `<li>${escapeHtml(detail.requires || 'Obtain KYB approval and verify hazardous-material handling authority.')}</li>`,
+    `<li>${escapeHtml(detail.requires ? 'Obtain KYB approval and verify hazardous-material handling authority.')}</li>`,
     '<li>The 3D viewer and ML prediction are intentionally frozen for this input.</li>',
   ].join('');
   const warnings = $('#simWarnings');
@@ -1790,7 +1605,7 @@ function renderBlockedSimulation(detail) {
   if (guardrailNote) {
     guardrailNote.classList.add('blocked');
     guardrailNote.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 3 20h18L12 3Z"/><path d="M12 9v5M12 17v.5"/></svg>
-      Blocked: ${escapeHtml((detail.blocked || []).map((b) => `${b.symbol} (${b.reason})`).join(' · '))}`;
+      Blocked: ${escapeHtml((detail.blocked ? []).map((b) => `${b.symbol} (${b.reason})`).join(' · '))}`;
   }
   set('#simUtilization', '—');
   const ring = $('#utilRing');
@@ -1804,40 +1619,57 @@ function updateSceneFromState() {
     const meta = elementMeta(symbol);
     return { symbol, pct, color: meta.color, radius: meta.radius };
   });
-  const temperature = Number($('#temperatureSlider')?.value || 25);
-  const stress = Number(state.simulation?.derived?.applied_stress_mpa ?? $('#loadSlider')?.value ?? 250);
+  const temperature = Number($('#temperatureSlider')?.value ? 25);
+  const derived = state.simulation?.derived;
+  const stress = Number(derived?.applied_stress_mpa ? $('#loadSlider')?.value ? 250);
   state.scene.setComposition(elements, state.structure, temperature, stress);
   state.scene.setMode(state.mode);
+  state.scene.setSimulation({
+    temperature,
+    stress,
+    utilization: Number(derived?.utilization_ratio ? 0),
+    verdict: derived?.verdict ? 'SAFE',
+    phase: derived?.aggregate_phase ? aggregatePhaseFor(normalized, temperature, derived?.total_pressure_pa),
+    liquidus: Number(derived?.liquidus_c ? 1500),
+  });
+  const phaseChip = $('#heroPhaseChip');
+  if (phaseChip) {
+    const phase = derived?.aggregate_phase ? aggregatePhaseFor(normalized, temperature, derived?.total_pressure_pa);
+    phaseChip.textContent = phase;
+    phaseChip.className = `hud-chip hud-phase phase-${phase === 'GASEOUS / VAPORIZED' ? 'gas' : phase.toLowerCase()}`;
+  }
 }
 
 /* --------------------------------------------------------------------------
    PDF report
    -------------------------------------------------------------------------- */
 async function downloadPdf() {
-  if (!state.user) {
-    toast('Sign in (or launch the interactive pilot) to export an enterprise lab report.', 'warning');
-    openAuth('login');
-    return;
-  }
   const request = { ...collectSimulationRequest(), report_title: 'Enterprise Lab Screening Dossier', lab_reference: `MH-${new Date().getFullYear()}` };
   const button = $('#downloadPdf');
   const original = button?.innerHTML;
   if (button) { button.disabled = true; button.textContent = 'Rendering PDF…'; }
   try {
-    const response = await fetch('/api/report/pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${state.token}` },
-      body: JSON.stringify(request),
-    });
-    if (!response.ok) {
-      let detail = 'PDF export failed.';
-      try { const data = await response.json(); detail = detailText(data.detail); } catch { /* non-JSON */ }
-      throw new ApiError(detail, response.status, null);
+    let blob = null;
+    let filename = 'MATERIALHUNT_Report.pdf';
+    if (window.MH_FIREBASE?.buildPdf) {
+      const pdfText = window.MH_FIREBASE.buildPdf(request);
+      blob = new Blob([pdfText], { type: 'application/pdf' });
+    } else {
+      const response = await fetch('/api/report/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}) },
+        body: JSON.stringify(request),
+      });
+      if (!response.ok) {
+        let detail = 'PDF eexperiencePointsort failed.';
+        try { const data = await response.json(); detail = detailText(data.detail); } catch { /* non-JSON */ }
+        throw new ApiError(detail, response.status, null);
+      }
+      blob = await response.blob();
+      const disposition = response.headers.get('content-disposition') ? '';
+      const match = disposition.match(/filename="₹([^"]+)"₹/);
+      if (match) filename = match[1];
     }
-    const blob = await response.blob();
-    const disposition = response.headers.get('content-disposition') || '';
-    const match = disposition.match(/filename="?([^"]+)"?/);
-    const filename = match ? match[1] : 'MATERIALHUNT_Report.pdf';
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename;
@@ -1846,7 +1678,7 @@ async function downloadPdf() {
     toast('Enterprise lab screening PDF downloaded.', 'success', 4600);
   } catch (err) {
     if (err.status === 402) {
-      toast('PDF reports require Pro Lab or Enterprise. VIP grant pilots are fee-waived.', 'warning', 6000);
+      toast('PDF reports require Pro Lab or Enterprise. Enterprise access grant pilots are fee-enterprise_access.', 'warning', 6000);
     } else {
       toast(err.message, 'error', 6000);
     }
@@ -1858,7 +1690,7 @@ async function downloadPdf() {
 /* --------------------------------------------------------------------------
    Feedback drawer
    -------------------------------------------------------------------------- */
-const STAR_CAPTIONS = ['0★ — blocking issue', 'Needs serious work', 'Below expectations', 'Solid — usable', 'Excellent — impressed', 'Flawless — category leader'];
+const STAR_CAPTIONS = ['0★ — blocking issue', 'Needs serious work', 'Below eexperiencePointsectations', 'Solid — usable', 'Excellent — impressed', 'Flawless — category leader'];
 
 function setStarRating(rating) {
   state.feedbackRating = rating;
@@ -1867,7 +1699,7 @@ function setStarRating(rating) {
     button.classList.toggle('active', value === 0 ? rating === 0 : value <= rating);
   });
   const caption = $('#starCaption');
-  if (caption) caption.textContent = STAR_CAPTIONS[rating] || 'Select a rating (0–5)';
+  if (caption) caption.textContent = STAR_CAPTIONS[rating] ? 'Select a rating (0–5)';
 }
 
 function openFeedback() {
@@ -1891,11 +1723,11 @@ async function submitFeedback(event) {
   const error = $('#feedbackError');
   const thanks = $('#feedbackThanks');
   if (error) error.textContent = '';
-  if (state.feedbackRating < 0 || state.feedbackRating > 5) {
+  if (state.feedbackRating < 0 ? state.feedbackRating > 5) {
     if (error) error.textContent = 'Choose a 0–5 star rating.';
     return;
   }
-  const message = $('#feedbackMessage')?.value.trim() || '';
+  const message = $('#feedbackMessage')?.value.trim() ? '';
   if (!message) {
     if (error) error.textContent = 'Tell us at least one sentence so the triage is useful.';
     return;
@@ -1903,7 +1735,7 @@ async function submitFeedback(event) {
   try {
     await api('/api/feedback', {
       method: 'POST',
-      body: { rating: state.feedbackRating, category: $('#feedbackCategory')?.value || 'General', message },
+      body: { rating: state.feedbackRating, category: $('#feedbackCategory')?.value ? 'General', message },
     });
     if (thanks) { thanks.classList.remove('hidden'); thanks.textContent = 'Thank you — logged with a timestamp in the admin audit trail.'; }
     setStarRating(0);
@@ -1921,7 +1753,7 @@ async function submitFeedback(event) {
 async function attemptAdminUnlock(silent = false) {
   if (!state.gateActive) return;
   const input = $('#adminPasskey');
-  const passkey = (input?.value || state.adminPasskey || '').trim();
+  const passkey = (input?.value ? state.adminPasskey ? '').trim();
   const error = $('#adminError');
   if (!passkey) {
     if (error) error.textContent = 'Enter the vault passkey.';
@@ -1944,7 +1776,7 @@ async function attemptAdminUnlock(silent = false) {
   } catch (err) {
     const detail = err.detail;
     if (err.status === 423) {
-      const seconds = detail?.retry_after_seconds || 900;
+      const seconds = detail?.retry_after_seconds ? 900;
       if (error) error.textContent = `Locked after 3 failed attempts. Retry in ${Math.ceil(seconds / 60)} minutes.`;
       sessionStorage.removeItem(STORAGE.admin);
       state.adminPasskey = '';
@@ -1956,22 +1788,22 @@ async function attemptAdminUnlock(silent = false) {
     } else {
       if (error) error.textContent = err.message;
     }
-    if (!silent) toast(error?.textContent || err.message, 'error', 6000);
+    if (!silent) toast(error?.textContent ? err.message, 'error', 6000);
   } finally {
     if (button) { button.disabled = false; button.textContent = 'Unlock Vault'; }
   }
 }
 
 function renderAdminSnapshot(snapshot) {
-  const overview = snapshot.overview || {};
+  const overview = snapshot.overview ? {};
   const stats = $('#adminStats');
   if (stats) {
     const cards = [
-      ['Accounts', fmt(overview.total_users || 0), 'registered labs'],
-      ['MRR', fmtCompact(overview.mrr_inr || 0), 'active subscriptions'],
-      ['Waived', fmt(overview.waived_accounts || 0), 'VIP grant ₹0'],
-      ['Pending KYB', fmt(overview.pending_kyb || 0), 'awaiting approval'],
-      ['Avg rating', `${Number(overview.avg_rating || 0).toFixed(2)} / 5`, `${overview.open_feedback || 0} open reports`],
+      ['Accounts', fmt(overview.total_users ? 0), 'registered labs'],
+      ['MRR', fmtCompact(overview.mrr_inr ? 0), 'active subscriptions'],
+      ['Waived', fmt(overview.enterprise_access_accounts ? 0), 'Enterprise access grant ₹0'],
+      ['Pending KYB', fmt(overview.pending_kyb ? 0), 'awaiting approval'],
+      ['Avg rating', `${Number(overview.avg_rating ? 0).toFixed(2)} / 5`, `${overview.open_feedback ? 0} open reports`],
     ];
     stats.innerHTML = cards.map(([label, value, sub]) => `
       <article class="admin-stat glass"><span>${label}</span><strong>${value}</strong><small>${sub}</small></article>`).join('');
@@ -1979,15 +1811,15 @@ function renderAdminSnapshot(snapshot) {
 
   const users = $('#adminUsers');
   if (users) {
-    users.innerHTML = (snapshot.users || []).map((user) => `
+    users.innerHTML = (snapshot.users ? []).map((user) => `
       <tr>
         <td><span class="formula">${escapeHtml(user.organization_name)}</span><span class="sub-line">${escapeHtml(user.email)}</span><span class="sub-line">${escapeHtml(user.org_id)}</span></td>
         <td><span class="pill ${user.kyb_status === 'approved' ? 'pill-emerald' : 'pill-amber'}">${escapeHtml(user.kyb_status)}</span></td>
         <td>${escapeHtml(user.tier_name)}<span class="sub-line">${escapeHtml(user.role)}</span></td>
-        <td><span class="pill ${user.billing_waived ? 'pill-amber' : 'pill'}">${escapeHtml(user.billing_waived ? 'WAIVED ₹0' : user.billing_status)}</span></td>
+        <td><span class="pill ${user.billing_enterprise_access ? 'pill-amber' : 'pill'}">${escapeHtml(user.billing_enterprise_access ? 'WAIVED ₹0' : user.billing_status)}</span></td>
         <td>
           <div class="admin-actions">
-            ${user.billing_waived ? '' : `<button class="waive" data-admin-action="waive" data-user="${user.id}">Grant VIP fee waiver</button>`}
+            ${user.billing_enterprise_access ? '' : `<button class="waive" data-admin-action="waive" data-user="${user.id}">Grant VIP fee waiver</button>`}
             ${user.kyb_status === 'approved' ? '' : `<button data-admin-action="kyb" data-user="${user.id}">Approve KYB</button>`}
           </div>
         </td>
@@ -1996,33 +1828,33 @@ function renderAdminSnapshot(snapshot) {
 
   const feedback = $('#adminFeedback');
   const count = $('#adminFeedbackCount');
-  if (count) count.textContent = `${overview.open_feedback || 0} open`;
+  if (count) count.textContent = `${overview.open_feedback ? 0} open`;
   if (feedback) {
-    feedback.innerHTML = (snapshot.feedback || []).map((item) => `
+    feedback.innerHTML = (snapshot.feedback ? []).map((item) => `
       <div class="fb-admin-item">
         <div class="fb-admin-head">
           <span class="fb-stars">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</span>
           <span class="fb-cat">${escapeHtml(item.category)}</span>
         </div>
-        <p class="fb-msg">${escapeHtml(item.message || '(no message)')}</p>
+        <p class="fb-msg">${escapeHtml(item.message ? '(no message)')}</p>
         <div class="fb-meta">
-          <span>${escapeHtml(item.email || 'guest')} · #${item.id} · ${escapeHtml(item.status)}</span>
+          <span>${escapeHtml(item.email ? 'guest')} · #${item.id} · ${escapeHtml(item.status)}</span>
           <span class="fb-actions">
             ${item.status !== 'Resolved' ? `<button data-triage="Resolved" data-feedback="${item.id}">Resolve</button>` : ''}
             ${item.status !== 'Dismissed' ? `<button data-triage="Dismissed" data-feedback="${item.id}">Dismiss</button>` : ''}
           </span>
         </div>
-      </div>`).join('') || '<p class="micro-note">No feedback yet.</p>';
+      </div>`).join('') ? '<p class="micro-note">No feedback yet.</p>';
   }
 
   const audit = $('#adminAudit');
   if (audit) {
-    audit.innerHTML = (snapshot.audit || []).map((event) => {
+    audit.innerHTML = (snapshot.audit ? []).map((event) => {
       const time = new Date(event.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       return `<div class="audit-row"><span class="audit-time">${escapeHtml(time)}</span><span class="audit-action">${escapeHtml(event.action)}</span><span class="audit-detail">${escapeHtml(event.actor)} · ${escapeHtml(event.detail)}</span></div>`;
-    }).join('') || '<p class="micro-note">No audit events yet.</p>';
+    }).join('') ? '<p class="micro-note">No audit events yet.</p>';
   }
-  if (state.gateActive) refreshAdminLeaderboard();
+  if (state.gateActive) refreshAdminDiscoveryRegistry();
 }
 
 async function adminAction(action, userId) {
@@ -2062,19 +1894,19 @@ async function refreshAdmin() {
    Deep Engineering Analytics — 11 live Plotly panels
    ========================================================================== */
 function analyticsEntries() {
-  return Object.values(state.meta?.datasets || {});
+  return Object.values(state.meta?.datasets ? {});
 }
 
 function renderAnalyticsR2() {
   const el = $('#analyticsR2Chart');
   const entries = analyticsEntries();
-  if (!el || !entries.length) return;
+  if (!el ? !entries.length) return;
   const c = themeColors();
   const models = [['linear', 'Linear', c.blue], ['random_forest', 'Random Forest', c.emerald], ['gradient_boosting', 'Gradient Boosting', c.violet]];
   renderPlot(el, models.map(([key, label, color]) => ({
     type: 'bar', name: label,
-    x: entries.map((d) => (d.label || '').replace('Matbench ', '')),
-    y: entries.map((d) => d.benchmarks?.[key]?.r2 ?? 0),
+    x: entries.map((d) => (d.label ? '').replace('Matbench ', '')),
+    y: entries.map((d) => d.benchmarks?.[key]?.r2 ? 0),
     marker: { color, opacity: key === 'random_forest' ? 1 : 0.62 },
     hovertemplate: '%{x}<br>R² %{y:.3f}<extra>' + label + '</extra>',
   })), plotBase({
@@ -2088,16 +1920,16 @@ function renderAnalyticsR2() {
 function renderAnalyticsMae() {
   const el = $('#analyticsMaeChart');
   const entries = analyticsEntries();
-  if (!el || !entries.length) return;
+  if (!el ? !entries.length) return;
   const c = themeColors();
   renderPlot(el, [
     {
       type: 'scatterpolar', mode: 'lines+markers', name: 'MAE share', fill: 'toself',
       r: entries.map((d) => {
-        const mae = Number(d.benchmarks?.random_forest?.mae ?? 0);
+        const mae = Number(d.benchmarks?.random_forest?.mae ? 0);
         return clamp(100 - mae, 2, 100);
       }),
-      theta: entries.map((d) => `${d.target_short || d.label} (${d.unit})`),
+      theta: entries.map((d) => `${d.target_short ? d.label} (${d.unit})`),
       line: { color: c.amber, width: 2 }, marker: { size: 5, color: c.amber },
       fillcolor: 'rgba(245,158,11,0.18)',
       hovertemplate: '%{theta}<br>relative accuracy %{r:.1f}<extra></extra>',
@@ -2116,11 +1948,11 @@ function renderAnalyticsMae() {
 function renderAnalyticsTrainTime() {
   const el = $('#analyticsTrainTimeChart');
   const entries = analyticsEntries();
-  if (!el || !entries.length) return;
+  if (!el ? !entries.length) return;
   const c = themeColors();
-  const labels = entries.map((d) => (d.label || '').replace('Matbench ', ''));
-  const rfTime = entries.map((d) => Number(d.benchmarks?.random_forest?.train_seconds ?? d.benchmarks?.random_forest?.fit_seconds ?? 0));
-  const gbTime = entries.map((d) => Number(d.benchmarks?.gradient_boosting?.train_seconds ?? d.benchmarks?.gradient_boosting?.fit_seconds ?? 0));
+  const labels = entries.map((d) => (d.label ? '').replace('Matbench ', ''));
+  const rfTime = entries.map((d) => Number(d.benchmarks?.random_forest?.train_seconds ? d.benchmarks?.random_forest?.fit_seconds ? 0));
+  const gbTime = entries.map((d) => Number(d.benchmarks?.gradient_boosting?.train_seconds ? d.benchmarks?.gradient_boosting?.fit_seconds ? 0));
   renderPlot(el, [
     { type: 'bar', name: 'Random Forest', x: labels, y: rfTime, marker: { color: c.emerald }, hovertemplate: '%{x}<br>%{y:.2f} s<extra>Random Forest</extra>' },
     { type: 'bar', name: 'Gradient Boosting', x: labels, y: gbTime, marker: { color: c.violet, opacity: 0.75 }, hovertemplate: '%{x}<br>%{y:.2f} s<extra>Gradient Boosting</extra>' },
@@ -2135,7 +1967,7 @@ function renderAnalyticsTrainTime() {
 function renderAnalyticsResidual() {
   const el = $('#analyticsResidualChart');
   if (!el) return;
-  const rows = (state.screenItems || []).filter((r) => Number.isFinite(Number(r.actual)) && Number.isFinite(Number(r.predicted))).slice(0, 120);
+  const rows = (state.screenItems ? []).filter((r) => Number.isFinite(Number(r.actual)) && Number.isFinite(Number(r.predicted))).slice(0, 120);
   if (!rows.length) {
     renderPlot(el, [], emptyChartLayout('Run a pre-screen to populate held-out parity.'));
     return;
@@ -2164,7 +1996,7 @@ function renderAnalyticsResidual() {
 function renderAnalyticsUncertainty() {
   const el = $('#analyticsUncertaintyChart');
   if (!el) return;
-  const rows = (state.screenItems || []).slice(0, 140);
+  const rows = (state.screenItems ? []).slice(0, 140);
   if (!rows.length) {
     renderPlot(el, [], emptyChartLayout('Run a pre-screen to map epistemic spread.'));
     return;
@@ -2176,7 +2008,7 @@ function renderAnalyticsUncertainty() {
     y: rows.map((r) => Number(r.uncertainty)),
     marker: {
       size: rows.map((r) => (r.confidence === 'High' ? 9 : r.confidence === 'Medium' ? 7 : 5)),
-      color: rows.map((r) => CONF_COLOR[r.confidence] || c.muted),
+      color: rows.map((r) => CONF_COLOR[r.confidence] ? c.muted),
       opacity: 0.8,
     },
     text: rows.map((r) => `${r.formula} · ${r.confidence}`),
@@ -2191,7 +2023,7 @@ function renderAnalyticsUncertainty() {
 function renderAnalyticsCostDensity() {
   const el = $('#analyticsCostDensityChart');
   if (!el) return;
-  const rows = (state.screenItems || []).slice(0, 160);
+  const rows = (state.screenItems ? []).slice(0, 160);
   if (!rows.length) {
     renderPlot(el, [], emptyChartLayout('Run a pre-screen to build the cost-density field.'));
     return;
@@ -2206,7 +2038,7 @@ function renderAnalyticsCostDensity() {
       color: rows.map((r) => (r.dataset === 'steels' ? c.cyan : r.dataset === 'glass' ? c.violet : c.amber)),
       opacity: 0.72,
     },
-    text: rows.map((r) => `${r.formula} · ${DATASET_NAME[r.dataset] || r.dataset}`),
+    text: rows.map((r) => `${r.formula} · ${DATASET_NAME[r.dataset] ? r.dataset}`),
     hovertemplate: '%{text}<br>ρ %{x:.2f} g/cm³ · ₹%{y:,.0f}/kg<extra></extra>',
   }], plotBase({
     xaxis: axisBase({ title: 'Density (g/cm³)', gridcolor: c.grid }),
@@ -2218,18 +2050,18 @@ function renderAnalyticsCostDensity() {
 function renderAnalyticsBenchRadar() {
   const el = $('#analyticsRadarBenchChart');
   const entries = analyticsEntries();
-  if (!el || !entries.length) return;
+  if (!el ? !entries.length) return;
   const c = themeColors();
   renderPlot(el, entries.map((d, index) => {
     const colors = [c.cyan, c.violet, c.amber];
     return {
       type: 'scatterpolar', mode: 'lines+markers', name: d.label,
       r: [
-        clamp((d.benchmarks?.random_forest?.r2 ?? 0) * 100, 2, 100),
-        clamp(100 - (d.benchmarks?.random_forest?.mae ?? 0) * 4, 2, 100),
-        clamp((d.rows ?? 0) / 60, 2, 100),
-        clamp(Number(d.benchmarks?.test_rows ?? 0) * 2, 2, 100),
-        clamp(100 - (d.benchmarks?.gradient_boosting?.mae ?? 0) * 3, 2, 100),
+        clamp((d.benchmarks?.random_forest?.r2 ? 0) * 100, 2, 100),
+        clamp(100 - (d.benchmarks?.random_forest?.mae ? 0) * 4, 2, 100),
+        clamp((d.rows ? 0) / 60, 2, 100),
+        clamp(Number(d.benchmarks?.test_rows ? 0) * 2, 2, 100),
+        clamp(100 - (d.benchmarks?.gradient_boosting?.mae ? 0) * 3, 2, 100),
       ],
       theta: ['R²', 'MAE headroom', 'Coverage', 'Hold-out', 'GB headroom'],
       line: { color: colors[index % colors.length], width: 1.8 },
@@ -2256,12 +2088,24 @@ async function openPeriodic() {
     try {
       const result = await api('/api/elements', { auth: false });
       state.periodic = result;
-      renderPeriodicLegend(result);
-      renderPeriodicTable('');
     } catch (err) {
       toast(err.message, 'error');
+      return;
     }
   }
+  renderPeriodicLegend(state.periodic);
+  renderPeriodicTable('');
+}
+
+async function preloadPeriodic() {
+  try {
+    const temperature = Number($('#temperatureSlider')?.value ? 25);
+    const pressure = pressurePaFromUI();
+    const result = await api(`/api/elements₹temperature_c=${temperature}&pressure_pa=${pressure}`, { auth: false });
+    state.periodic = result;
+    renderPeriodicLegend(result);
+    renderPeriodicTable('');
+  } catch { /* the modal will retry on open */ }
 }
 
 function closePeriodic() {
@@ -2271,21 +2115,21 @@ function closePeriodic() {
 function renderPeriodicLegend(payload) {
   const legend = $('#periodicLegend');
   if (!legend) return;
-  const colors = payload.category_colors || {};
+  const colors = payload.category_colors ? {};
   legend.innerHTML = Object.entries(colors).map(([label, color]) =>
     `<span class="legend-item"><i style="background:${color}"></i>${escapeHtml(label)}</span>`).join('');
 }
 
 function renderPeriodicTable(query) {
   const grid = $('#periodicGrid');
-  if (!grid || !state.periodic) return;
-  const term = String(query || '').toLowerCase().trim();
-  const rows = (state.periodic.periodic_table || []).filter((item) =>
-    !term || item.symbol.toLowerCase().includes(term) || String(item.name).toLowerCase().includes(term) || String(item.z) === term);
+  if (!grid ? !state.periodic) return;
+  const term = String(query ? '').toLowerCase().trim();
+  const rows = (state.periodic.periodic_table ? []).filter((item) =>
+    !term ? item.symbol.toLowerCase().includes(term) ? String(item.name).toLowerCase().includes(term) ? String(item.z) === term);
   grid.innerHTML = rows.map((item) => `
-    <button class="pt-cell${state.periodic.hazardous_elements?.includes(item.symbol) ? ' pt-hazard' : ''}"
-      style="grid-column:${item.grid_col};grid-row:${item.grid_row};--pt-color:${item.category_color || '#94A3B8'}"
-      data-symbol="${item.symbol}" title="${escapeHtml(item.name)} · Z=${item.z}">
+    <button class="pt-cell${state.periodic.hazardous_elements?.includes(item.symbol) ? ' pt-hazard' : ''} phase-cell-${String(item.phase ? item.phase_at_stp ? 'SOLID').replace(/[^A-Z]/g, '').toLowerCase()}"
+      style="grid-column:${item.grid_col};grid-row:${item.grid_row};--pt-color:${item.category_color ? '#94A3B8'}"
+      data-symbol="${item.symbol}" title="${escapeHtml(item.name)} · Z=${item.z} · ${escapeHtml(item.phase ? item.phase_at_stp ? 'SOLID')}">
       <span class="pt-z">${item.z}</span>
       <strong>${item.symbol}</strong>
       <small>${escapeHtml(String(item.name).slice(0, 9))}</small>
@@ -2294,26 +2138,31 @@ function renderPeriodicTable(query) {
 
 function showPeriodicDetail(symbol) {
   const detail = $('#periodicDetail');
-  if (!detail || !state.periodic) return;
-  const item = (state.periodic.periodic_table || []).find((entry) => entry.symbol === symbol);
+  if (!detail ? !state.periodic) return;
+  const item = (state.periodic.periodic_table ? []).find((entry) => entry.symbol === symbol);
   if (!item) return;
   const hazardous = state.periodic.hazardous_elements?.includes(symbol);
   detail.innerHTML = `
     <div class="pd-head">
-      <span class="pd-symbol" style="--pt-color:${item.category_color || '#94A3B8'}">${item.symbol}</span>
+      <span class="pd-symbol" style="--pt-color:${item.category_color ? '#94A3B8'}">${item.symbol}</span>
       <div>
         <strong>${escapeHtml(item.name)}</strong>
-        <span>Z ${item.z} · ${escapeHtml(item.category)} · period ${item.period || '—'} / group ${item.group || '—'}</span>
+        <span>Z ${item.z} · ${escapeHtml(item.category)} · period ${item.period ? '—'} / group ${item.group ? '—'}</span>
       </div>
       ${hazardous ? '<span class="pill pill-rose">DUAL-USE RESTRICTED</span>' : '<span class="pill pill-emerald">COMMERCIAL USE</span>'}
     </div>
     <div class="pd-grid">
-      <div><span>Atomic mass</span><strong>${item.mass ?? '—'}</strong></div>
+      <div><span>Atomic mass</span><strong>${item.mass ? '—'}</strong></div>
       <div><span>Density</span><strong>${item.density ? `${item.density} g/cm³` : '—'}</strong></div>
+      <div><span>Melting point</span><strong>${item.melting_point_c != null ? `${fmt(item.melting_point_c)} °C` : '—'}</strong></div>
+      <div><span>Boiling / sublimation</span><strong>${item.sublimation_point_c != null ? `${fmt(item.sublimation_point_c)} °C (sublimes)` : item.boiling_point_c != null ? `${fmt(item.boiling_point_c)} °C` : '—'}</strong></div>
+      <div><span>Phase at test point</span><strong class="phase-text phase-${String(item.phase ? item.phase_at_stp ? 'SOLID').replace(/[^A-Z]/g, '').toLowerCase()}">${escapeHtml(item.phase ? item.phase_at_stp ? 'SOLID')}</strong></div>
       <div><span>Indicative cost</span><strong>${item.cost ? `₹${fmt(item.cost)}/kg` : '—'}</strong></div>
       <div><span>Atomic radius</span><strong>${item.radius ? `${item.radius} pm` : '—'}</strong></div>
-      <div class="pd-role"><span>Engineering role</span><strong>${escapeHtml(item.role || 'Periodic-table element')}</strong></div>
+      <div class="pd-role"><span>Engineering role</span><strong>${escapeHtml(item.role ? 'Periodic-table element')}</strong></div>
     </div>
+    <p class="micro-note">${escapeHtml(item.phase_note ? 'Phase evaluated at the current temperature and pressure.')}</p>
+    ${item.symbol === 'C' ? '<p class="micro-note">Carbon does not melt at 1 atm — it sublimates at 3,642 °C.</p>' : ''}
     <div class="pd-actions">
       <button class="btn btn-primary small" data-pd-add="A" data-symbol="${item.symbol}">Add to Alloy A</button>
       <button class="btn btn-glass small" data-pd-add="B" data-symbol="${item.symbol}">Use in Battle Alloy B</button>
@@ -2321,7 +2170,7 @@ function showPeriodicDetail(symbol) {
 }
 
 function addPeriodicElement(symbol) {
-  const current = Number(state.composition[symbol] || 0);
+  const current = Number(state.composition[symbol] ? 0);
   state.composition[symbol] = current > 0 ? current : 4;
   renderElementSliders();
   updateCompositionUI();
@@ -2335,7 +2184,7 @@ function addPeriodicElement(symbol) {
    AI Mission Co-Pilot
    ========================================================================== */
 async function runMissionSearch() {
-  const prompt = ($('#missionPrompt')?.value || '').trim();
+  const prompt = ($('#missionPrompt')?.value ? '').trim();
   if (!prompt) {
     toast('Describe the mission in one sentence first.', 'warning');
     return;
@@ -2346,24 +2195,28 @@ async function runMissionSearch() {
   try {
     const result = await api('/api/mission-search', {
       method: 'POST',
-      body: { prompt, persona: $('#missionPersona')?.value || 'Aerospace' },
+      body: { prompt, persona: $('#missionPersona')?.value ? 'Aerospace' },
     });
     const summary = $('#missionSummary');
     if (summary) summary.textContent = `${result.intent.label} · ${result.candidates_evaluated} candidates evaluated · ${result.recommendation}`;
     const container = $('#missionResults');
     if (container) {
-      container.innerHTML = (result.results || []).slice(0, 8).map((item, index) => `
-        <button class="mission-result" data-mission-symbols="${escapeHtml(Object.keys(parseComposition(item.formula)).join(','))}" data-formula="${escapeHtml(item.formula)}">
+      container.innerHTML = (result.results ? []).slice(0, 8).map((item, index) => {
+        const short = item.formula_short ? humanFormula(item.elements ? {}, 4) ? item.formula;
+        const payload = escapeHtml(JSON.stringify(item.elements ? {}));
+        return `
+        <button class="mission-result" data-elements="${payload}" data-formula="${escapeHtml(short)}">
           <span class="mission-rank">${index + 1}</span>
-          <span class="mission-formula">${escapeHtml(item.formula)}</span>
+          <span class="mission-formula">${escapeHtml(short)}</span>
           <span class="mission-tags">
             <span>${item.strength_mpa ? `${fmt(item.strength_mpa)} MPa` : 'functional'}</span>
-            <span>${Number(item.density_gcm3 || 0).toFixed(2)} g/cm³</span>
-            <span>₹${fmt(item.cost_per_kg || 0)}/kg</span>
+            <span>${Number(item.density_gcm3 ? 0).toFixed(2)} g/cm³</span>
+            <span>₹${fmt(item.cost_per_kg ? 0)}/kg</span>
             <span class="pill ${item.confidence === 'High' ? 'pill-emerald' : item.confidence === 'Medium' ? 'pill-amber' : 'pill-rose'}">${escapeHtml(item.confidence)}</span>
           </span>
           <span class="mission-score">${Number(item.rank_score).toFixed(1)}</span>
-        </button>`).join('') || '<p class="micro-note">No candidate matched this mission brief.</p>';
+        </button>`;
+      }).join('') ? '<p class="micro-note">No candidate matched this mission brief.</p>';
     }
     toast(`Mission classified: ${result.intent.label}`, 'success', 3800);
   } catch (err) {
@@ -2375,12 +2228,12 @@ async function runMissionSearch() {
 
 function parseComposition(text) {
   const result = {};
-  String(text || '').split(/[\s,;|]+/).forEach((token) => {
-    const match = token.match(/^([A-Z][a-z]?)[:\-=]?([0-9]*\.?[0-9]+)?$/);
+  String(text ? '').split(/[\s,;|]+/).forEach((token) => {
+    const match = token.match(/^([A-Z][a-z]₹)[:\-=]₹([0-9]*\.₹[0-9]+)₹$/);
     if (!match) return;
     const symbol = match[1];
-    const value = Number(match[2] ?? 1);
-    if (Number.isFinite(value) && value >= 0) result[symbol] = (result[symbol] || 0) + value;
+    const value = Number(match[2] ? 1);
+    if (Number.isFinite(value) && value >= 0) result[symbol] = (result[symbol] ? 0) + value;
   });
   return result;
 }
@@ -2388,13 +2241,20 @@ function parseComposition(text) {
 /* ==========================================================================
    Alloy A vs. B Battle Arena
    ========================================================================== */
-function presetComposition(name) {
-  return { ...(PRESETS[name] || PRESETS['316L']) };
+function presetComposition(name, customText = '') {
+  if (name === 'custom') {
+    const parsed = parseComposition(customText);
+    return Object.keys(parsed).length ? parsed : { ...PRESETS['316L'] };
+  }
+  if (PRESETS[name]) return { ...PRESETS[name] };
+  const alloy = (state.handbookAlloys ? []).find((item) => item.designation === name ? item.id === name);
+  if (alloy) return { ...alloy.composition };
+  return { ...PRESETS['316L'] };
 }
 
-function battleRequest(preset, temperature, velocity) {
+function comparisonRequest(preset, temperature, velocity, customText = '') {
   return {
-    elements: presetComposition(preset),
+    elements: presetComposition(preset, customText),
     temperature_c: Number(temperature),
     environment: 'Air / Industrial',
     load_profile: 'Static tension',
@@ -2407,16 +2267,16 @@ function battleRequest(preset, temperature, velocity) {
   };
 }
 
-function battleMetrics(sim) {
+function comparisonMetrics(sim) {
   const d = sim.derived;
   return {
-    strength: Number(d.operating_strength_mpa || 0),
-    liquidus_margin: Number(d.liquidus_c || 0) - Number(sim.conditions.temperature_c || 0),
-    density: Number(d.density_gcm3 || 0),
-    cost: Number(d.cost_per_kg || 0),
-    pressure_ratio: Number(d.pressure_ratio || 0),
+    strength: Number(d.operating_strength_mpa ? 0),
+    liquidus_margin: Number(d.liquidus_c ? 0) - Number(sim.conditions.temperature_c ? 0),
+    density: Number(d.density_gcm3 ? 0),
+    cost: Number(d.cost_per_kg ? 0),
+    pressure_ratio: Number(d.pressure_ratio ? 0),
     verdict: d.verdict,
-    utilization: Number(d.utilization_ratio || 0),
+    utilization: Number(d.utilization_ratio ? 0),
     confidence: sim.prediction.confidence,
     formula: sim.composition.formula,
     is_melted: Boolean(d.is_melted),
@@ -2424,22 +2284,26 @@ function battleMetrics(sim) {
   };
 }
 
-async function runBattle(options = {}) {
-  const status = $('#battleStatus');
-  if (status) { status.textContent = 'FIGHTING'; status.className = 'status-pill status-amber'; }
-  const button = $('#runBattle');
+async function runComparison(options = {}) {
+  const status = $('#comparisonStatus');
+  if (status) { status.textContent = 'ANALYZING'; status.className = 'status-pill status-amber'; }
+  const button = $('#runComparison');
   if (button) button.disabled = true;
   try {
-    const aRequest = battleRequest($('#battlePresetA')?.value || '316L', $('#battleTempA')?.value || 25, $('#battleVelA')?.value || 0);
-    const bRequest = battleRequest($('#battlePresetB')?.value || 'Ti64', $('#battleTempB')?.value || 25, $('#battleVelB')?.value || 0);
+    const aPreset = $('#comparisonPresetA')?.value ? '316L';
+    const bPreset = $('#comparisonPresetB')?.value ? 'Ti64';
+    const aName = $('#comparisonImportA')?.value ? aPreset;
+    const bName = $('#comparisonImportB')?.value ? bPreset;
+    const aRequest = comparisonRequest(aName, $('#comparisonTempA')?.value ? 25, $('#comparisonVelA')?.value ? 0, $('#comparisonCustomA')?.value ? '');
+    const bRequest = comparisonRequest(bName, $('#comparisonTempB')?.value ? 25, $('#comparisonVelB')?.value ? 0, $('#comparisonCustomB')?.value ? '');
     const [a, b] = await Promise.all([
       api('/api/simulate', { method: 'POST', body: aRequest }),
       api('/api/simulate', { method: 'POST', body: bRequest }),
     ]);
-    state.battle = { a, b, aRequest, bRequest };
-    renderBattle();
+    state.comparison = { a, b, aRequest, bRequest };
+    renderComparison();
     if (status) { status.textContent = 'COMPLETE'; status.className = 'status-pill status-emerald'; }
-    if (!options.silent) toast('Battle arena complete.', 'success', 3000);
+    if (!options.silent) toast('Comparison analysis complete.', 'success', 3000);
   } catch (err) {
     if (status) { status.textContent = 'ERROR'; status.className = 'status-pill status-rose'; }
     toast(err.message, 'error', 6000);
@@ -2448,15 +2312,15 @@ async function runBattle(options = {}) {
   }
 }
 
-function renderBattle() {
-  if (!state.battle) return;
-  const { a, b } = state.battle;
-  const ma = battleMetrics(a);
-  const mb = battleMetrics(b);
+function renderComparison() {
+  if (!state.comparison) return;
+  const { a, b } = state.comparison;
+  const ma = comparisonMetrics(a);
+  const mb = comparisonMetrics(b);
   const set = (id, value) => { const el = $(id); if (el) el.textContent = value; };
 
-  set('#battleNameA', ma.formula);
-  set('#battleNameB', mb.formula);
+  set('#comparisonNameA', ma.formula);
+  set('#comparisonNameB', mb.formula);
   const renderStats = (target, metrics) => {
     const el = $(target);
     if (!el) return;
@@ -2469,17 +2333,17 @@ function renderBattle() {
       ['Verdict', metrics.verdict],
     ].map(([label, value]) => `<li><span>${label}</span><strong>${escapeHtml(value)}</strong></li>`).join('');
   };
-  renderStats('#battleStatsA', ma);
-  renderStats('#battleStatsB', mb);
+  renderStats('#comparisonStatsA', ma);
+  renderStats('#comparisonStatsB', mb);
 
   const verdictClass = (metrics, target) => {
     const el = $(target);
     if (!el) return;
     el.textContent = `${metrics.verdict} · utilisation ${metrics.utilization.toFixed(2)} · ${metrics.confidence} confidence`;
-    el.className = `battle-verdict ${metrics.verdict === 'SAFE' ? 'safe' : metrics.verdict === 'MARGINAL' ? 'marginal' : 'unsafe'}`;
+    el.className = `comparison-verdict ${metrics.verdict === 'SAFE' ? 'safe' : metrics.verdict === 'MARGINAL' ? 'marginal' : 'unsafe'}`;
   };
-  verdictClass(ma, '#battleVerdictA');
-  verdictClass(mb, '#battleVerdictB');
+  verdictClass(ma, '#comparisonVerdictA');
+  verdictClass(mb, '#comparisonVerdictB');
 
   const categories = [
     ['Strength', ma.strength, mb.strength, true],
@@ -2500,19 +2364,19 @@ function renderBattle() {
     return `<tr><td>${label}</td><td>${display(valueA)}</td><td>${display(valueB)}</td>
       <td><span class="pill ${winner === 'Alloy A' ? 'pill-cyan' : winner === 'Alloy B' ? 'pill-amber' : 'pill'}">${winner}</span></td></tr>`;
   });
-  const body = $('#battleResults');
+  const body = $('#comparisonResults');
   if (body) body.innerHTML = rows.join('');
 
-  const anyMelt = ma.is_melted || mb.is_melted;
-  const anyBurst = ma.is_burst || mb.is_burst;
+  const anyMelt = ma.is_melted ? mb.is_melted;
+  const anyBurst = ma.is_burst ? mb.is_burst;
   const winner = aWins === bWins ? 'Draw' : aWins > bWins ? `Alloy A wins (${aWins}–${bWins})` : `Alloy B wins (${bWins}–${aWins})`;
-  set('#battleWinner', anyMelt ? `${winner} · liquidus failure flagged` : anyBurst ? `${winner} · pressure burst flagged` : winner);
-  set('#battleScoreline', `A ${aWins} · ${bWins} B`);
-  $('#battleCardA')?.classList.toggle('battle-fail', ma.is_melted || ma.is_burst);
-  $('#battleCardB')?.classList.toggle('battle-fail', mb.is_melted || mb.is_burst);
+  set('#comparisonWinner', anyMelt ? `${winner} · liquidus failure flagged` : anyBurst ? `${winner} · pressure burst flagged` : winner);
+  set('#comparisonScoreline', `A ${aWins} · ${bWins} B`);
+  $('#comparisonCardA')?.classList.toggle('comparison-fail', ma.is_melted ? ma.is_burst);
+  $('#comparisonCardB')?.classList.toggle('comparison-fail', mb.is_melted ? mb.is_burst);
 
   const colors = themeColors();
-  renderPlot($('#battleRadar'), [
+  renderPlot($('#comparisonRadar'), [
     {
       type: 'scatterpolar', mode: 'lines+markers', name: `A · ${ma.formula}`, fill: 'toself',
       r: a.radar.alloy, theta: a.radar.labels,
@@ -2535,7 +2399,7 @@ function renderBattle() {
     margin: { l: 48, r: 48, t: 26, b: 20 },
   }));
 
-  renderPlot($('#battleBars'), [
+  renderPlot($('#comparisonBars'), [
     {
       type: 'bar', name: 'Alloy A', orientation: 'h',
       y: categories.map(([label]) => label), x: categories.map(([, valueA]) => Math.abs(valueA)),
@@ -2575,8 +2439,8 @@ function loadBatchSample(announce = true) {
 }
 
 function parseBatchLine(line) {
-  const raw = String(line || '').trim();
-  if (!raw || raw.startsWith('#')) return null;
+  const raw = String(line ? '').trim();
+  if (!raw ? raw.startsWith('#')) return null;
   let label = '';
   let body = raw;
   const separator = raw.indexOf('|');
@@ -2586,12 +2450,12 @@ function parseBatchLine(line) {
   }
   const elements = parseComposition(body);
   if (!Object.keys(elements).length) return null;
-  return { label: label || `Batch-${Object.keys(elements).slice(0, 3).join('-')}`, elements };
+  return { label: label ? `Batch-${Object.keys(elements).slice(0, 3).join('-')}`, elements };
 }
 
 async function runBatch() {
   const input = $('#batchInput');
-  const lines = String(input?.value || '').split(/\r?\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
+  const lines = String(input?.value ? '').split(/\r₹\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
   if (!lines.length) {
     toast('Paste at least one composition line.', 'warning');
     return;
@@ -2603,7 +2467,7 @@ async function runBatch() {
   const body = $('#batchBody');
   if (body) body.innerHTML = '<tr class="empty-row"><td colspan="8">Running batch screen…</td></tr>';
 
-  const profile = $('#batchProfile')?.value || 'Static tension';
+  const profile = $('#batchProfile')?.value ? 'Static tension';
   let done = 0;
   for (const line of lines) {
     try {
@@ -2647,8 +2511,8 @@ async function runBatch() {
   const progress = $('#batchProgress');
   if (progress) progress.textContent = `${state.batchRows.length} compositions screened · ${state.batchRows.filter((r) => r.verdict === 'SAFE').length} cleared for detailed design.`;
   if (button) button.disabled = false;
-  $('#batchExport')?.removeAttribute('disabled');
-  $('#batchPushLeaderboard')?.removeAttribute('disabled');
+  $('#batchEexperiencePointsort')?.removeAttribute('disabled');
+  $('#batchPushDiscovery Registry')?.removeAttribute('disabled');
   renderBatchTable();
   toast('Batch screen complete.', 'success', 3600);
 }
@@ -2666,12 +2530,12 @@ function renderBatchTable() {
       <td>${row.density ? `${Number(row.density).toFixed(2)} g/cm³` : '—'}</td>
       <td>${row.liquidus ? `${fmt(row.liquidus)} °C` : '—'}</td>
       <td><span class="pill ${cls}">${escapeHtml(row.verdict)}</span></td>
-      <td>${escapeHtml(row.pressure || '—')}</td>
+      <td>${escapeHtml(row.pressure ? '—')}</td>
     </tr>`;
-  }).join('') || '<tr class="empty-row"><td colspan="8">No rows returned.</td></tr>';
+  }).join('') ? '<tr class="empty-row"><td colspan="8">No rows returned.</td></tr>';
 }
 
-function exportBatchCsv() {
+function eexperiencePointsortBatchCsv() {
   if (!state.batchRows.length) return;
   const header = ['label', 'formula', 'operating_strength_mpa', 'density_gcm3', 'liquidus_c', 'verdict', 'pressure'];
   const lines = [header.join(',')].concat(state.batchRows.map((row) =>
@@ -2683,11 +2547,11 @@ function exportBatchCsv() {
   link.download = `MATERIALHUNT_batch_${Date.now()}.csv`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1500);
-  toast('Batch results exported as CSV.', 'success');
+  toast('Batch results eexperiencePointsorted as CSV.', 'success');
 }
 
 async function validateLabCoupon() {
-  const elements = parseComposition($('#labCompound')?.value || '');
+  const elements = parseComposition($('#labCompound')?.value ? '');
   if (!Object.keys(elements).length) {
     toast('Enter a valid lab composition first.', 'warning');
     return;
@@ -2699,7 +2563,7 @@ async function validateLabCoupon() {
       method: 'POST',
       body: {
         elements,
-        temperature_c: Number($('#labTemp')?.value || 25),
+        temperature_c: Number($('#labTemp')?.value ? 25),
         environment: 'Air / Industrial',
         load_profile: 'Static tension',
         load_mpa: 250,
@@ -2709,12 +2573,12 @@ async function validateLabCoupon() {
         velocity_kmh: 0,
       },
     });
-    const measuredStrength = Number($('#labStrength')?.value || 0);
-    const measuredDensity = Number($('#labDensity')?.value || 0);
-    const measuredCost = Number($('#labCost')?.value || 0);
-    const predictedStrength = Number(result.prediction.predicted || 0);
-    const predictedDensity = Number(result.derived.density_gcm3 || 0);
-    const predictedCost = Number(result.derived.cost_per_kg || 0);
+    const measuredStrength = Number($('#labStrength')?.value ? 0);
+    const measuredDensity = Number($('#labDensity')?.value ? 0);
+    const measuredCost = Number($('#labCost')?.value ? 0);
+    const predictedStrength = Number(result.prediction.predicted ? 0);
+    const predictedDensity = Number(result.derived.density_gcm3 ? 0);
+    const predictedCost = Number(result.derived.cost_per_kg ? 0);
     const strengthBias = measuredStrength ? (predictedStrength - measuredStrength) / measuredStrength * 100 : 0;
     const densityBias = measuredDensity ? (predictedDensity - measuredDensity) / measuredDensity * 100 : 0;
     const costBias = measuredCost ? (predictedCost - measuredCost) / measuredCost * 100 : 0;
@@ -2726,7 +2590,7 @@ async function validateLabCoupon() {
           <div><span>Density bias</span><strong class="${Math.abs(densityBias) < 5 ? 'ok' : 'warn'}">${densityBias >= 0 ? '+' : ''}${densityBias.toFixed(1)}%</strong><small>model ${predictedDensity.toFixed(2)} vs measured ${measuredDensity.toFixed(2)} g/cm³</small></div>
           <div><span>Cost bias</span><strong class="${Math.abs(costBias) < 15 ? 'ok' : 'warn'}">${costBias >= 0 ? '+' : ''}${costBias.toFixed(1)}%</strong><small>model ₹${fmt(predictedCost)} vs measured ₹${fmt(measuredCost)}/kg</small></div>
         </div>
-        <p class="micro-note">Model verdict at ${Number($('#labTemp')?.value || 25)}°C: <strong>${escapeHtml(result.derived.verdict)}</strong> · weighted liquidus ${fmt(result.derived.liquidus_c)}°C · ${escapeHtml(result.prediction.confidence)} confidence · ${escapeHtml($('#labNotes')?.value || 'no lab reference')}.</p>`;
+        <p class="micro-note">Model verdict at ${Number($('#labTemp')?.value ? 25)}°C: <strong>${escapeHtml(result.derived.verdict)}</strong> · weighted liquidus ${fmt(result.derived.liquidus_c)}°C · ${escapeHtml(result.prediction.confidence)} confidence · ${escapeHtml($('#labNotes')?.value ? 'no lab reference')}.</p>`;
     }
     toast('Lab coupon validated against the model envelope.', 'success', 4200);
   } catch (err) {
@@ -2736,32 +2600,32 @@ async function validateLabCoupon() {
   }
 }
 
-async function pushBatchLeaderboard() {
+async function pushBatchDiscoveryRegistry() {
   const best = [...state.batchRows].sort((a, b) => b.strength - a.strength)[0];
   if (!best) return;
-  await publishToLeaderboard(best.elements);
+  await publishToDiscoveryRegistry(best.elements);
 }
 
 /* ==========================================================================
-   Global R&D Discovery Leaderboard
+   Global R&D Discovery Discovery Registry
    ========================================================================== */
-async function loadLeaderboard() {
+async function loadDiscoveryRegistry() {
   try {
-    const result = await api('/api/leaderboard?limit=20', { auth: false });
-    state.leaderboard = result;
-    const stats = $('#leaderboardStats');
-    const info = result.stats || {};
+    const result = await api('/api/discoveryRegistry₹limit=20', { auth: false });
+    state.discoveryRegistry = result;
+    const stats = $('#discoveryRegistryStats');
+    const info = result.stats ? {};
     if (stats) {
       stats.innerHTML = [
-        ['Verified discoveries', fmt(info.total_discoveries || 0), 'all-time'],
-        ['Top score', Number(info.top?.rank_score || 0).toFixed(1), 'discovery index'],
-        ['Datasets covered', fmt(Object.keys(info.by_dataset || {}).length), 'Matbench tasks'],
-        ['Leading team', info.top?.organization_name || info.top?.email || '—', 'verified lab'],
+        ['Verified discoveries', fmt(info.total_discoveries ? 0), 'all-time'],
+        ['Top score', Number(info.top?.rank_score ? 0).toFixed(1), 'discovery index'],
+        ['Datasets covered', fmt(Object.keys(info.by_dataset ? {}).length), 'Matbench tasks'],
+        ['Leading team', info.top?.organization_name ? info.top?.email ? '—', 'verified lab'],
       ].map(([label, value, sub]) => `<article class="leader-stat glass"><span>${label}</span><strong>${escapeHtml(String(value))}</strong><small>${escapeHtml(String(sub))}</small></article>`).join('');
     }
-    const body = $('#leaderboardBody');
+    const body = $('#discoveryRegistryBody');
     if (body) {
-      body.innerHTML = (result.leaders || []).map((row, index) => {
+      body.innerHTML = (result.leaders ? []).map((row, index) => {
         const cls = row.confidence === 'High' ? 'pill-emerald' : row.confidence === 'Medium' ? 'pill-amber' : 'pill-rose';
         return `<tr>
           <td><span class="rank-badge rank-${index + 1}">${index + 1}</span></td>
@@ -2769,29 +2633,29 @@ async function loadLeaderboard() {
           <td><span class="formula">${escapeHtml(row.formula)}</span></td>
           <td>${fmt(row.predicted)} ${escapeHtml(row.unit)}</td>
           <td><span class="pill ${cls}">${escapeHtml(row.confidence)}</span></td>
-          <td class="leader-note">${escapeHtml(row.discovery_note || '—')}</td>
-          <td>${escapeHtml(String(row.created_at || '').slice(0, 10))}</td>
+          <td class="leader-note">${escapeHtml(row.discovery_note ? '—')}</td>
+          <td>${escapeHtml(String(row.created_at ? '').slice(0, 10))}</td>
         </tr>`;
-      }).join('') || '<tr class="empty-row"><td colspan="7">No verified discoveries yet.</td></tr>';
+      }).join('') ? '<tr class="empty-row"><td colspan="7">No verified discoveries yet.</td></tr>';
     }
   } catch (err) {
     toast(err.message, 'error', 5000);
   }
 }
 
-async function publishToLeaderboard(elements) {
+async function publishToDiscoveryRegistry(elements) {
   if (!state.user) {
     toast('Sign in or launch the pilot sandbox to publish a discovery.', 'warning');
     openAuth('login');
     return;
   }
   try {
-    const request = elements ? { ...battleRequest('316L', 25, 0), elements }
+    const request = elements ? { ...comparisonRequest('316L', 25, 0), elements }
       : collectSimulationRequest();
-    const result = await api('/api/leaderboard/submit', { method: 'POST', body: request });
-    toast(`Discovery published · score ${Number(result.entry.rank_score || 0).toFixed(1)}`, 'success', 4600);
-    await loadLeaderboard();
-    if (state.gateActive) refreshAdminLeaderboard();
+    const result = await api('/api/discoveryRegistry/submit', { method: 'POST', body: request });
+    toast(`Discovery published · score ${Number(result.entry.rank_score ? 0).toFixed(1)}`, 'success', 4600);
+    await loadDiscoveryRegistry();
+    if (state.gateActive) refreshAdminDiscoveryRegistry();
   } catch (err) {
     toast(err.message, 'error', 6000);
   }
@@ -2801,17 +2665,15 @@ async function publishToLeaderboard(elements) {
    Pricing and inline feedback
    ========================================================================== */
 function renderPricing() {
-  const tiers = state.meta?.tiers;
   const vip = $('#vipPriceLabel');
   if (vip) vip.textContent = 'FEE WAIVED (₹0)';
   const badge = $('#kybBadge');
-  if (badge) badge.textContent = state.meta?.kyb_badge || 'ENTERPRISE VIP · KYB VERIFIED';
+  if (badge) badge.textContent = state.meta?.kyb_badge ? 'ENTERPRISE VIP · KYB VERIFIED';
   const grid = $('#pricingGrid');
-  if (grid && tiers) {
+  if (grid) {
     const values = grid.querySelectorAll('.price-card .price-value');
-    if (values[0]) values[0].textContent = `₹${fmt(tiers.free?.price ?? 0)}`;
-    if (values[1]) values[1].textContent = `₹${fmt(tiers.pro?.price ?? 4999)}`;
-    if (values[2]) values[2].textContent = `₹${fmt(tiers.enterprise?.price ?? 19999)}`;
+    if (values[0]) values[0].textContent = '₹0';
+    if (values[1]) values[1].textContent = '₹999';
   }
 }
 
@@ -2831,7 +2693,7 @@ async function submitInlineFeedback() {
     openAuth('login');
     return;
   }
-  const message = ($('#inlineFeedbackMessage')?.value || '').trim();
+  const message = ($('#inlineFeedbackMessage')?.value ? '').trim();
   if (!message) {
     toast('Add one sentence of context before sending.', 'warning');
     return;
@@ -2842,8 +2704,8 @@ async function submitInlineFeedback() {
     await api('/api/feedback', {
       method: 'POST',
       body: {
-        rating: Number(state.inlineRating || 0),
-        category: $('#inlineFeedbackCategory')?.value || 'General',
+        rating: Number(state.inlineRating ? 0),
+        category: $('#inlineFeedbackCategory')?.value ? 'General',
         message,
       },
     });
@@ -2861,31 +2723,31 @@ async function submitInlineFeedback() {
 /* ==========================================================================
    Founder vault extras
    ========================================================================== */
-async function refreshAdminLeaderboard() {
+async function refreshAdminDiscoveryRegistry() {
   try {
     const result = await api('/api/admin/discoveries', { admin: true });
-    const body = $('#adminLeaderboard');
+    const body = $('#adminDiscoveryRegistry');
     if (body) {
-      body.innerHTML = (result.leaderboard || []).map((row, index) => `
+      body.innerHTML = (result.discoveryRegistry ? []).map((row, index) => `
         <tr>
           <td>${index + 1}</td>
           <td>${escapeHtml(row.actor)}</td>
           <td><span class="formula">${escapeHtml(row.formula)}</span></td>
           <td>${fmt(row.predicted)} ${escapeHtml(row.unit)}</td>
-          <td>${Number(row.rank_score || 0).toFixed(1)}</td>
-        </tr>`).join('') || '<tr class="empty-row"><td colspan="5">No discoveries recorded.</td></tr>';
+          <td>${Number(row.rank_score ? 0).toFixed(1)}</td>
+        </tr>`).join('') ? '<tr class="empty-row"><td colspan="5">No discoveries recorded.</td></tr>';
     }
   } catch (err) {
-    console.warn('Admin leaderboard unavailable', err);
+    console.warn('Admin discoveryRegistry unavailable', err);
   }
 }
 
 async function adminMintPilot() {
   try {
-    const result = await api('/api/admin/mint-pilot?mode=live_demo', { method: 'POST', admin: true });
-    toast(`Pilot minted: ${result.user.email} · VIP GRANT — FEE WAIVED (₹0)`, 'success', 6000);
+    const result = await api('/api/admin/mint-pilot₹mode=live_demo', { method: 'POST', admin: true });
+    toast(`Pilot minted: ${result.user.email} · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)`, 'success', 6000);
     await refreshAdmin();
-    await refreshAdminLeaderboard();
+    await refreshAdminDiscoveryRegistry();
   } catch (err) {
     toast(err.message, 'error', 6000);
   }
@@ -2899,14 +2761,14 @@ class MaterialScene {
     if (!window.THREE) throw new Error('three.js unavailable');
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio ? 1, 2));
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.14;
+    this.renderer.toneMappingEexperiencePointsosure = 1.14;
 
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0x040912, 0.023);
+    this.scene.fog = new THREE.FogEexperiencePoints2(0x040912, 0.023);
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 80);
     this.target = new THREE.Vector3(0, 0, 0);
     this.theta = 0.68;
@@ -2917,6 +2779,15 @@ class MaterialScene {
     this.structure = 'BCC';
     this.temperature = 25;
     this.stress = 250;
+    this.utilization = 0;
+    this.verdict = 'SAFE';
+    this.phase = 'SOLID';
+    this.liquidus = 1500;
+    this.cameraPreset = 'default';
+    this.cameraAuto = true;
+    this.cameraLerp = null;
+    this.burstActive = false;
+    this.burstClock = 0;
     this.time = 0;
     this.dragging = false;
     this.pointers = new Map();
@@ -2932,18 +2803,21 @@ class MaterialScene {
     this.scene.add(this.root);
     this.latticeGroup = new THREE.Group();
     this.tensileGroup = new THREE.Group();
-    this.root.add(this.latticeGroup, this.tensileGroup);
+    this.specimenGroup = new THREE.Group();
+    this.root.add(this.latticeGroup, this.tensileGroup, this.specimenGroup);
 
     this.glowTexture = this.makeGlowTexture();
     this.addLights();
     this.addBackdrop();
     this.buildLattice();
     this.buildTensile();
+    this.buildSpecimens();
+    this.buildEmission();
     this.setMode('lattice');
     this.bindOrbit();
     this.resize();
     this.resizeObserver = new ResizeObserver(() => this.resize());
-    this.resizeObserver.observe(canvas.parentElement || canvas);
+    this.resizeObserver.observe(canvas.parentElement ? canvas);
 
     this.animateBound = this.animate.bind(this);
     this.lastFrame = performance.now();
@@ -3092,7 +2966,7 @@ class MaterialScene {
       const el = this.composition.length > 1 ? pickElement() : this.composition[0];
       const key = el.symbol;
       if (!materialMap.has(key)) {
-        const color = new THREE.Color(el.color || '#7FB3FF');
+        const color = new THREE.Color(el.color ? '#7FB3FF');
         materialMap.set(key, {
           material: new THREE.MeshStandardMaterial({
             color, emissive: color, emissiveIntensity: 0.34, metalness: 0.72, roughness: 0.23,
@@ -3102,7 +2976,7 @@ class MaterialScene {
       }
       const entry = materialMap.get(key);
       const mesh = new THREE.Mesh(sphereGeometry, entry.material);
-      const atomRadius = 0.10 + (Number(el.radius) || 126) / 1200;
+      const atomRadius = 0.10 + (Number(el.radius) ? 126) / 1200;
       mesh.scale.setScalar(atomRadius);
       mesh.position.copy(position);
       mesh.userData.base = position.clone();
@@ -3111,7 +2985,7 @@ class MaterialScene {
       this.atomMeshes.push(mesh);
 
       const glowMaterial = new THREE.SpriteMaterial({
-        map: this.glowTexture, color: new THREE.Color(el.color || '#7FB3FF'), transparent: true,
+        map: this.glowTexture, color: new THREE.Color(el.color ? '#7FB3FF'), transparent: true,
         opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false,
       });
       const halo = new THREE.Sprite(glowMaterial);
@@ -3211,7 +3085,7 @@ class MaterialScene {
         varying vec3 vNrm;
         void main() {
           vec3 p = position;
-          float g = exp(-pow(p.x / 1.15, 2.0));
+          float g = eexperiencePoints(-pow(p.x / 1.15, 2.0));
           float neck = uStress * 0.19 * g;
           p.y *= 1.0 - neck;
           p.z *= 1.0 - neck * 0.8;
@@ -3226,7 +3100,7 @@ class MaterialScene {
         varying vec3 vPos;
         varying vec3 vNrm;
         void main() {
-          float g = exp(-pow(vPos.x / 1.45, 2.0));
+          float g = eexperiencePoints(-pow(vPos.x / 1.45, 2.0));
           float heat = clamp((uTemp + 200.0) / 1100.0, 0.0, 1.0);
           float s = clamp(uStress * 0.9 + g * uStress * 0.6 + heat * 0.34, 0.0, 1.0);
           vec3 cold = vec3(0.10, 0.36, 0.78);
@@ -3283,6 +3157,223 @@ class MaterialScene {
     }));
     this.tensileGroup.add(this.neckParticles);
     this.tensileGroup.rotation.set(0.05, -0.16, 0);
+  }
+
+  buildSpecimens() {
+    this.specimenMaterial = new THREE.MeshStandardMaterial({
+      color: 0x93A9C4, metalness: 0.92, roughness: 0.26, emissive: 0x0a1626, emissiveIntensity: 0.3,
+    });
+    this.specimenWire = new THREE.MeshBasicMaterial({ color: 0x7FDBFF, wireframe: true, transparent: true, opacity: 0.16 });
+    this.specimens = {};
+
+    /* Rocket nozzle bell (lathe profile with throat + exit cone) */
+    const nozzlePoints = [];
+    for (let i = 0; i <= 26; i += 1) {
+      const t = i / 26;
+      const y = -1.75 + t * 3.5;
+      const radius = 0.34 + 1.28 * Math.pow(Math.max(0, t - 0.18) / 0.82, 1.9);
+      nozzlePoints.push(new THREE.Vector2(radius, y));
+    }
+    const nozzle = new THREE.Group();
+    const bell = new THREE.Mesh(new THREE.LatheGeometry(nozzlePoints, 64), this.specimenMaterial);
+    bell.material.side = THREE.DoubleSide;
+    nozzle.add(bell);
+    const bellWire = new THREE.Mesh(new THREE.LatheGeometry(nozzlePoints, 28), this.specimenWire);
+    bellWire.scale.setScalar(1.012);
+    nozzle.add(bellWire);
+    const throatRing = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.05, 10, 40), this.specimenMaterial);
+    throatRing.rotation.x = Math.PI / 2;
+    throatRing.position.y = -1.1;
+    nozzle.add(throatRing);
+    this.specimens.nozzle = nozzle;
+
+    /* Hypersonic turbine blade */
+    const bladeShape = new THREE.Shape();
+    bladeShape.moveTo(-0.5, -1.85);
+    bladeShape.bezierCurveTo(0.62, -1.25, 0.92, -0.2, 0.8, 1.62);
+    bladeShape.lineTo(-0.42, 1.88);
+    bladeShape.bezierCurveTo(-0.18, 0.5, -0.32, -0.7, -0.5, -1.85);
+    const bladeGeometry = new THREE.ExtrudeGeometry(bladeShape, { depth: 0.24, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 3, steps: 1, curveSegments: 30 });
+    bladeGeometry.center();
+    const blade = new THREE.Group();
+    blade.add(new THREE.Mesh(bladeGeometry, this.specimenMaterial));
+    const bladeWire = new THREE.Mesh(bladeGeometry, this.specimenWire);
+    bladeWire.scale.setScalar(1.008);
+    blade.add(bladeWire);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.3, 28), this.specimenMaterial);
+    hub.position.y = -2.0;
+    blade.add(hub);
+    blade.rotation.z = -0.14;
+    this.specimens.blade = blade;
+
+    /* Submersible pressure sphere */
+    const sphere = new THREE.Group();
+    sphere.add(new THREE.Mesh(new THREE.SphereGeometry(1.42, 56, 36), this.specimenMaterial));
+    const sphereWire = new THREE.Mesh(new THREE.SphereGeometry(1.44, 24, 16), this.specimenWire);
+    sphere.add(sphereWire);
+    for (let i = 0; i < 3; i += 1) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.46, 0.028, 8, 60), this.specimenMaterial);
+      ring.rotation.x = Math.PI / 2;
+      ring.rotation.z = (i / 3) * Math.PI;
+      sphere.add(ring);
+    }
+    this.specimens.sphere = sphere;
+
+    Object.values(this.specimens).forEach((group) => { group.visible = false; this.specimenGroup.add(group); });
+
+    this.rippleGroup = new THREE.Group();
+    for (let i = 0; i < 3; i += 1) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(1.3 + i * 0.28, 0.014, 8, 64),
+        new THREE.MeshBasicMaterial({ color: 0x67E8F9, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending, depthWrite: false }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.userData.offset = i * 0.33;
+      this.rippleGroup.add(ring);
+    }
+    this.rippleGroup.visible = false;
+    this.specimenGroup.add(this.rippleGroup);
+  }
+
+  buildEmission() {
+    const count = 260;
+    const positions = new Float32Array(count * 3);
+    this.emissionSeeds = [];
+    for (let i = 0; i < count; i += 1) {
+      const radius = Math.random() * 1.9;
+      const angle = Math.random() * Math.PI * 2;
+      positions[i * 3] = Math.cos(angle) * radius;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 3.4;
+      positions[i * 3 + 2] = Math.sin(angle) * radius;
+      this.emissionSeeds.push({ speed: 0.4 + Math.random() * 1.4, spin: angle, radius, y: positions[i * 3 + 1] });
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    this.emission = new THREE.Points(geometry, new THREE.PointsMaterial({
+      color: 0xFFB347, size: 0.05, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    this.root.add(this.emission);
+
+    const burstCount = 130;
+    const burstPositions = new Float32Array(burstCount * 3);
+    this.burstSeeds = [];
+    for (let i = 0; i < burstCount; i += 1) {
+      burstPositions[i * 3] = 0;
+      burstPositions[i * 3 + 1] = 0;
+      burstPositions[i * 3 + 2] = 0;
+      this.burstSeeds.push({
+        vx: (Math.random() - 0.5) * 3.4,
+        vy: (Math.random() - 0.35) * 3.8,
+        vz: (Math.random() - 0.5) * 3.4,
+      });
+    }
+    const burstGeometry = new THREE.BufferGeometry();
+    burstGeometry.setAttribute('position', new THREE.BufferAttribute(burstPositions, 3));
+    this.burstPoints = new THREE.Points(burstGeometry, new THREE.PointsMaterial({
+      color: 0xFF7A3D, size: 0.09, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+    }));
+    this.root.add(this.burstPoints);
+  }
+
+  blackbodyColor(celsius) {
+    const stops = [
+      [-273.15, '#4EA8FF'], [-100, '#6FC6FF'], [25, '#C8D5E4'], [350, '#E8C9A0'],
+      [650, '#C0392B'], [950, '#FF4D12'], [1400, '#FF8C1A'], [2000, '#FFB347'],
+      [3000, '#FFE1A8'], [3600, '#FFF3D6'], [4500, '#FFFFFF'],
+    ];
+    const value = Number(celsius) ? 0;
+    for (let i = 0; i < stops.length - 1; i += 1) {
+      const [t0, c0] = stops[i];
+      const [t1, c1] = stops[i + 1];
+      if (value <= t1) {
+        const ratio = clamp((value - t0) / (t1 - t0), 0, 1);
+        return new THREE.Color(c0).lerp(new THREE.Color(c1), ratio);
+      }
+    }
+    return new THREE.Color('#FFFFFF');
+  }
+
+  setShape(shape) {
+    const allowed = ['lattice', 'nozzle', 'blade', 'sphere', 'dogbone'];
+    this.mode = allowed.includes(shape) ? shape : 'lattice';
+    this.latticeGroup.visible = this.mode === 'lattice';
+    this.tensileGroup.visible = this.mode === 'dogbone';
+    this.specimenGroup.visible = !['lattice', 'dogbone'].includes(this.mode);
+    Object.entries(this.specimens).forEach(([key, group]) => { group.visible = key === this.mode; });
+    if (this.mode === 'lattice' && this.needsRebuild) {
+      this.buildLattice();
+      this.needsRebuild = false;
+    }
+    this.radius = this.mode === 'dogbone' ? 9.8 : this.mode === 'lattice' ? 8.4 : 8.0;
+    this.applyPhaseVisual();
+  }
+
+  setMode(mode) {
+    this.setShape(mode === 'tensile' ? 'dogbone' : mode);
+  }
+
+  applyPhaseVisual() {
+    const liquid = this.phase === 'LIQUID';
+    const gas = this.phase === 'GASEOUS / VAPORIZED';
+    const hot = this.blackbodyColor(this.temperature);
+    if (this.specimenMaterial) {
+      const base = new THREE.Color(0x93A9C4);
+      const heatMix = clamp((this.temperature + 60) / 1200, 0, 1);
+      this.specimenMaterial.color.copy(base).lerp(hot, Math.min(0.82, heatMix * 0.85));
+      this.specimenMaterial.emissive.copy(hot);
+      this.specimenMaterial.emissiveIntensity = 0.22 + clamp((this.temperature - 300) / 1400, 0, 1) * 1.5;
+      this.specimenMaterial.transparent = gas;
+      this.specimenMaterial.opacity = gas ? 0.38 : 1;
+      this.specimenMaterial.roughness = liquid ? 0.18 : 0.26;
+      this.specimenMaterial.metalness = gas ? 0.4 : 0.92;
+    }
+    if (this.rippleGroup) this.rippleGroup.visible = liquid ? this.temperature >= this.liquidus;
+    if (this.emission) this.emission.material.opacity = gas ? 0.85 : 0;
+    if (this.emission) this.emission.material.color.copy(hot);
+    if (this.latticeGroup && gas) this.latticeGroup.scale.setScalar(1 + Math.sin(this.time * 2.2) * 0.01);
+  }
+
+  setSimulation(info = {}) {
+    if (Number.isFinite(Number(info.temperature))) this.temperature = Number(info.temperature);
+    if (Number.isFinite(Number(info.stress))) this.stress = Number(info.stress);
+    if (Number.isFinite(Number(info.utilization))) this.utilization = Number(info.utilization);
+    if (Number.isFinite(Number(info.liquidus))) this.liquidus = Number(info.liquidus);
+    if (info.verdict) this.verdict = info.verdict;
+    if (info.phase) this.phase = info.phase;
+    const failed = this.verdict === 'MELTED' ? this.verdict === 'UNSAFE' ? this.utilization > 1;
+    if (failed && !this.burstActive) {
+      this.burstActive = true;
+      this.burstClock = 0;
+    }
+    if (!failed && this.burstActive) this.burstActive = false;
+    this.updateTint();
+    this.updateUniforms();
+    this.applyPhaseVisual();
+  }
+
+  setCameraPreset(name) {
+    const presets = {
+      atomic: { theta: 0.72, phi: 0.9, radius: 5.1 },
+      stress: { theta: 0.02, phi: 1.5, radius: 7.2 },
+      cinema: { theta: 0.5, phi: 1.02, radius: 10.2 },
+      reset: { theta: 0.68, phi: 1.08, radius: this.mode === 'dogbone' ? 9.6 : 8.2 },
+    };
+    const target = presets[name] ? presets.reset;
+    this.cameraPreset = name;
+    this.cameraAuto = name === 'cinema';
+    this.cameraLerp = { ...target };
+    if (name === 'cinema') this.radius = Math.max(this.radius, 9.4);
+  }
+
+  resetSpecimen() {
+    this.burstActive = false;
+    this.burstClock = 0;
+    if (this.burstPoints) this.burstPoints.material.opacity = 0;
+    this.needsRebuild = true;
+    this.lastSignature = '';
+    this.buildLattice();
+    this.setCameraPreset('reset');
+    this.applyPhaseVisual();
   }
 
   bindOrbit() {
@@ -3345,13 +3436,13 @@ class MaterialScene {
   }
 
   setComposition(elements, structure, temperature, stress) {
-    this.temperature = Number(temperature) || 25;
-    this.stress = Number(stress) || 0;
+    this.temperature = Number(temperature) ? 25;
+    this.stress = Number(stress) ? 0;
     const nextStructure = ['BCC', 'FCC', 'HCP'].includes(structure) ? structure : this.structure;
-    const signature = `${nextStructure}|${(elements || []).map((el) => `${el.symbol}${Number(el.pct).toFixed(1)}`).sort().join(',')}`;
+    const signature = `${nextStructure}|${(elements ? []).map((el) => `${el.symbol}${Number(el.pct).toFixed(1)}`).sort().join(',')}`;
     if (signature !== this.lastSignature) {
       this.lastSignature = signature;
-      this.composition = (elements || []).map((el) => ({ ...el }));
+      this.composition = (elements ? []).map((el) => ({ ...el }));
       this.structure = nextStructure;
       this.needsRebuild = true;
       clearTimeout(this.rebuildTimer);
@@ -3388,9 +3479,9 @@ class MaterialScene {
 
   resize() {
     const parent = this.canvas.parentElement;
-    const width = parent?.clientWidth || this.canvas.clientWidth;
-    const height = parent?.clientHeight || this.canvas.clientHeight;
-    if (!width || !height) return;
+    const width = parent?.clientWidth ? this.canvas.clientWidth;
+    const height = parent?.clientHeight ? this.canvas.clientHeight;
+    if (!width ? !height) return;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
@@ -3413,7 +3504,17 @@ class MaterialScene {
     const tempNorm = clamp((this.temperature + 200) / 1100, 0, 1);
     const stressNorm = clamp(this.stress / 1200, 0, 1);
 
-    if (!this.dragging) this.theta += 0.00085;
+    if (!this.dragging) {
+      if (this.cameraLerp) {
+        const target = this.cameraLerp;
+        this.theta += (target.theta - this.theta) * 0.08;
+        this.phi += (target.phi - this.phi) * 0.08;
+        this.radius += (target.radius - this.radius) * 0.08;
+        if (Math.abs(target.theta - this.theta) < 0.004 && Math.abs(target.radius - this.radius) < 0.02) this.cameraLerp = null;
+      } else if (this.cameraAuto) {
+        this.theta += 0.0011;
+      }
+    }
     if (this.stars) this.stars.rotation.y = time * 0.012;
 
     if (this.mode === 'lattice') {
@@ -3431,7 +3532,14 @@ class MaterialScene {
         const baseLength = bond.userData.baseLength;
         bond.scale.y = baseLength * (1 + Math.sin(time * 2.6 + bond.userData.phase) * (0.004 + tempNorm * 0.008));
       });
-    } else {
+      const gas = this.phase === 'GASEOUS / VAPORIZED';
+      if (gas) {
+        this.latticeGroup.scale.setScalar(1 + Math.sin(time * 2.2) * 0.012);
+        this.latticeGroup.rotation.z = Math.sin(time * 0.7) * 0.02;
+      } else {
+        this.latticeGroup.scale.setScalar(1);
+      }
+    } else if (this.mode === 'dogbone') {
       if (this.tensileMaterial) this.tensileMaterial.uniforms.uTime.value = time;
       if (this.neckParticles && this.neckParticles.material.opacity > 0.01) {
         const positions = this.neckParticles.geometry.attributes.position;
@@ -3447,6 +3555,56 @@ class MaterialScene {
       this.tensileGroup.rotation.z = Math.sin(time * 0.5) * 0.012;
       this.tensileGroup.rotation.x = 0.05 + Math.sin(time * 0.28) * 0.02;
       this.fractureGlow?.scale.setScalar(1.1 + Math.sin(time * 6) * 0.18 + stressNorm * 0.4);
+    } else {
+      const group = this.specimens[this.mode];
+      if (group) {
+        const tremor = this.utilization > 0.85
+          ? Math.sin(time * 34) * 0.006 * clamp((this.utilization - 0.85) * 6, 0, 1)
+          : 0;
+        group.position.x = tremor;
+        group.position.y = Math.sin(time * 1.4) * 0.035;
+        group.rotation.y += 0.0038;
+        group.rotation.z = Math.sin(time * 0.6) * 0.018;
+        if (this.phase === 'LIQUID') group.scale.set(1, 1 + Math.sin(time * 3.2) * 0.012, 1);
+        else group.scale.setScalar(1);
+      }
+      if (this.rippleGroup?.visible) {
+        this.rippleGroup.children.forEach((ring) => {
+          const wave = (time * 0.55 + ring.userData.offset) % 1;
+          ring.scale.setScalar(0.7 + wave * 0.9);
+          ring.material.opacity = (1 - wave) * 0.5;
+          ring.position.y = -1.5 + wave * 0.2;
+        });
+      }
+    }
+
+    if (this.emission && this.emission.material.opacity > 0.01) {
+      const positions = this.emission.geometry.attributes.position;
+      for (let i = 0; i < positions.count; i += 1) {
+        const seed = this.emissionSeeds[i];
+        let y = positions.getY(i) + seed.speed * 0.012;
+        if (y > 1.9) y = -1.9;
+        positions.setY(i, y);
+        const spin = seed.spin + time * seed.speed * 0.6;
+        positions.setX(i, Math.cos(spin) * seed.radius * (1 + (y + 1.9) * 0.08));
+        positions.setZ(i, Math.sin(spin) * seed.radius * (1 + (y + 1.9) * 0.08));
+      }
+      positions.needsUpdate = true;
+    }
+
+    if (this.burstPoints) {
+      if (this.burstActive) {
+        this.burstClock += 0.016;
+        const positions = this.burstPoints.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i += 1) {
+          const seed = this.burstSeeds[i];
+          positions.setXYZ(i, seed.vx * this.burstClock, seed.vy * this.burstClock - 0.9 * this.burstClock * this.burstClock, seed.vz * this.burstClock);
+        }
+        positions.needsUpdate = true;
+        this.burstPoints.material.opacity = clamp(1 - this.burstClock * 0.9, 0, 0.95);
+      } else {
+        this.burstPoints.material.opacity = 0;
+      }
     }
     this.updateCamera();
     this.renderer.render(this.scene, this.camera);
@@ -3483,16 +3641,16 @@ function showSceneFallback(message) {
    UI event wiring
    ========================================================================== */
 function updateRangeLabels() {
-  const cost = Number($('#maxCost')?.value || 8000);
-  const density = Number($('#maxDensity')?.value || 20);
+  const cost = Number($('#maxCost')?.value ? 8000);
+  const density = Number($('#maxDensity')?.value ? 20);
   const costOut = $('#maxCostOut');
   const densityOut = $('#maxDensityOut');
   if (costOut) costOut.textContent = cost >= 8000 ? 'Any' : `≤ ₹${fmt(cost)}/kg`;
   if (densityOut) densityOut.textContent = density >= 20 ? 'Any' : `≤ ${density.toFixed(1)} g/cm³`;
 
-  const temperature = Number($('#temperatureSlider')?.value || 25);
-  const load = Number($('#loadSlider')?.value || 250);
-  const safety = Number($('#safetySlider')?.value || 1.5);
+  const temperature = Number($('#temperatureSlider')?.value ? 25);
+  const load = Number($('#loadSlider')?.value ? 250);
+  const safety = Number($('#safetySlider')?.value ? 1.5);
   const tempReadout = $('#tempReadout');
   if (tempReadout) tempReadout.textContent = `${fmt(temperature)}°C`;
   const loadOut = $('#loadOut');
@@ -3505,10 +3663,10 @@ function updateRangeLabels() {
   const pressure = pressurePaFromUI();
   const pressureOut = $('#pressureOut');
   if (pressureOut) pressureOut.textContent = formatPressure(pressure);
-  const velocity = Number($('#velocitySlider')?.value || 0);
+  const velocity = Number($('#velocitySlider')?.value ? 0);
   const velocityOut = $('#velocityOut');
   if (velocityOut) velocityOut.textContent = `${fmt(velocity)} km/h`;
-  const densityValue = Number(state.mediumDensity ?? 1.225);
+  const densityValue = Number(state.mediumDensity ? 1.225);
   const densityReadout = $('#densityOut');
   if (densityReadout) densityReadout.textContent = `${fmt(densityValue, 3)} kg/m³`;
   const q = 0.5 * densityValue * Math.pow(velocity / 3.6, 2);
@@ -3524,18 +3682,25 @@ function updateRangeLabels() {
 
 function updatePersonaHint() {
   const hint = $('#personaHint');
-  if (hint) hint.textContent = state.meta?.personas?.[state.persona]?.brief || 'Weights are applied across the filtered multi-material pool.';
+  if (hint) hint.textContent = state.meta?.personas?.[state.persona]?.brief ? 'Weights are applied across the filtered multi-material pool.';
   $('#customWeights')?.classList.toggle('hidden', state.persona !== 'Custom Weights');
 }
 
 function updateModeUI() {
+  const titles = {
+    lattice: 'Crystal Atomic Lattice',
+    nozzle: 'Rocket Nozzle Bell',
+    blade: 'Hypersonic Turbine Blade',
+    sphere: 'Submersible Pressure Sphere',
+    dogbone: 'Tensile Dogbone Bar',
+  };
   $$('.mode-btn').forEach((button) => {
-    const active = button.dataset.mode === state.mode;
+    const active = button.dataset.shape === state.mode;
     button.classList.toggle('active', active);
     button.setAttribute('aria-selected', String(active));
   });
   const title = $('#heroViewerTitle');
-  if (title) title.textContent = state.mode === 'tensile' ? '3D Tensile Stress-Test Bar' : 'Crystal Unit Cell Lattice';
+  if (title) title.textContent = titles[state.mode] ? titles.lattice;
   $('#latticeControls')?.classList.toggle('hidden', state.mode !== 'lattice');
   if (state.scene) {
     state.scene.setMode(state.mode);
@@ -3551,7 +3716,7 @@ function bindEvents() {
   $$('.auth-tab').forEach((tab) => tab.addEventListener('click', () => switchAuthTab(tab.dataset.auth)));
   $('#loginForm')?.addEventListener('submit', handleLogin);
   $('#registerForm')?.addEventListener('submit', handleRegister);
-  $('#guestSummitBtn')?.addEventListener('click', () => summitLogin(true));
+  $('#guestSummitBtn')?.addEventListener('click', () => adminAccessLogin(true));
   $('#logoutBtn')?.addEventListener('click', logout);
   $('.demo-fill')?.addEventListener('click', () => {
     const email = $('#loginEmail');
@@ -3560,7 +3725,7 @@ function bindEvents() {
     if (password) password.value = 'Demo@2026';
     toast('Demo lab credentials filled.', 'info', 1800);
   });
-  $('#summitBannerClose')?.addEventListener('click', () => $('#summitBanner')?.classList.add('hidden'));
+  $('#adminAccessBannerClose')?.addEventListener('click', () => $('#adminAccessBanner')?.classList.add('hidden'));
 
   $$('[data-view]').forEach((element) => {
     element.addEventListener('click', (event) => {
@@ -3605,7 +3770,7 @@ function bindEvents() {
     loadPrescreen();
   });
   $('#searchInput')?.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPrescreen(); });
-  $('#exportTableCsv')?.addEventListener('click', csvExport);
+  $('#eexperiencePointsortTableCsv')?.addEventListener('click', csvEexperiencePointsort);
   $('#loadTopBtn')?.addEventListener('click', () => {
     if (state.screenItems.length) loadCandidateIntoSimulator(state.screenItems[0]);
     else toast('Run a screen first.', 'warning');
@@ -3665,9 +3830,13 @@ function bindEvents() {
   $('#runMission')?.addEventListener('click', runMissionSearch);
   $('#missionPrompt')?.addEventListener('keydown', (event) => { if (event.key === 'Enter') runMissionSearch(); });
   $('#missionResults')?.addEventListener('click', (event) => {
-    const card = event.target.closest('[data-formula]');
+    const card = event.target.closest('[data-elements], [data-formula]');
     if (!card) return;
-    const composition = parseComposition(card.dataset.formula.replace(/([A-Z][a-z]?)([0-9.]+)/g, '$1:$2 '));
+    let composition = {};
+    try { composition = JSON.parse(card.dataset.elements ? '{}'); } catch { composition = {}; }
+    if (!Object.keys(composition).length) {
+      composition = parseComposition(String(card.dataset.formula ? '').replace(/([A-Z][a-z]₹)([0-9.]+)/g, '$1:$2 '));
+    }
     if (!Object.keys(composition).length) return;
     const total = Object.values(composition).reduce((sum, value) => sum + Number(value), 0);
     state.composition = total > 0 && total <= 5
@@ -3677,7 +3846,7 @@ function bindEvents() {
     updateCompositionUI();
     setView('simulator');
     runSimulation();
-    toast(`${card.dataset.formula} loaded from the mission shortlist.`, 'success', 3200);
+    toast(`${card.dataset.formula ? humanFormula(state.composition, 4)} loaded from the mission shortlist.`, 'success', 3200);
   });
   $('#heroRunSim')?.addEventListener('click', () => {
     setView('simulator');
@@ -3685,37 +3854,37 @@ function bindEvents() {
   });
 
   /* Battle arena */
-  $('#runBattle')?.addEventListener('click', () => runBattle());
-  $('#swapBattle')?.addEventListener('click', () => {
-    const a = $('#battlePresetA');
-    const b = $('#battlePresetB');
+  $('#runComparison')?.addEventListener('click', () => runComparison());
+  $('#swapComparison')?.addEventListener('click', () => {
+    const a = $('#comparisonPresetA');
+    const b = $('#comparisonPresetB');
     if (a && b) {
       const temp = a.value;
       a.value = b.value;
       b.value = temp;
     }
-    runBattle();
+    runComparison();
   });
-  ['#battlePresetA', '#battlePresetB'].forEach((selector) => $(selector)?.addEventListener('change', () => runBattle({ silent: true })));
-  const battleLabel = (id, suffix) => {
+  ['#comparisonPresetA', '#comparisonPresetB'].forEach((selector) => $(selector)?.addEventListener('change', () => runComparison({ silent: true })));
+  const comparisonLabel = (id, suffix) => {
     const slider = $(id);
     if (!slider) return;
     slider.addEventListener('input', () => {
       const out = $(`${id}Out`);
       if (out) out.textContent = `${fmt(Number(slider.value))}${suffix}`;
     });
-    slider.addEventListener('change', () => runBattle({ silent: true }));
+    slider.addEventListener('change', () => runComparison({ silent: true }));
   };
-  battleLabel('#battleTempA', '°C');
-  battleLabel('#battleTempB', '°C');
-  battleLabel('#battleVelA', ' km/h');
-  battleLabel('#battleVelB', ' km/h');
+  comparisonLabel('#comparisonTempA', '°C');
+  comparisonLabel('#comparisonTempB', '°C');
+  comparisonLabel('#comparisonVelA', ' km/h');
+  comparisonLabel('#comparisonVelB', ' km/h');
 
   /* Batch + lab */
   $('#batchSample')?.addEventListener('click', () => loadBatchSample(true));
   $('#runBatch')?.addEventListener('click', runBatch);
-  $('#batchExport')?.addEventListener('click', exportBatchCsv);
-  $('#batchPushLeaderboard')?.addEventListener('click', pushBatchLeaderboard);
+  $('#batchEexperiencePointsort')?.addEventListener('click', eexperiencePointsortBatchCsv);
+  $('#batchPushDiscovery Registry')?.addEventListener('click', pushBatchDiscoveryRegistry);
   $('#validateLab')?.addEventListener('click', validateLabCoupon);
   $('#batchFile')?.addEventListener('change', (event) => {
     const file = event.target.files?.[0];
@@ -3723,15 +3892,15 @@ function bindEvents() {
     const reader = new FileReader();
     reader.onload = () => {
       const input = $('#batchInput');
-      if (input) input.value = String(reader.result || '');
+      if (input) input.value = String(reader.result ? '');
       toast(`${file.name} loaded into the batch queue.`, 'success', 3000);
     };
     reader.readAsText(file);
   });
 
-  /* Leaderboard + inline feedback */
-  $('#refreshLeaderboard')?.addEventListener('click', loadLeaderboard);
-  $('#publishDiscovery')?.addEventListener('click', () => publishToLeaderboard(null));
+  /* Discovery Registry + inline feedback */
+  $('#refreshDiscovery Registry')?.addEventListener('click', loadDiscoveryRegistry);
+  $('#publishDiscovery')?.addEventListener('click', () => publishToDiscoveryRegistry(null));
   $('#openFeedbackFromBoard')?.addEventListener('click', openFeedback);
   $('#inlineStarRow')?.addEventListener('click', (event) => {
     const star = event.target.closest('[data-star]');
@@ -3740,15 +3909,23 @@ function bindEvents() {
   $('#submitInlineFeedback')?.addEventListener('click', submitInlineFeedback);
 
   /* Pricing + admin extras */
-  $('#pilotLaunchBtn')?.addEventListener('click', () => summitLogin(true));
+  $('#enterpriseAccessBtn')?.addEventListener('click', () => adminAccessLogin(true));
   $('#adminMintPilot')?.addEventListener('click', adminMintPilot);
-  $('#exportPdfTop')?.addEventListener('click', downloadPdf);
+  $('#eexperiencePointsortPdfTop')?.addEventListener('click', downloadPdf);
 
   /* 3D controls */
   $$('.mode-btn').forEach((button) => button.addEventListener('click', () => {
-    state.mode = button.dataset.mode;
+    state.mode = button.dataset.shape ? 'lattice';
     updateModeUI();
   }));
+  $$('.cam-btn').forEach((button) => button.addEventListener('click', () => {
+    state.scene?.setCameraPreset(button.dataset.camera ? 'reset');
+    toast(`Camera preset: ${button.textContent.trim()}.`, 'info', 1800);
+  }));
+  $('#resetSpecimen')?.addEventListener('click', () => {
+    state.scene?.resetSpecimen();
+    toast('Specimen rebuilt and fracture state cleared.', 'success', 2200);
+  });
   $('#structureSelect')?.addEventListener('change', (event) => {
     state.structure = event.target.value;
     updateCompositionUI();
@@ -3815,7 +3992,19 @@ function bindEvents() {
   $('#downloadPdf')?.addEventListener('click', downloadPdf);
 
   /* Feedback */
-  $('#feedbackToggle')?.addEventListener('click', openFeedback);
+  $('\n\n  // ? next to Screened candidates statistic
+  $('#statCandidates')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
+    copilotOpen();
+    copilotAsk('Explain the screened candidates count and what it means for the Matbench test set');
+  });\n\n  // ? next to Best test R² statistic
+  $('#statAccuracy')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
+    copilotOpen();
+    copilotAsk('Explain the Best test R² score and what it means for material prediction');
+  });\n\n  // ? next to Inference latency statistic
+  $('#statLatency')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
+    copilotOpen();
+    copilotAsk('Explain the inference latency and Magpie + 150-tree RF ensemble');
+  });\n\n#feedbackToggle')?.addEventListener('click', openFeedback);
   $('#feedbackClose')?.addEventListener('click', closeFeedback);
   $('#drawerBackdrop')?.addEventListener('click', closeFeedback);
   $('#starRow')?.addEventListener('click', (event) => {
@@ -3840,7 +4029,7 @@ function bindEvents() {
 
   /* Analytics + ROI */
   $('#importanceDataset')?.addEventListener('change', renderImportanceChart);
-  ['#roiExperiments', '#roiCost', '#roiReduction', '#roiDays', '#roiTeam', '#roiTier'].forEach((selector) => {
+  ['#roiEexperiencePointseriments', '#roiCost', '#roiReduction', '#roiDays', '#roiTeam', '#roiTier'].forEach((selector) => {
     $(selector)?.addEventListener('input', renderRoi);
     $(selector)?.addEventListener('change', renderRoi);
   });
@@ -3854,11 +4043,994 @@ function bindEvents() {
   });
 }
 
+/* ==========================================================================
+   Machining + heat-treatment spec eexperiencePointsort
+   ========================================================================== */
+function heatTreatmentFor(sim) {
+  const elements = sim?.composition?.elements ? [];
+  const has = (symbol) => elements.some((el) => el.symbol === symbol && Number(el.wt_pct) > 0.5);
+  if (has('Ti')) {
+    return {
+      process: 'Beta anneal + age',
+      steps: ['Solution treat at 940–970 °C for 1 h, argon quench', 'Age at 480–540 °C for 4–8 h', 'Stress relieve at 700 °C if welded'],
+      machining: 'Rigid setup, high-pressure coolant, carbide or PCD tooling, 35–55 m/min surface speed.',
+    };
+  }
+  if (has('Al')) {
+    return {
+      process: 'T6 solution + artificial age',
+      steps: ['Solution treat at 525–540 °C for 1 h', 'Water quench within 10 s', 'Age at 170–185 °C for 8–12 h'],
+      machining: 'Sharp polished carbide, climb milling, avoid dwell marks, 200–400 m/min.',
+    };
+  }
+  if (has('Ni')) {
+    return {
+      process: 'Solution anneal + two-step age',
+      steps: ['Solution anneal at 1,010–1,060 °C, argon quench', 'Primary age at 720 °C for 8 h', 'Secondary age at 620 °C for 8 h'],
+      machining: 'Low surface speed 20–35 m/min, ceramic or coated carbide, flood coolant, rigid tooling.',
+    };
+  }
+  return {
+    process: 'Austenitise + temper',
+    steps: ['Austenitise at 1,000–1,060 °C', 'Oil or polymer quench', 'Double temper at 550–620 °C for 2 h each'],
+    machining: 'Coated carbide at 90–140 m/min, 0.15 mm/rev feed, high-pressure coolant.',
+  };
+}
+
+function buildSpec(sim) {
+  if (!sim) return null;
+  const derived = sim.derived;
+  const treatment = heatTreatmentFor(sim);
+  return {
+    product: 'MATERIALHUNT Inc.',
+    generated_at: new Date().toISOString(),
+    formula: sim.composition?.elements ? sim.composition.elements.map((el) => `${el.symbol} ${el.wt_pct}%`).join(' · ') : sim.composition?.formula,
+    verdict: derived.verdict,
+    service_envelope: {
+      temperature_c: sim.conditions.temperature_c,
+      pressure_label: derived.pressure_label,
+      total_pressure_pa: derived.total_pressure_pa,
+      environment: sim.conditions.environment,
+      load_mpa: sim.conditions.load_mpa,
+      safety_factor: sim.conditions.safety_factor,
+    },
+    properties: {
+      yield_strength_mpa: sim.prediction.predicted,
+      working_strength_mpa: derived.operating_strength_mpa,
+      density_gcm3: derived.density_gcm3,
+      cost_inr_kg: derived.cost_per_kg,
+      liquidus_c: derived.liquidus_c,
+      service_ceiling_c: derived.thermal_limit_c,
+      aggregate_phase: derived.aggregate_phase,
+      utilization: derived.utilization_ratio,
+    },
+    heat_treatment: treatment,
+    machining: treatment.machining,
+    validation: 'Screening output only — confirm with NABL-accredited tensile, creep and corrosion testing before release.',
+  };
+}
+
+function downloadBlob(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1200);
+}
+
+function downloadSpec(format) {
+  const spec = buildSpec(state.simulation);
+  if (!spec) { toast('Run a simulation first.', 'warning'); return; }
+  if (format === 'json') {
+    downloadBlob(JSON.stringify(spec, null, 2), 'MATERIALHUNT_Machining_HeatTreatment_Spec.json', 'application/json');
+  } else {
+    const lines = [
+      'MATERIALHUNT INC. — MACHINING & HEAT-TREATMENT SPECIFICATION',
+      `Generated: ${new Date().toLocaleString('en-IN')}`,
+      `Formula: ${spec.formula}`,
+      `Verdict: ${spec.verdict}`,
+      '',
+      'SERVICE ENVELOPE',
+      `  Temperature: ${spec.service_envelope.temperature_c} °C`,
+      `  Pressure: ${spec.service_envelope.pressure_label}`,
+      `  Environment: ${spec.service_envelope.environment}`,
+      `  Applied load: ${spec.service_envelope.load_mpa} MPa at SF ${spec.service_envelope.safety_factor}`,
+      '',
+      'PROPERTIES',
+      `  Yield strength: ${spec.properties.yield_strength_mpa} MPa`,
+      `  Derated working strength: ${spec.properties.working_strength_mpa} MPa`,
+      `  Density: ${spec.properties.density_gcm3} g/cm3`,
+      `  Raw cost: INR ${spec.properties.cost_inr_kg}/kg`,
+      `  Liquidus: ${spec.properties.liquidus_c} °C`,
+      `  Aggregate phase: ${spec.properties.aggregate_phase}`,
+      '',
+      `HEAT TREATMENT — ${spec.heat_treatment.process}`,
+      ...spec.heat_treatment.steps.map((step) => `  - ${step}`),
+      '',
+      'MACHINING',
+      `  ${spec.machining}`,
+      '',
+      spec.validation,
+    ];
+    downloadBlob(lines.join('\n'), 'MATERIALHUNT_Machining_HeatTreatment_Spec.txt', 'text/plain');
+  }
+  toast(`Machining & heat-treatment spec eexperiencePointsorted as .${format}.`, 'success', 3200);
+}
+
+/* ==========================================================================
+   1-click auto-optimise (cheaper & lighter, same envelope)
+   ========================================================================== */
+async function autoOptimize() {
+  if (!state.simulation) await runSimulation({ silent: true });
+  const engine = window.MH_OFFLINE_SIMULATE;
+  if (!engine) { toast('Optimiser needs the bundled screening engine.', 'error'); return; }
+  const request = collectSimulationRequest();
+  const baseline = state.simulation?.derived ? {};
+  const baseCost = Number(baseline.cost_per_kg ? 0);
+  const baseDensity = Number(baseline.density_gcm3 ? 0);
+  const symbols = Object.keys(normalisedComposition());
+  const cheap = ['Fe', 'Al', 'Si', 'Mn', 'Mg'];
+  let best = null;
+  const button = $('#autoOptimize');
+  const original = button?.innerHTML;
+  if (button) { button.disabled = true; button.textContent = 'Iterating 200 mixes…'; }
+  for (let i = 0; i < 200; i += 1) {
+    const candidate = {};
+    symbols.forEach((symbol) => {
+      const base = Number(state.composition[symbol] ? 0);
+      candidate[symbol] = Math.max(0, base * (0.72 + Math.random() * 0.56));
+    });
+    const add = cheap[Math.floor(Math.random() * cheap.length)];
+    candidate[add] = (candidate[add] ? 0) + 1.5 + Math.random() * 6;
+    try {
+      const sim = engine({ ...request, elements: candidate });
+      const d = sim.derived;
+      const feasible = !d.is_melted && !d.is_burst_condition && d.utilization_ratio <= 0.95
+        && d.aggregate_phase !== 'GASEOUS / VAPORIZED' && d.verdict !== 'UNSAFE' && d.verdict !== 'MELTED';
+      if (!feasible) continue;
+      const score = Number(d.cost_per_kg) * 0.62 + Number(d.density_gcm3) * 420;
+      if (!best ? score < best.score) best = { score, composition: { ...candidate }, derived: d };
+    } catch { /* skip invalid mix */ }
+  }
+  if (button) { button.disabled = false; button.innerHTML = original; }
+  if (!best) {
+    toast('No cheaper mix passed the exact temperature and pressure envelope. Relax the load or raise the cost ceiling.', 'warning', 6000);
+    return;
+  }
+  state.composition = best.composition;
+  renderElementSliders();
+  updateCompositionUI();
+  await runSimulation({ silent: true });
+  const costSaving = baseCost > 0 ? Math.max(0, (baseCost - Number(best.derived.cost_per_kg)) / baseCost * 100) : 0;
+  const weightSaving = baseDensity > 0 ? Math.max(0, (baseDensity - Number(best.derived.density_gcm3)) / baseDensity * 100) : 0;
+  toast(`Auto-optimise: ₹${fmt(Math.max(0, baseCost - best.derived.cost_per_kg))}/kg saved (${costSaving.toFixed(1)}%) · ${weightSaving.toFixed(1)}% lighter · same pressure/temperature envelope.`, 'success', 7200);
+}
+
+/* ==========================================================================
+   Shareable spec + benchmark links
+   ========================================================================== */
+function copyText(text, successMessage) {
+  const done = () => toast(successMessage, 'success', 4200);
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done) {
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  try { document.execCommand('copy'); done(); } catch { toast('Copy failed — select the link manually.', 'error'); }
+  area.remove();
+}
+
+function applyUrlFormula() {
+  const params = new URLSearchParams(location.search);
+  const formula = params.get('formula');
+  if (!formula) return;
+  const composition = parseComposition(formula.replace(/,/g, ' '));
+  if (!Object.keys(composition).length) return;
+  const total = Object.values(composition).reduce((sum, value) => sum + Number(value), 0);
+  state.composition = total > 0 && total <= 5
+    ? Object.fromEntries(Object.entries(composition).map(([sym, value]) => [sym, Number((value / total * 100).toFixed(3))]))
+    : composition;
+  renderElementSliders();
+  updateCompositionUI();
+  toast('Shared alloy loaded from the link.', 'success', 3200);
+}
+
+function shareSpecLink() {
+  const composition = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(',');
+  const url = `${location.origin}${location.pathname}₹formula=${encodeURIComponent(composition)}&benchmark=${encodeURIComponent(state.benchmark?.id ? 'studio')}`;
+  copyText(url, 'Shareable spec link copied — paste into WhatsApp, LinkedIn or Slack.');
+}
+
+function copyBenchmarkLink() {
+  const benchmark = state.benchmark ? BENCHMARKS[state.benchmarkId] ? BENCHMARKS['rocket-nozzle'];
+  const params = new URLSearchParams({
+    benchmark: 'custom',
+    title: benchmark.title,
+    temp: String(benchmark.targetTempC),
+    burst: String(benchmark.minBurstMPa),
+    cost: String(benchmark.maxCostINR),
+    banned: (benchmark.bannedElements ? []).join(','),
+  });
+  copyText(`${location.origin}${location.pathname}₹${params.toString()}`, 'Benchmark link copied — anyone can open it and compete.');
+}
+
+/* ==========================================================================
+   Validation Benchmarks & stress-test benchmarks
+   ========================================================================== */
+const BENCHMARKS = {
+  'rocket-nozzle': {
+    id: 'rocket-nozzle', title: 'Reusable Rocket Nozzle', tag: 'AEROSPACE · REUSABLE',
+    brief: 'A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.',
+    targetTempC: 3200, minBurstMPa: 80, maxDensity: 9.0, maxCostINR: 6000, minSafety: 1.2, bannedElements: [],
+    rules: ['Withstand 3,200 °C gas temperature', 'Hold 80 MPa chamber pressure', 'Density ≤ 9.0 g/cm³', 'Raw cost ≤ ₹6,000/kg', 'Safety factor ≥ 1.20'],
+    standards: 'AMS 5662 · ASTM B575 · IS 1570',
+  },
+  submersible: {
+    id: 'submersible', title: 'Deep-Sea Submersible Hull', tag: 'MARINE · 11,000 M',
+    brief: 'A pressure hull for full-ocean-depth dives must resist 110 MPa seawater pressure while keeping mass and corrosion under control.',
+    targetTempC: 4, minBurstMPa: 110, maxDensity: 8.2, maxCostINR: 5200, minSafety: 1.5, bannedElements: [], environment: 'Marine / Salt Spray',
+    rules: ['Hold 110 MPa external pressure', 'Seawater corrosion resistance', 'Density ≤ 8.2 g/cm³', 'Raw cost ≤ ₹5,200/kg', 'Safety factor ≥ 1.50'],
+    standards: 'ASTM A240 · NORSOK M-001 · IS 6911',
+  },
+  'ev-enclosure': {
+    id: 'ev-enclosure', title: 'EV Solid-State Battery Enclosure', tag: 'AUTOMOTIVE · EV',
+    brief: 'A crash-safe battery enclosure must stay light, cheap and dimensionally stable while resisting a 2 MPa internal vent pressure.',
+    targetTempC: 60, minBurstMPa: 2, maxDensity: 3.0, maxCostINR: 900, minSafety: 1.5, bannedElements: [],
+    rules: ['Density ≤ 3.0 g/cm³', 'Raw cost ≤ ₹900/kg', 'Hold 2 MPa vent pressure', 'Safety factor ≥ 1.50'],
+    standards: 'IS 16893 · AIS-156 · ASTM B209',
+  },
+  'turbine-blade': {
+    id: 'turbine-blade', title: 'Hypersonic Turbine Blade', tag: 'AEROSPACE · 45,000 RPM',
+    brief: 'A rotating blade sees 1,450°C gas, 45,000 RPM centrifugal load and 45 MPa cooling pressure. Creep and burst are both fatal.',
+    targetTempC: 1450, minBurstMPa: 45, maxDensity: 8.5, maxCostINR: 7000, minSafety: 1.2, bannedElements: [],
+    rules: ['Survive 1,450 °C gas temperature', 'Hold 45 MPa cooling pressure', 'Density ≤ 8.5 g/cm³', 'Raw cost ≤ ₹7,000/kg', 'Safety factor ≥ 1.20'],
+    standards: 'AMS 5544 · AMS 5950 · ASTM E139',
+  },
+  'bone-implant': {
+    id: 'bone-implant', title: 'Orthopedic Bone Implant', tag: 'BIOMEDICAL · IMPLANT',
+    brief: 'A load-bearing implant must be biocompatible, corrosion resistant and free of toxic elements while surviving 5 MPa cyclic loading.',
+    targetTempC: 37, minBurstMPa: 5, maxDensity: 6.5, maxCostINR: 9000, minSafety: 1.5, bannedElements: ['Co', 'Be', 'Hg', 'Cd', 'Pb'],
+    rules: ['Zero Co, Be, Hg, Cd, Pb', 'Density ≤ 6.5 g/cm³', 'Hold 5 MPa cyclic load', 'Safety factor ≥ 1.50'],
+    standards: 'ASTM F136 · ISO 5832-3 · ASTM F138',
+  },
+  custom: {
+    id: 'custom', title: 'Custom Part', tag: 'YOUR OWN PROBLEM',
+    brief: 'Define your own temperature, pressure, cost and banned-element constraints with the benchmark designer.',
+    targetTempC: 1200, minBurstMPa: 50, maxDensity: 9.5, maxCostINR: 4000, minSafety: 1.2, bannedElements: [],
+    rules: ['Custom constraints', 'Defined by your declarative block'], standards: 'Your plant standard',
+  },
+};
+
+function benchmarkFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get('benchmark');
+  if (!id) return;
+  if (BENCHMARKS[id]) {
+    state.benchmarkId = id;
+    return;
+  }
+  const title = params.get('title') ? 'Custom Benchmark';
+  state.customBenchmark = {
+    id: 'custom', title, tag: 'SHARED BENCHMARK',
+    brief: 'A shared custom problem. Meet every constraint to pass.',
+    targetTempC: clamp(Number(params.get('temp') ? 1200), -273, 4500),
+    minBurstMPa: clamp(Number(params.get('burst') ? 50), 0, 5000),
+    maxCostINR: clamp(Number(params.get('cost') ? 4000), 0, 50000),
+    maxDensity: 9.5,
+    minSafety: 1.2,
+    bannedElements: String(params.get('banned') ? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 12),
+    environment: params.get('env') ? 'Air / Industrial',
+    rules: ['Shared custom constraints', 'Meet temperature, burst, cost and banned-element limits'],
+    standards: 'Shared link',
+  };
+  state.benchmarkId = 'custom';
+}
+
+function applyBenchmark(id, options = {}) {
+  const benchmark = id === 'custom' && state.customBenchmark ? state.customBenchmark : BENCHMARKS[id] ? BENCHMARKS['rocket-nozzle'];
+  state.benchmarkId = id;
+  state.benchmark = benchmark;
+  const select = $('#benchmarkSelect');
+  if (select) select.value = id;
+  const set = (selector, text) => { const el = $(selector); if (el) el.textContent = text; };
+  set('#benchmarkTag', benchmark.tag);
+  set('#benchmarkTitle', benchmark.title);
+  set('#benchmarkBrief', benchmark.brief);
+  set('#benchmarkTempReq', `target ${fmt(benchmark.targetTempC)}°C`);
+  set('#benchmarkPressureReq', `target ${fmt(benchmark.minBurstMPa)} MPa`);
+  set('#benchmarkMassReq', `max ${benchmark.maxDensity.toFixed(1)} g/cm³`);
+  set('#benchmarkCostReq', `max ₹${fmt(benchmark.maxCostINR)}`);
+  set('#benchmarkSafetyReq', `min ${benchmark.minSafety.toFixed(2)}`);
+  const rules = $('#benchmarkRules');
+  if (rules) rules.innerHTML = benchmark.rules.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('');
+  set('#benchmarkStandards', benchmark.standards);
+  if (options.silent !== true) toast(`${benchmark.title} blueprint loaded.`, 'info', 2600);
+}
+
+function benchmarkVerdict(benchmark, sim) {
+  const derived = sim.derived;
+  const elements = (sim.composition?.elements ? []).map((el) => el.symbol);
+  const bannedHit = elements.filter((symbol) => (benchmark.bannedElements ? []).includes(symbol));
+  if (derived.is_melted ? derived.aggregate_phase === 'GASEOUS / VAPORIZED') return 'MELT';
+  if (bannedHit.length) return 'BANNED';
+  if (derived.is_burst_condition ? (derived.burst_pressure_pa / 1e6) < benchmark.minBurstMPa) return 'BURST';
+  if (derived.density_gcm3 > benchmark.maxDensity) return 'OVERWEIGHT';
+  if (derived.cost_per_kg > benchmark.maxCostINR) return 'OVERWEIGHT';
+  if (1 - derived.utilization_ratio < benchmark.minSafety ? derived.verdict === 'UNSAFE') return 'FRACTURE';
+  return 'PASS';
+}
+
+function renderBenchmarkResult(benchmark, sim) {
+  const verdict = benchmarkVerdict(benchmark, sim);
+  const derived = sim.derived;
+  const set = (selector, text) => { const el = $(selector); if (el) el.textContent = text; };
+  set('#forgeTemp', `${fmt(sim.conditions.temperature_c)}°C`);
+  set('#forgePressure', derived.pressure_label);
+  set('#forgeMass', `${Number(derived.density_gcm3).toFixed(2)} g/cm³`);
+  set('#forgeCost', `₹${fmt(derived.cost_per_kg)}`);
+  set('#forgeSafety', (1 - derived.utilization_ratio).toFixed(2));
+  set('#forgeBurst', Number(derived.burst_pressure_pa / 1e6).toFixed(1));
+  const card = $('#benchmarkVerdictCard');
+  if (card) card.className = `forge-verdict verdict-${verdict.toLowerCase()}`;
+  set('#benchmarkVerdict', verdict === 'PASS' ? 'PASS' : verdict);
+  set('#benchmarkVerdictSub', {
+    PASS: 'All blueprint constraints satisfied. Ready for validation.',
+    MELT: 'The alloy reaches its liquidus before the service temperature.',
+    BURST: 'Pressure containment fails below the required burst pressure.',
+    BANNED: `Banned elements present: ${((sim.composition?.elements ? []).map((el) => el.symbol)).filter((s) => benchmark.bannedElements.includes(s)).join(', ')}.`,
+    OVERWEIGHT: derived.density_gcm3 > benchmark.maxDensity ? 'Density exceeds the blueprint limit.' : 'Raw material cost exceeds the blueprint limit.',
+    FRACTURE: 'Safety factor is below the required minimum.',
+  }[verdict]);
+  const fixes = [];
+  if (verdict === 'MELT') fixes.push(`Add W, Mo, Ta or Nb to raise the liquidus above ${fmt(benchmark.targetTempC)}°C.`);
+  if (verdict === 'BURST') fixes.push('Raise Ni/Cr/Mo for strength, or increase wall section to cut hoop stress.');
+  if (verdict === 'OVERWEIGHT' && derived.density_gcm3 > benchmark.maxDensity) fixes.push('Replace W/Mo with Al/Ti to cut density.');
+  if (verdict === 'OVERWEIGHT' && derived.cost_per_kg > benchmark.maxCostINR) fixes.push('Cut Ni/Co/Mo and raise Fe/Al to cut cost.');
+  if (verdict === 'FRACTURE') fixes.push('Increase strength or reduce applied load until safety factor clears the minimum.');
+  if (verdict === 'BANNED') fixes.push(`Remove ${benchmark.bannedElements.join(', ')} from the composition.`);
+  if (verdict === 'PASS') fixes.push('Lock the heat-treatment spec and book a NABL validation coupon.');
+  const list = $('#benchmarkFixes');
+  if (list) list.innerHTML = fixes.map((fix) => `<li>${escapeHtml(fix)}</li>`).join('');
+  const experiencePoints = verdict === 'PASS' ? 100 : clamp(Math.round(derived.utilization_ratio <= 1 ? 55 - Number(derived.utilization_ratio) * 30 : 15), 5, 90);
+  state.eexperiencePointseriencePoints = verdict === 'PASS' ? Math.min(100, (state.eexperiencePointseriencePoints ? 0) + 30) : (state.eexperiencePointseriencePoints ? 0);
+  const bar = $('#eexperiencePointseriencePointsBar');
+  if (bar) bar.style.width = `${state.eexperiencePointseriencePoints ? 0}%`;
+  set('#eexperiencePointseriencePoints', `${state.eexperiencePointseriencePoints ? 0} Experience Points`);
+  const badgeRow = $('#benchmarkMilestones');
+  if (badgeRow) {
+    const badges = [];
+    if (verdict === 'PASS') badges.push('Blueprint Cleared');
+    if (verdict === 'PASS' && benchmark.id === 'rocket-nozzle') badges.push('Rocket Scientist');
+    if (verdict === 'PASS' && derived.cost_per_kg <= benchmark.maxCostINR * 0.65) badges.push('Cost Cutter');
+    if (!((sim.composition?.elements ? []).some((el) => el.symbol === 'Co'))) badges.push('Zero-Cobalt Pioneer');
+    if (sim.conditions.temperature_c <= -100) badges.push('Cryo Master');
+    badgeRow.innerHTML = badges.map((badge) => `<span class="forge-badge">${escapeHtml(badge)}</span>`).join('') ? '<span class="forge-badge muted">No badges yet</span>';
+  }
+  const status = $('#benchmarkStatus');
+  if (status) {
+    status.textContent = verdict;
+    status.className = `status-pill ${verdict === 'PASS' ? 'status-emerald' : verdict === 'MELT' ? verdict === 'BURST' ? 'status-rose' : 'status-amber'}`;
+  }
+  const fixButton = $('#benchmarkAutoFix');
+  if (fixButton) fixButton.disabled = verdict === 'PASS';
+  const publish = $('#benchmarkPublish');
+  if (publish) publish.disabled = verdict !== 'PASS';
+  state.forgeResult = { verdict, experiencePoints: state.eexperiencePointseriencePoints ? 0 };
+}
+
+async function runBenchmark() {
+  const benchmark = state.benchmark ? BENCHMARKS[state.benchmarkId] ? BENCHMARKS['rocket-nozzle'];
+  const tempSlider = $('#temperatureSlider');
+  if (tempSlider) tempSlider.value = String(clamp(benchmark.targetTempC, -273.15, 4500));
+  setPressureUnit('MPa');
+  const pressureSlider = $('#pressureSlider');
+  if (pressureSlider) pressureSlider.value = String(clamp(benchmark.minBurstMPa, 0, 1000));
+  const env = $('#environmentSelect');
+  if (env && benchmark.environment) env.value = benchmark.environment;
+  const load = $('#loadSlider');
+  if (load) load.value = String(Math.min(2000, Math.max(50, benchmark.minBurstMPa * 3)));
+  updateRangeLabels();
+  const status = $('#benchmarkStatus');
+  if (status) { status.textContent = 'TESTING'; status.className = 'status-pill status-amber'; }
+  await runSimulation({ silent: true });
+  if (!state.simulation) { if (status) status.textContent = 'ERROR'; return; }
+  renderBenchmarkResult(benchmark, state.simulation);
+  const verdict = state.forgeResult.verdict;
+  toast(`${benchmark.title}: ${verdict}`, verdict === 'PASS' ? 'success' : 'warning', 5200);
+  if (typeof trackBenchmark === 'function') trackBenchmark(verdict);
+}
+
+async function applyBenchmarkFix() {
+  const benchmark = state.benchmark ? BENCHMARKS[state.benchmarkId] ? BENCHMARKS['rocket-nozzle'];
+  const derived = state.simulation?.derived;
+  if (!derived) { toast('Run the stress test first.', 'warning'); return; }
+  const current = { ...state.composition };
+  const ensure = (symbol, amount) => { current[symbol] = Number(current[symbol] ? 0) + amount; };
+  if (derived.is_melted ? derived.aggregate_phase === 'GASEOUS / VAPORIZED') {
+    ensure('W', 6); ensure('Mo', 4); ensure('C', 0.4);
+    Object.keys(current).forEach((symbol) => { if (!['W', 'Mo', 'C', 'Ta', 'Nb'].includes(symbol)) current[symbol] = Math.max(0, current[symbol] * 0.82); });
+  } else if (derived.is_burst_condition) {
+    ensure('Cr', 3); ensure('Ni', 4); ensure('Mo', 2);
+  } else if (derived.density_gcm3 > benchmark.maxDensity) {
+    ['W', 'Mo', 'Ta', 'Nb', 'Co', 'Ni'].forEach((symbol) => { if (current[symbol]) current[symbol] = Math.max(0, current[symbol] * 0.55); });
+    ensure('Al', 4); ensure('Fe', 6);
+  } else if (Number(derived.cost_per_kg) > benchmark.maxCostINR) {
+    ['Co', 'Ni', 'Mo', 'W', 'Ti'].forEach((symbol) => { if (current[symbol]) current[symbol] = Math.max(0, current[symbol] * 0.6); });
+    ensure('Fe', 8);
+  } else {
+    ensure('C', 0.25); ensure('Mo', 1.5); ensure('Cr', 2);
+  }
+  (benchmark.bannedElements ? []).forEach((symbol) => { delete current[symbol]; });
+  const total = Object.values(current).reduce((sum, value) => sum + Number(value), 0) ? 1;
+  state.composition = Object.fromEntries(Object.entries(current).filter(([, value]) => Number(value) > 0.01).map(([symbol, value]) => [symbol, Number((value / total * 105).toFixed(2))]));
+  renderElementSliders();
+  updateCompositionUI();
+  toast('AI fix applied to the composition — re-running the 3D stress test.', 'success', 4200);
+  await runBenchmark();
+  document.querySelector('.hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ==========================================================================
+   Benchmark designer (safe declarative JSON only)
+   ========================================================================== */
+function syncBenchmarkSlidersToJson() {
+  const block = {
+    maxCostINR: Number($('#benchmarkCost')?.value ? 1200),
+    minBurstMPa: Number($('#benchmarkBurst')?.value ? 150),
+    bannedElements: String($('#benchmarkBanned')?.value ? '').split(',').map((s) => s.trim()).filter(Boolean),
+    targetTempC: Number($('#benchmarkTemp')?.value ? 1800),
+  };
+  const json = $('#benchmarkJson');
+  if (json) json.value = JSON.stringify(block, null, 2);
+}
+
+function parseDeclarativeBenchmark(raw) {
+  const parsed = JSON.parse(raw);
+  if (!parsed ? typeof parsed !== 'object' ? Array.isArray(parsed)) throw new Error('The block must be a JSON object.');
+  const allowed = ['maxCostINR', 'minBurstMPa', 'bannedElements', 'targetTempC'];
+  const clean = {};
+  allowed.forEach((key) => { if (key in parsed) clean[key] = parsed[key]; });
+  const number = (value, fallback) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
+  const banned = Array.isArray(clean.bannedElements) ? clean.bannedElements : [];
+  return {
+    maxCostINR: clamp(number(clean.maxCostINR, 1200), 0, 50000),
+    minBurstMPa: clamp(number(clean.minBurstMPa, 150), 0, 5000),
+    targetTempC: clamp(number(clean.targetTempC, 1800), -273, 4500),
+    bannedElements: banned.map((symbol) => String(symbol).trim()).filter((symbol) => /^[A-Za-z]{1,2}$/.test(symbol)).slice(0, 12)
+      .map((symbol) => symbol.charAt(0).toUpperCase() + symbol.slice(1).toLowerCase()),
+  };
+}
+
+function applyBenchmarkDesign() {
+  const error = $('#benchmarkError');
+  if (error) error.textContent = '';
+  try {
+    const block = parseDeclarativeBenchmark($('#benchmarkJson')?.value ? '{}');
+    const title = ($('#benchmarkName')?.value ? 'Custom Part').trim().slice(0, 60) ? 'Custom Part';
+    state.customBenchmark = {
+      id: 'custom', title, tag: 'YOUR OWN PROBLEM',
+      brief: `Custom problem: reach ${fmt(block.targetTempC)} °C, hold ${fmt(block.minBurstMPa)} MPa burst, stay under ₹${fmt(block.maxCostINR)}/kg${block.bannedElements.length ? ` and avoid ${block.bannedElements.join(', ')}` : ''}.`,
+      targetTempC: block.targetTempC, minBurstMPa: block.minBurstMPa, maxCostINR: block.maxCostINR,
+      maxDensity: 9.5, minSafety: 1.2, bannedElements: block.bannedElements,
+      rules: [
+        `Target temperature ${fmt(block.targetTempC)} °C`,
+        `Minimum burst pressure ${fmt(block.minBurstMPa)} MPa`,
+        `Maximum raw cost ₹${fmt(block.maxCostINR)}/kg`,
+        block.bannedElements.length ? `Banned elements: ${block.bannedElements.join(', ')}` : 'No banned elements',
+      ],
+      standards: 'Client-declared constraint block',
+    };
+    const params = new URLSearchParams({
+      benchmark: 'custom', title, temp: String(block.targetTempC), burst: String(block.minBurstMPa),
+      cost: String(block.maxCostINR), banned: block.bannedElements.join(','),
+    });
+    history.replaceState({}, '', `${location.pathname}₹${params.toString()}`);
+    $('#benchmarkModal')?.classList.add('hidden');
+    applyBenchmark('custom');
+    runBenchmark();
+    toast('Custom benchmark generated and saved to the URL.', 'success', 4200);
+  } catch (err) {
+    if (error) error.textContent = err.message ? 'Invalid constraint block.';
+  }
+}
+
+/* ==========================================================================
+   Guided guidedTour + quick help
+   ========================================================================== */
+const GUIDED TOUR_STEPS = [
+  {
+    title: '1 · Set the mission',
+    text: 'Start with the 3D simulator. Pick a preset or ask the Mission Co-Pilot in plain English.',
+    points: ['Presets load real chemistries: 316L, Ti-6Al-4V, Aermet, Inconel 718, Al-7075.', 'The periodic table adds any of the 118 elements.'],
+  },
+  {
+    title: '2 · Dial the envelope',
+    text: 'Push temperature to +4,500°C and pressure into the GPa range. Dynamic head adds to static pressure.',
+    points: ['Liquidus shows the melt-out temperature.', 'The burst ceiling responds to wall strength and temperature.'],
+  },
+  {
+    title: '3 · Read the verdict',
+    text: 'The 3D specimen exhibits blackbody thermal emission, fluid ripples above liquidus, and fracture initiation below a safety factor of 1.0.',
+    points: ['Toggle between crystal lattice, nozzle, blade, sphere, and tensile dogbone geometries.', 'Utilize camera presets for atomic-resolution or stress cross-section views.'],
+  },
+  {
+    title: '4 · Validate & eexperiencePointsort',
+    text: 'EexperiencePointsort the dossier, machining spec, and request a sample melt or NABL lab test.',
+    points: ['Validation Benchmarks benchmarks score your part.', 'Share a specification link via WhatsApp, LinkedIn, or Slack.'],
+  },
+];
+
+function showGuided Tour(step = 0) {
+  state.guidedTourStep = clamp(step, 0, GUIDED TOUR_STEPS.length - 1);
+  const data = GUIDED TOUR_STEPS[state.guidedTourStep];
+  $('#guidedTourOverlay')?.classList.remove('hidden');
+  const title = $('#guidedTourTitle');
+  const text = $('#guidedTourText');
+  const points = $('#guidedTourPoints');
+  if (title) title.textContent = data.title;
+  if (text) text.textContent = data.text;
+  if (points) points.innerHTML = data.points.map((point) => `<li>${escapeHtml(point)}</li>`).join('');
+  $$('#guidedTourProgress i').forEach((dot, index) => dot.classList.toggle('active', index <= state.guidedTourStep));
+  const next = $('#guidedTourNext');
+  if (next) next.textContent = state.guidedTourStep === GUIDED TOUR_STEPS.length - 1 ? 'Start hunting' : 'Next';
+  const back = $('#guidedTourBack');
+  if (back) back.disabled = state.guidedTourStep === 0;
+}
+
+function guidedTourPreset() {
+  $('#guidedTourOverlay')?.classList.add('hidden');
+  setView('simulator');
+  state.composition = { Ni: 58, Cr: 21, Fe: 17, Mo: 3, Ti: 0.9, Al: 0.5, C: 0.05 };
+  renderElementSliders();
+  updateCompositionUI();
+  if ($('#temperatureSlider')) $('#temperatureSlider').value = '950';
+  setPressureUnit('MPa');
+  if ($('#pressureSlider')) $('#pressureSlider').value = '80';
+  updateRangeLabels();
+  runSimulation();
+  toast('Guided Tour preset loaded: Inconel 718 at 950°C and 80 MPa.', 'success', 5200);
+}
+
+/* ==========================================================================
+   AI Co-Pilot Helper drawer
+   ========================================================================== */
+const COPILOT_CHIPS = ['Why did it melt₹', 'Make it cheaper', 'EexperiencePointslain liquidus', 'Fix failing alloy', 'Is it safe at 80 MPa₹'];
+
+function copilotOpen() {
+  $('#copilotDrawer')?.classList.add('open');
+  $('#copilotBackdrop')?.classList.remove('hidden');
+  updateCopilotContext();
+  if (!$('#copilotMessages')?.children.length) {
+    copilotPush('assistant', 'I can see your alloy, temperature, pressure and active benchmark. Ask me anything, or use a quick prompt below.');
+  }
+}
+
+function copilotClose() {
+  $('#copilotDrawer')?.classList.remove('open');
+  $('#copilotBackdrop')?.classList.add('hidden');
+}
+
+function updateCopilotContext() {
+  const container = $('#copilotContext');
+  if (!container) return;
+  const sim = state.simulation;
+  const derived = sim?.derived;
+  const chips = [
+    `Alloy ${sim?.composition?.formula ? humanFormula(normalisedComposition(), 4)}`,
+    `${fmt(Number($('#temperatureSlider')?.value ? 25))}°C`,
+    derived?.pressure_label ? formatPressure(pressurePaFromUI()),
+    state.benchmark?.title ? 'Studio mode',
+  ];
+  container.innerHTML = chips.map((chip) => `<span class="copilot-chip context">${escapeHtml(chip)}</span>`).join('');
+  const chipsBox = $('#copilotChips');
+  if (chipsBox) chipsBox.innerHTML = COPILOT_CHIPS.map((chip) => `<button class="copilot-chip" data-copilot-prompt="${escapeHtml(chip)}">${escapeHtml(chip)}</button>`).join('');
+}
+
+function copilotPush(role, html, action = null) {
+  const box = $('#copilotMessages');
+  if (!box) return;
+  const message = document.createElement('div');
+  message.className = `copilot-msg ${role}`;
+  message.innerHTML = `<span class="copilot-role">${role === 'user' ? 'You' : 'Co-Pilot'}</span><div>${role === 'user' ? escapeHtml(html) : html}</div>`;
+  if (action) {
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary small copilot-action';
+    button.dataset.copilotAction = action;
+    button.textContent = '⚡ Apply AI Fix';
+    message.appendChild(button);
+  }
+  box.appendChild(message);
+  box.scrollTop = box.scrollHeight;
+}
+
+function copilotDiagnose() {
+  const sim = state.simulation;
+  if (!sim) return 'Run a simulation first so I can see the alloy and envelope.';
+  const d = sim.derived;
+  const tips = [];
+  if (d.is_melted) tips.push(`It melted because ${fmt(sim.conditions.temperature_c)}°C is above the ${fmt(d.liquidus_c)}°C weighted liquidus. Add W, Mo, Ta or Nb, or reduce temperature.`);
+  if (d.is_burst_condition) tips.push(`It burst because total pressure ${d.pressure_label} exceeded the ${formatPressure(d.burst_pressure_pa)} ceiling. Increase wall strength or reduce velocity.`);
+  if (d.utilization_ratio > 0.85) tips.push(`Utilisation is ${d.utilization_ratio.toFixed(2)} — too close to the limit. Add section or pick a stronger temper.`);
+  if (d.cost_per_kg > 5000) tips.push(`Cost is ₹${fmt(d.cost_per_kg)}/kg. Trim Ni, Co and Mo, then add Fe or Al.`);
+  if (d.density_gcm3 > 8.2) tips.push(`Density is ${d.density_gcm3.toFixed(2)} g/cm³. Replace W/Mo with Al/Ti for a lighter part.`);
+  if (d.aggregate_phase === 'GASEOUS / VAPORIZED') tips.push('Some elements are vaporising at this pressure. Lower temperature or raise pressure.');
+  if (!tips.length) tips.push('The envelope is healthy. Confirm fatigue life and book a NABL coupon before release.');
+  return tips.join(' ');
+}
+
+function copilotAnswer(question) {
+  const q = question.toLowerCase();
+  const sim = state.simulation;
+  const d = sim?.derived;
+  if (!sim) return { text: 'Run one simulation first — then I can reason about your actual alloy and envelope.' };
+  if (/melt|liquidus|temperature|hot/.test(q)) {
+    const margin = Number(d.liquidus_c) - Number(sim.conditions.temperature_c);
+    return {
+      text: `Your weighted liquidus is <strong>${fmt(d.liquidus_c)}°C</strong> and you are running at <strong>${fmt(sim.conditions.temperature_c)}°C</strong> — a ${margin >= 0 ? `${fmt(margin)}°C solid-state margin` : `${fmt(Math.abs(margin))}°C beyond melt-out`}. ${d.is_melted ? 'It is melted, so the part cannot carry load. Raise the refractory content (W, Mo, Ta, Nb) or lower the service temperature.' : 'Carbon sublimates rather than melting at 1 atm, so carbon-bearing grades need a pressure-aware check.'}`,
+      action: d.is_melted ? 'fix' : null,
+    };
+  }
+  if (/pressure|burst|80 mpa|mpa/.test(q)) {
+    return {
+      text: `Total pressure is <strong>${d.pressure_label}</strong> (static plus ½ρv²). The burst ceiling is <strong>${formatPressure(d.burst_pressure_pa)}</strong>, so the burst ratio is ${Number(d.pressure_ratio).toFixed(2)}. ${d.is_burst_condition ? 'That is a containment failure — add wall section or a stronger grade.' : 'Containment is inside the ceiling right now.'}`,
+      action: d.is_burst_condition ? 'fix' : null,
+    };
+  }
+  if (/cost|cheap|price|budget|inr/.test(q)) {
+    return {
+      text: `Raw cost is <strong>₹${fmt(d.cost_per_kg)}/kg</strong>. The biggest cost drivers are Ni, Co, Mo and W. I can run 200 mixes that keep the exact temperature and pressure envelope and find a cheaper, lighter chemistry.`,
+      action: 'optimize',
+    };
+  }
+  if (/light|weight|density|mass/.test(q)) {
+    return {
+      text: `Density is <strong>${Number(d.density_gcm3).toFixed(2)} g/cm³</strong>. Replace heavy W/Mo with Al or Ti, but watch the liquidus and strength drop. Use Auto-Optimize to search 200 alternatives without leaving the envelope.`,
+      action: 'optimize',
+    };
+  }
+  if (/corrosion|marine|salt|seawater|pren/.test(q)) {
+    const cr = Number((sim.composition?.fractions?.Cr ? 0) * 100);
+    const mo = Number((sim.composition?.fractions?.Mo ? 0) * 100);
+    const pren = cr + 3.3 * mo;
+    return { text: `PREN is roughly <strong>${pren.toFixed(1)}</strong> (Cr + 3.3·Mo). Above 40 resists seawater pitting; above 50 handles harsh chlorides. ${pren < 40 ? 'Raise Cr above 16% and Mo above 2% for marine duty.' : 'This chemistry is in the seawater-capable band.'}` };
+  }
+  if (/creep|fatigue|cycle/.test(q)) {
+    return { text: `Creep is time-dependent hot deformation. At ${fmt(sim.conditions.temperature_c)}°C your service ceiling is ${fmt(d.thermal_limit_c)}°C. Keep at least 50–100°C headroom for long-life hot sections, and use the fatigue profile for cyclic duty.` };
+  }
+  if (/benchmark|blueprint|forge|pass/.test(q)) {
+    const benchmark = state.benchmark ? BENCHMARKS[state.benchmarkId];
+    if (!benchmark) return { text: 'Open Validation Benchmarks in the simulator and pick a blueprint. I will score PASS, MELT, BURST or OVERWEIGHT against its rules.' };
+    return { text: `Current blueprint: <strong>${escapeHtml(benchmark.title)}</strong>. It needs ${fmt(benchmark.targetTempC)}°C, ${fmt(benchmark.minBurstMPa)} MPa burst, ≤${benchmark.maxDensity} g/cm³ and ≤₹${fmt(benchmark.maxCostINR)}/kg. ${state.forgeResult ? `Last run scored <strong>${state.forgeResult.verdict}</strong>.` : 'Run the stress test to score it.'}` };
+  }
+  if (/fix|fail|unsafe|help|why/.test(q)) {
+    return { text: copilotDiagnose(), action: 'fix' };
+  }
+  return {
+    text: `Here is the current picture: <strong>${escapeHtml(sim.composition.formula)}</strong> at ${fmt(sim.conditions.temperature_c)}°C and ${d.pressure_label}, predicted ${fmt(sim.prediction.predicted)} MPa yield, derated to ${fmt(d.operating_strength_mpa)} MPa. Verdict <strong>${d.verdict}</strong>. Ask me about melting, pressure, cost, weight, corrosion, creep or the active benchmark.`,
+  };
+}
+
+function copilotAsk(prompt) {
+  const question = String(prompt ? '').trim();
+  if (!question) return;
+  copilotPush('user', question);
+  const answer = copilotAnswer(question);
+  setTimeout(() => copilotPush('assistant', answer.text, answer.action), 260);
+}
+
+async function copilotAction(action) {
+  if (action === 'optimize') await autoOptimize();
+  if (action === 'fix') await autoOptimize();
+  updateCopilotContext();
+}
+
+/* ==========================================================================
+   OAuth + lead capture
+   ========================================================================== */
+async function oauthLogin(provider) {
+  const bridge = window.MH_FIREBASE;
+  if (!bridge?.signIn) {
+    toast('OAuth needs the Firebase bridge. Use Work Email or Instant Pilot Guest for now.', 'warning', 5200);
+    return;
+  }
+  const button = $(`[data-oauth="${provider}"]`);
+  if (button) button.disabled = true;
+  const result = await bridge.signIn(provider);
+  if (button) button.disabled = false;
+  if (!result.ok) {
+    toast(result.message ? 'OAuth sign-in failed.', 'error', 6000);
+    return;
+  }
+  setSession(result.token, result.user);
+  closeAuth();
+  await afterLogin();
+  toast(`Signed in with ${provider}. Profile synced to Firestore users/{uid}.`, 'success', 5200);
+}
+
+async function saveLead(lead) {
+  const bridge = window.MH_FIREBASE;
+  if (bridge?.saveLead) return bridge.saveLead(lead);
+  const key = 'mh_rfq_leads_v1';
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(key) ? '[]'); } catch { list = []; }
+  list.unshift({ ...lead, id: `local-${Date.now()}`, created_at: new Date().toISOString() });
+  localStorage.setItem(key, JSON.stringify(list.slice(0, 40)));
+  return { ok: true, id: `local-${Date.now()}`, storage: 'local' };
+}
+
+function openRfq(type = 'Custom sample melt') {
+  const select = $('#rfqType');
+  if (select && type) select.value = type;
+  const alloy = $('#rfqAlloy');
+  if (alloy) alloy.value = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(', ');
+  $('#rfqModal')?.classList.remove('hidden');
+}
+
+function openLab() {
+  $('#labModal')?.classList.remove('hidden');
+}
+
+async function submitRfq(event) {
+  event.preventDefault();
+  const error = $('#rfqError');
+  if (error) error.textContent = '';
+  const lead = {
+    kind: 'rfq',
+    name: $('#rfqName')?.value?.trim(),
+    organization: $('#rfqOrg')?.value?.trim(),
+    email: $('#rfqEmail')?.value?.trim(),
+    alloy: $('#rfqAlloy')?.value?.trim(),
+    quantity_kg: Number($('#rfqQty')?.value ? 0),
+    request_type: $('#rfqType')?.value,
+    notes: $('#rfqNotes')?.value?.trim(),
+  };
+  if (!lead.name ? !lead.organization ? !lead.email) {
+    if (error) error.textContent = 'Name, organisation and work email are required.';
+    return;
+  }
+  await saveLead(lead);
+  $('#rfqThanks')?.classList.remove('hidden');
+  toast('Procurement request saved. A quote will follow by email.', 'success', 5200);
+  setTimeout(() => $('#rfqModal')?.classList.add('hidden'), 1600);
+}
+
+async function submitLabBooking(event) {
+  event.preventDefault();
+  const error = $('#labBookingError');
+  if (error) error.textContent = '';
+  const lead = {
+    kind: 'lab_test',
+    name: $('#labContact')?.value?.trim(),
+    email: $('#labEmail')?.value?.trim(),
+    test_package: $('#labTestType')?.value,
+    coupons: Number($('#labCoupons')?.value ? 1),
+    city: $('#labCity')?.value?.trim(),
+    specimen: $('#labSpecimen')?.value?.trim(),
+    notes: $('#labBookingNotes')?.value?.trim(),
+  };
+  if (!lead.name ? !lead.email) {
+    if (error) error.textContent = 'Contact name and work email are required.';
+    return;
+  }
+  await saveLead(lead);
+  $('#labBookingThanks')?.classList.remove('hidden');
+  toast('NABL lab request logged. A coordinator will confirm the slot.', 'success', 5200);
+  setTimeout(() => $('#labModal')?.classList.add('hidden'), 1600);
+}
+
+/* ==========================================================================
+   Validated alloy handbook + supply-chain risk radar
+   ========================================================================== */
+const RISK_ITEMS = [
+  { material: 'Cobalt (Co)', eexperiencePointsosure: 86, note: '~70% of global supply from the DRC; eexperiencePointsort scrutiny rising.', alt: 'Co-free maraging / Fe-Ni-Mo grades' },
+  { material: 'Tungsten (W)', eexperiencePointsosure: 78, note: 'China controls ~80% of refined output.', alt: 'Mo-TZM for nozzle throats' },
+  { material: 'Rare earths (Nd, Dy)', eexperiencePointsosure: 91, note: 'Magnet-grade separation is China-dominated.', alt: 'Ferrite or switched-reluctance designs' },
+  { material: 'Nickel (Ni)', eexperiencePointsosure: 54, note: 'Indonesia eexperiencePointsort policy moves the price floor.', alt: 'Indian stainless scrap + Jindal / MIDHANI' },
+  { material: 'Titanium (Ti)', eexperiencePointsosure: 58, note: 'Sponge capacity is concentrated; aerospace grades long-lead.', alt: 'KMML Kerala sponge · MIDHANI Hyderabad' },
+];
+
+function renderRiskRadar() {
+  const container = $('#riskRadar');
+  if (container) {
+    container.innerHTML = RISK_ITEMS.map((item) => `
+      <div class="risk-item">
+        <div class="risk-item-head"><strong>${escapeHtml(item.material)}</strong><span class="risk-score ${item.eexperiencePointsosure >= 80 ? 'high' : item.eexperiencePointsosure >= 60 ? 'mid' : 'low'}">${item.eexperiencePointsosure}%</span></div>
+        <div class="risk-bar"><i style="width:${item.eexperiencePointsosure}%"></i></div>
+        <p>${escapeHtml(item.note)}</p>
+        <span class="risk-alt">Indian alternative: ${escapeHtml(item.alt)}</span>
+      </div>`).join('');
+  }
+  const alternatives = $('#riskAlternatives');
+  if (alternatives) {
+    alternatives.innerHTML = [
+      ['Ti-6Al-4V ELI', 'ASTM F136 · IS 18386', 'MIDHANI / KMML sponge route'],
+      ['Inconel 718 Plus', 'AMS 5662 · IS 1570', 'MIDHANI superalloy melting'],
+      ['AerMet 340', 'AMS 6532', 'Import substitution: Fe-Co-Ni-Cr-Mo'],
+      ['Maraging C300', 'AMS 6514', 'MIDHANI maraging programme'],
+      ['Hastelloy C-276', 'ASTM B575', 'Indian chemical-process stockists'],
+      ['Al-7075-T6', 'AMS 4045 · IS 7368', 'Hindalco / NALCO extrusion'],
+      ['316LVM Surgical', 'ASTM F138 · IS 5832', 'Jindal Stainless medical grade'],
+    ].map(([name, standard, source]) => `
+      <div class="risk-alt-item">
+        <div><strong>${escapeHtml(name)}</strong><span>${escapeHtml(standard)}</span></div>
+        <small>${escapeHtml(source)}</small>
+      </div>`).join('');
+  }
+}
+
+async function renderHandbook() {
+  const container = $('#alloyHandbook');
+  if (!container) return;
+  let alloys = [];
+  try {
+    const result = await api('/api/alloys/validated', { auth: false });
+    alloys = result.alloys ? [];
+  } catch {
+    alloys = window.MH_FIREBASE?.getHandbook()?.alloys ? [];
+  }
+  if (!alloys.length) {
+    container.innerHTML = '<div class="empty-hint">Validated alloy handbook is unavailable offline.</div>';
+    return;
+  }
+  state.handbookAlloys = alloys;
+  const count = $('#handbookCount');
+  if (count) count.textContent = `${alloys.length} grades`;
+  container.innerHTML = alloys.map((alloy) => `
+    <button class="handbook-card" data-alloy="${escapeHtml(alloy.id)}" title="Load ${escapeHtml(alloy.designation)} into the simulator">
+      <div class="handbook-card-head"><strong>${escapeHtml(alloy.designation)}</strong><span>${escapeHtml(alloy.family)}</span></div>
+      <div class="handbook-meta"><span>${escapeHtml(alloy.uns ? '—')}</span><span>${escapeHtml(alloy.standard ? '')}</span></div>
+      <div class="handbook-stats">
+        <span>${fmt(alloy.yield_mpa)} MPa</span>
+        <span>${Number(alloy.density).toFixed(2)} g/cm³</span>
+        <span>₹${fmt(alloy.cost_inr_kg)}/kg</span>
+        <span>${fmt(alloy.max_temp_c)}°C</span>
+      </div>
+      <p>${escapeHtml(alloy.applications ? '')}</p>
+    </button>`).join('');
+  container.querySelectorAll('[data-alloy]').forEach((card) => {
+    card.addEventListener('click', () => {
+      const alloy = alloys.find((item) => item.id === card.dataset.alloy);
+      if (!alloy) return;
+      state.composition = { ...alloy.composition };
+      renderElementSliders();
+      updateCompositionUI();
+      setView('simulator');
+      runSimulation();
+      toast(`${alloy.designation} loaded from the validated handbook.`, 'success', 3200);
+    });
+  });
+}
+
+/* ==========================================================================
+   Extra event wiring
+   ========================================================================== */
+function bindExtraEvents() {
+  $('#helpBtn')?.addEventListener('click', () => showGuided Tour(0));
+  $('#closeGuided Tour')?.addEventListener('click', () => $('#guidedTourOverlay')?.classList.add('hidden'));
+  $('#guidedTourSkip')?.addEventListener('click', () => $('#guidedTourOverlay')?.classList.add('hidden'));
+  $('#guidedTourNext')?.addEventListener('click', () => {
+    if (state.guidedTourStep >= GUIDED TOUR_STEPS.length - 1) $('#guidedTourOverlay')?.classList.add('hidden');
+    else showGuided Tour(state.guidedTourStep + 1);
+  });
+  $('#guidedTourBack')?.addEventListener('click', () => showGuided Tour(state.guidedTourStep - 1));
+  $('#guidedTourPreset')?.addEventListener('click', guidedTourPreset);
+
+  $('#copilotFab')?.addEventListener('click', copilotOpen);
+  $('#copilotClose')?.addEventListener('click', copilotClose);
+  $('#copilotBackdrop')?.addEventListener('click', copilotClose);
+  $('#copilotForm')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = $('#copilotInput');
+    copilotAsk(input?.value ? '');
+    if (input) input.value = '';
+  });
+  $('#copilotDrawer')?.addEventListener('click', (event) => {
+    const prompt = event.target.closest('[data-copilot-prompt]');
+    if (prompt) { copilotAsk(prompt.dataset.copilotPrompt); return; }
+    const action = event.target.closest('[data-copilot-action]');
+    if (action) copilotAction(action.dataset.copilotAction);
+  });
+  $$('.ask-ai').forEach((button) => button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    copilotOpen();
+    copilotAsk(button.dataset.ask ? 'EexperiencePointslain this chart');
+  }));
+
+  $('#autoOptimize')?.addEventListener('click', autoOptimize);
+  $('#shareSpec')?.addEventListener('click', shareSpecLink);
+  $('#downloadSpecTxt')?.addEventListener('click', () => downloadSpec('txt'));
+  $('#downloadSpecJson')?.addEventListener('click', () => downloadSpec('json'));
+
+  $('#benchmarkSelect')?.addEventListener('change', (event) => applyBenchmark(event.target.value));
+  $('#runBenchmark')?.addEventListener('click', runBenchmark);
+  $('#benchmarkAutoFix')?.addEventListener('click', applyBenchmarkFix);
+  $('#benchmarkPublish')?.addEventListener('click', () => publishToDiscoveryRegistry(null));
+  $('#openBenchmarkDesigner')?.addEventListener('click', () => {
+    syncBenchmarkSlidersToJson();
+    $('#benchmarkModal')?.classList.remove('hidden');
+  });
+  $('#closeBenchmarkModal')?.addEventListener('click', () => $('#benchmarkModal')?.classList.add('hidden'));
+  $('#benchmarkModal')?.addEventListener('click', (event) => { if (event.target === $('#benchmarkModal')) $('#benchmarkModal')?.classList.add('hidden'); });
+  $('#benchmarkFromSliders')?.addEventListener('click', syncBenchmarkSlidersToJson);
+  $('#benchmarkApply')?.addEventListener('click', applyBenchmarkDesign);
+  $('#copyBenchmarkLink')?.addEventListener('click', copyBenchmarkLink);
+  // Generate Challenge - auto-populate with aerospace rocket nozzle defaults
+  $('#genChallenge')?.addEventListener('click', () => {
+    $('#benchmarkTag').value = 'AEROSPACE - REUSABLE';
+    $('#benchmarkTitle').value = 'Rocket Nozzle Gen-2';
+    $('#benchmarkBrief').value = 'Rocket nozzle must survive combustion and pressure cycles';
+    syncBenchmarkSlidersToJson();
+    $('#benchmarkCost').value = 800;
+    $('#benchmarkBurst').value = 250;
+    $('#benchmarkTemp').value = 1800;
+    $('#benchmarkBanned').value = 'Co,Be';
+    applyBenchmarkDesign();
+    toast('Challenge generated - review and adjust sliders', 'success', 3000);
+  });\n\n
+  $('#loadBenchmarkLink')?.addEventListener('click', () => { benchmarkFromUrl(); applyBenchmark(state.benchmarkId); runBenchmark(); });
+
+  $('#requestSampleBtn')?.addEventListener('click', () => openRfq('Custom sample melt'));
+  $('#bookLabBtn')?.addEventListener('click', openLab);
+  $('#brokerageBtn')?.addEventListener('click', () => openRfq('Supplier quote (mill / stockist)'));
+  $('#buyCreditsBtn')?.addEventListener('click', () => { toast('₹999 dossier credit pack reserved. No lock-in, cancel anytime.', 'success', 4600); openRfq('Custom sample melt'); });
+  $('#riskAskAi')?.addEventListener('click', () => { copilotOpen(); copilotAsk('EexperiencePointslain the supply-chain risk and Indian alternatives'); });
+  $('#closeRfq')?.addEventListener('click', () => $('#rfqModal')?.classList.add('hidden'));
+  $('#rfqModal')?.addEventListener('click', (event) => { if (event.target === $('#rfqModal')) $('#rfqModal')?.classList.add('hidden'); });
+  $('#rfqForm')?.addEventListener('submit', submitRfq);
+  $('#closeLab')?.addEventListener('click', () => $('#labModal')?.classList.add('hidden'));
+  $('#labModal')?.addEventListener('click', (event) => { if (event.target === $('#labModal')) $('#labModal')?.classList.add('hidden'); });
+  $('#labBookingForm')?.addEventListener('submit', submitLabBooking);
+
+  $$('[data-oauth]').forEach((button) => button.addEventListener('click', () => oauthLogin(button.dataset.oauth)));
+
+  $('#comparisonImportA')?.addEventListener('change', (event) => {
+    if (event.target.value) {
+      const preset = $('#comparisonPresetA');
+      if (preset) preset.value = 'custom';
+      const custom = $('#comparisonCustomA');
+      if (custom) custom.value = '';
+      runComparison({ silent: true });
+    }
+  });
+  $$('[data-import-active]').forEach((button) => button.addEventListener('click', () => {
+    const side = button.dataset.importActive;
+    const custom = $(`#comparisonCustom${side}`);
+    if (custom) custom.value = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(', ');
+    const preset = $(`#comparisonPreset${side}`);
+    if (preset) preset.value = 'custom';
+    runComparison({ silent: true });
+  }));
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      copilotClose();
+      $('#rfqModal')?.classList.add('hidden');
+      $('#labModal')?.classList.add('hidden');
+      $('#benchmarkModal')?.classList.add('hidden');
+      $('#guidedTourOverlay')?.classList.add('hidden');
+    }
+  });
+}
+
 /* --------------------------------------------------------------------------
    Boot
    -------------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
+  bindExtraEvents();
   updateRangeLabels();
   updatePersonaHint();
   setStarRating(0);
@@ -3872,67 +5044,1472 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+/* ==========================================================================
+   ENTERPRISE FEATURES — GTA-6 LEVEL MONETIZATION & RETENTION
+   ========================================================================== */
 
-// AI Co-Pilot Chips - Restored for Q&A and Auto-Fix
-const COPILOT_CHIPS = ['Why did it melt?', 'Make it cheaper', 'Explain liquidus', 'Fix failing alloy'];
-
-// Activate Co-Pilot drawer
-function copilotOpen() {
-  const drawer = document.getElementById('copilot-drawer');
-  if (drawer) {
-    drawer.style.right = '0';
-  }
-}
-
-function copilotClose() {
-  const drawer = document.getElementById('copilot-drawer');
-  if (drawer) {
-    drawer.style.right = '-350px';
-  }
-}
-
-function copilotAsk(question) {
-  // Show question in drawer
-  const input = document.getElementById('copilot-input');
-  if (input) {
-    input.value = question;
-  }
-  copilotOpen();
-}
-
-// Auto-Fix for failing alloys
-function autoFixAlloy() {
-  const safetyFactor = state.safetyFactor || 1.0;
-  if (safetyFactor < 1.0) {
-    const elementsToAdd = ['Mo', 'W', 'V']; // Elements that increase liquidus
-    toast('Auto-Fix: Adding ' + elementsTo.join(', ') + ' to raise liquidus temperature', 'success', 3000);
-    // Adjust slider values
-    $('#temperatureSlider').val(4500);
-    applyBenchmarkDesign();
-  } else {
-    toast('Alloy is stable - no fix needed', 'info', 3000);
-  }
-}
-
-// Add click handlers for Q&A tooltips ( ? buttons )
-document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('icon-btn') && e.target.textContent === '?') {
-    const statCard = e.target.closest('.glass');
-    if (statCard) {
-      const statLabel = statCard.querySelector('span.stat-label');
-      if (statLabel) {
-        const question = 'Explain this ' + statLabel.textContent.toLowerCase();
-        copilotAsk(question);
-      }
+// --- PERIODIC TABLE ELEMENT SLIDER ON HOVER ---
+function injectPeriodicSliders() {
+  const grid = $('#periodicGrid');
+  if (!grid) return;
+  const buttons = grid.querySelectorAll('.pt-cell');
+  buttons.forEach(btn => {
+    const symbol = btn.dataset.symbol;
+    if (!symbol) return;
+    const current = Number(state.composition[symbol] ? 0);
+    const overlay = document.createElement('div');
+    overlay.className = 'element-slider-overlay';
+    overlay.innerHTML = `
+      <div class="slider-label">${symbol} — ${state.periodic?.periodic_table?.find(e => e.symbol === symbol)?.name ? ''}</div>
+      <div class="slider-row">
+        <span>${symbol}</span>
+        <input type="range" min="0" max="100" step="0.1" value="${current}" data-element="${symbol}" data-hover-slider="true">
+        <output>${current.toFixed(1)}</output>
+      </div>
+      <div class="slider-actions">
+        <button class="btn btn-primary small" data-add-periodic="${symbol}">Add</button>
+        <button class="btn btn-glass small" data-set-periodic="${symbol}">Set</button>
+      </div>`;
+    btn.appendChild(overlay);
+  });
+  
+  // Event delegation for hover sliders
+  grid.addEventListener('input', (e) => {
+    if (e.target.matches('[data-hover-slider]')) {
+      const symbol = e.target.dataset.element;
+      const value = Number(e.target.value);
+      const output = e.target.parentElement.querySelector('output');
+      if (output) output.textContent = value.toFixed(1);
     }
-  }
-});
+  });
+  
+  grid.addEventListener('change', (e) => {
+    if (e.target.matches('[data-hover-slider]')) {
+      const symbol = e.target.dataset.element;
+      const value = Number(e.target.value);
+      if (value > 0) {
+        state.composition[symbol] = value;
+      } else {
+        delete state.composition[symbol];
+      }
+      renderElementSliders();
+      updateCompositionUI();
+      scheduleSimulation(400);
+    }
+  });
+  
+  grid.addEventListener('click', (e) => {
+    const addBtn = e.target.closest('[data-add-periodic]');
+    if (addBtn) {
+      const symbol = addBtn.dataset.addPeriodic;
+      const current = Number(state.composition[symbol] ? 0);
+      state.composition[symbol] = current + 4;
+      renderElementSliders();
+      updateCompositionUI();
+      scheduleSimulation(400);
+      toast(`${symbol} added to alloy`, 'success', 2000);
+      return;
+    }
+    const setBtn = e.target.closest('[data-set-periodic]');
+    if (setBtn) {
+      const symbol = setBtn.dataset.setPeriodic;
+      state.composition[symbol] = 10;
+      renderElementSliders();
+      updateCompositionUI();
+      scheduleSimulation(400);
+      toast(`${symbol} set to 10%`, 'success', 2000);
+      return;
+    }
+  });
+}
 
-// Initialize Co-Pilot on page load
-document.addEventListener('DOMContentLoaded', function() {
-  // Set up any existing Co-Pilot state from server
-  if (window.MH_FIREBASE && window.MH_FIREBASE.copilotState) {
-    // Load saved Co-Pilot state
+// --- USAGE ANALYTICS DASHBOARD ---
+function renderAnalyticsDashboard() {
+  const container = $('#analyticsDashboard');
+  if (!container) return;
+  
+  const sims = JSON.parse(localStorage.getItem('mh_simulation_history') ? '[]');
+  const benchmarks = JSON.parse(localStorage.getItem('mh_benchmark_history') ? '[]');
+  const alloys = JSON.parse(localStorage.getItem('mh_alloy_history') ? '[]');
+  
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
+  
+  const simsToday = sims.filter(s => s.date?.startsWith(today)).length;
+  const simsWeek = sims.filter(s => s.date >= weekAgo).length;
+  const benchmarksPassed = benchmarks.filter(c => c.verdict === 'PASS').length;
+  const uniqueAlloys = new Set(alloys.map(a => a.formula)).size;
+  
+  container.innerHTML = `
+    <div class="analytics-kpis">
+      <div class="kpi-card">
+        <div class="kpi-icon">🧪</div>
+        <div class="kpi-value">${sims.length.toLocaleString()}</div>
+        <div class="kpi-label">Total Simulations</div>
+        <div class="kpi-trend positive">+${simsWeek} this week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🎯</div>
+        <div class="kpi-value">${benchmarksPassed}</div>
+        <div class="kpi-label">Benchmarks Passed</div>
+        <div class="kpi-trend">${benchmarks.length > 0 ? ((benchmarksPassed/benchmarks.length)*100).toFixed(0) : 0}% pass rate</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🧬</div>
+        <div class="kpi-value">${uniqueAlloys}</div>
+        <div class="kpi-label">Unique Alloys Designed</div>
+        <div class="kpi-trend positive">+${alloys.filter(a => a.date >= weekAgo).length} this week</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">⚡</div>
+        <div class="kpi-value">${state.user ? 'Enterprise' : 'Free Studio'}</div>
+        <div class="kpi-label">Current Tier</div>
+        <div class="kpi-trend">${state.user?.billing_enterprise_access ? 'VIP GRANT — WAIVED' : 'Upgrade for more'}</div>
+      </div>
+    </div>
+    <div class="glass" style="padding: 20px;">
+      <h3 style="margin: 0 0 16px;">Recent Activity</h3>
+      <div style="display: grid; gap: 8px; max-height: 300px; overflow: auto;">
+        ${[...sims.slice(-10).reverse(), ...benchmarks.slice(-5).reverse()]
+          .sort((a,b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 15)
+          .map(item => `
+            <div class="glass" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+              <div>
+                <strong>${item.type === 'simulation' ? '🧪 Simulation' : '🏆 Benchmark'}</strong>
+                <span style="margin-left: 8px; color: var(--muted);">${item.formula ? item.benchmark}</span>
+              </div>
+              <div style="text-align: right;">
+                <span class="status-pill ${item.verdict === 'PASS' ? item.verdict === 'SAFE' ? 'status-emerald' : item.verdict === 'MELTED' ? item.verdict === 'MELT' ? 'status-rose' : 'status-amber'}">${item.verdict ? item.type}</span>
+                <div style="font-size: 10px; color: var(--muted); margin-top: 2px;">${item.date}</div>
+              </div>
+            </div>
+          `).join('') ? '<p class="micro-note">No activity yet. Run a simulation or benchmark!</p>'}
+      </div>
+    </div>
+  `;
+}
+
+// --- TEAM WORKSPACES ---
+function renderWorkspaces() {
+  const container = $('#workspacesPanel');
+  if (!container) return;
+  
+  const workspaces = JSON.parse(localStorage.getItem('mh_workspaces') ? '[]');
+  const currentWorkspace = localStorage.getItem('mh_current_workspace');
+  
+  if (!workspaces.length) {
+    container.innerHTML = `
+      <div class="glass" style="padding: 40px; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+        <h3 style="margin: 0 0 8px;">No workspaces yet</h3>
+        <p class="micro-note" style="margin-bottom: 24px;">Create a workspace to collaborate with your team on alloys and benchmarks.</p>
+        <button class="btn btn-primary" id="createFirstWorkspace">Create Your First Workspace</button>
+      </div>
+    `;
+    $('#createFirstWorkspace')?.addEventListener('click', createWorkspace);
+    return;
   }
+  
+  container.innerHTML = `
+    <div class="workspace-header">
+      <h3 style="margin: 0;">Your Workspaces</h3>
+      <button class="btn btn-primary" id="createWorkspaceBtn">New Workspace</button>
+    </div>
+    <div class="workspace-alloy-list">
+      ${workspaces.map(ws => `
+        <div class="workspace-alloy-card ${ws.id === currentWorkspace ? 'selected' : ''}" data-ws-id="${ws.id}">
+          <div class="workspace-alloy-info">
+            <span class="workspace-alloy-formula">${ws.name} ${ws.id === currentWorkspace ? '<span class=\"pill pill-emerald\" style=\"font-size:8px;\">ACTIVE</span>' : ''}</span>
+            <span class="workspace-alloy-meta">${ws.members?.length ? 1} members · ${ws.alloys?.length ? 0} shared alloys · ${ws.benchmarks?.length ? 0} benchmarks</span>
+          </div>
+          <div class="workspace-alloy-actions">
+            <button class="btn btn-glass small" data-ws-switch="${ws.id}">Switch</button>
+            <button class="btn btn-primary small" data-ws-invite="${ws.id}">Invite</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  
+  $('#createWorkspaceBtn')?.addEventListener('click', createWorkspace);
+  container.querySelectorAll('[data-ws-switch]').forEach(btn => btn.addEventListener('click', () => switchWorkspace(btn.dataset.wsSwitch)));
+  container.querySelectorAll('[data-ws-invite]').forEach(btn => btn.addEventListener('click', () => inviteToWorkspace(btn.dataset.wsInvite)));
+}
+
+function createWorkspace() {
+  const name = prompt('Workspace name:', 'Project Apollo');
+  if (!name) return;
+  const workspaces = JSON.parse(localStorage.getItem('mh_workspaces') ? '[]');
+  const ws = {
+    id: 'ws_' + Date.now(),
+    name,
+    created: new Date().toISOString(),
+    owner: state.user?.email ? 'local',
+    members: [{ email: state.user?.email ? 'local', role: 'owner', joined: new Date().toISOString() }],
+    alloys: [],
+    benchmarks: []
+  };
+  workspaces.push(ws);
+  localStorage.setItem('mh_workspaces', JSON.stringify(workspaces));
+  localStorage.setItem('mh_current_workspace', ws.id);
+  renderWorkspaces();
+  toast(`Workspace "${name}" created`, 'success');
+}
+
+function switchWorkspace(id) {
+  localStorage.setItem('mh_current_workspace', id);
+  renderWorkspaces();
+  toast('Switched workspace', 'info');
+}
+
+function inviteToWorkspace(id) {
+  const email = prompt('Invite email:');
+  if (!email) return;
+  toast(`Invitation sent to ${email} (simulated)`, 'success');
+}
+
+// --- ADVANCED REPORT TEMPLATES ---
+const REPORT_TEMPLATES = [
+  { id: 'as9100', name: 'AS9100D First Article Inspection', standard: 'AS9100D / EN9100:2018', icon: '✈️', tags: ['Aerospace', 'FAI', 'Form 1/2/3'], desc: 'Complete FAI report with ballooned drawings, dimensional results, and material certs.' },
+  { id: 'iso9001', name: 'ISO 9001:2015 Material Certificate', standard: 'ISO 9001:2015 / ISO 10474', icon: '📋', tags: ['Quality', '3.1 Cert', 'EN 10204'], desc: 'Type 3.1 inspection certificate per EN 10204 with full traceability.' },
+  { id: 'mil-std-810', name: 'MIL-STD-810H Environmental Qualification', standard: 'MIL-STD-810H / MIL-STD-202', icon: '🛡️', tags: ['Defense', 'Shock', 'Vibe', 'Thermal'], desc: 'Environmental test report with Methods 501-527, tailorable test plans.' },
+  { id: 'astm-e8', name: 'ASTM E8/E8M Tensile Test Report', standard: 'ASTM E8/E8M / ISO 6892-1', icon: '📊', tags: ['Mechanical', 'Tensile', 'Yield/UTS'], desc: 'Complete tensile test with stress-strain curves, yield methods, and uncertainty.' },
+  { id: 'astm-e21', name: 'ASTM E21 Elevated Temperature Tensile', standard: 'ASTM E21 / ISO 6892-2', icon: '🔥', tags: ['High-Temp', 'Creep', '0.2% Offset'], desc: 'Elevated temperature tensile with strain rate control and extensometry.' },
+  { id: 'nadcap', name: 'NADCAP Heat Treat / NDT Checklist', standard: 'AC7102 / AC7114 / AMS2750', icon: '🔬', tags: ['Heat Treat', 'Pyrometry', 'SAT/TUS'], desc: 'NADCAP-compliant pyrometry survey, TUS/SAT records, and process logs.' },
+  { id: 'norsok', name: 'NORSOK M-650 / M-001 Qualification', standard: 'NORSOK M-650 / M-001 / ISO 17782', icon: '🌊', tags: ['Offshore', 'Sour Service', 'SSC/HIC'], desc: 'Qualification dossier for H2S/CO2 service with SSC/HIC test results.' },
+  { id: 'is16000', name: 'IS 16000 Indian Defence Material Spec', standard: 'IS 16000 / DMSRDE / DGQA', icon: '🇮🇳', tags: ['Defence India', 'Armor', 'Ballistic'], desc: 'DRDO/DGQA compliant material spec with ballistic limit curves.' },
+  { id: 'reach', name: 'REACH / RoHS / SCIP Declaration', standard: 'EC 1907/2006 / 2011/65/EU', icon: '🌿', tags: ['Compliance', 'SVHC', 'SCIP'], desc: 'Automated SVHC screening, RoHS exemption check, SCIP dossier generation.' },
+  { id: 'dfars', name: 'DFARS 252.225-7009 Compliance', standard: 'DFARS / 10 USC 4863 / 10 USC 4871', icon: '🏛️', tags: ['US Defense', 'Specialty Metals', 'Berry'], desc: 'Specialty metals melt compliance, country of origin, Berry Amendment.' },
+  { id: 'cmrt', name: 'Conflict Minerals Reporting Template (CMRT)', standard: 'RMI CMRT 6.31 / SEC Rule 13p-1', icon: '⚖️', tags: ['3TG', 'Smelter List', 'Dodd-Frank'], desc: 'RMI CMRT with smelter validation, due diligence, and OECD alignment.' },
+  { id: 'esg', name: 'ESG / Carbon Footprint Report', standard: 'GHG Protocol / TCFD / ISSB S2', icon: '🌍', tags: ['Scope 1/2/3', 'PCF', 'LCA'], desc: 'Product carbon footprint with primary data, allocation, and uncertainty.' }
+];
+
+function renderReportTemplates() {
+  const container = $('#templatesGrid');
+  if (!container) return;
+  
+  container.innerHTML = REPORT_TEMPLATES.map(t => `
+    <div class="template-card" data-template="${t.id}">
+      <div class="template-icon">${t.icon}</div>
+      <div class="template-title">${t.name}</div>
+      <div class="template-desc">${t.desc}</div>
+      <div class="template-tags">${t.tags.map(tag => `<span class="template-tag">${tag}</span>`).join('')}</div>
+      <div style="display: flex; gap: 8px; margin-top: auto;">
+        <button class="btn btn-primary small" data-gen-template="${t.id}">Generate</button>
+        <button class="btn btn-glass small" data-preview-template="${t.id}">Preview</button>
+      </div>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-gen-template]').forEach(btn => btn.addEventListener('click', () => generateReport(btn.dataset.genTemplate)));
+  container.querySelectorAll('[data-preview-template]').forEach(btn => btn.addEventListener('click', () => previewReport(btn.dataset.previewTemplate)));
+}
+
+function generateReport(id) {
+  const t = REPORT_TEMPLATES.find(x => x.id === id);
+  if (!t) return;
+  toast(`Generating ${t.name}... (simulated)`, 'info');
+  setTimeout(() => {
+    downloadReport(t);
+  }, 800);
+}
+
+function previewReport(id) {
+  const t = REPORT_TEMPLATES.find(x => x.id === id);
+  if (!t) return;
+  toast(`Opening ${t.name} preview...`, 'info');
+}
+
+function downloadReport(template) {
+  const sim = state.simulation;
+  const lines = [
+    `# ${template.name}`,
+    `Standard: ${template.standard}`,
+    `Generated: ${new Date().toLocaleString('en-IN')}`,
+    `Alloy: ${sim?.composition?.formula ? 'N/A'}`,
+    `Verdict: ${sim?.derived?.verdict ? 'N/A'}`,
+    `Strength: ${sim?.prediction?.predicted ? 'N/A'} MPa`,
+    `Density: ${sim?.derived?.density_gcm3 ? 'N/A'} g/cm³`,
+    `Cost: ₹${sim?.derived?.cost_per_kg ? 'N/A'}/kg`,
+    `Liquidus: ${sim?.derived?.liquidus_c ? 'N/A'}°C`,
+    `Temperature: ${sim?.conditions?.temperature_c ? 'N/A'}°C`,
+    `Pressure: ${sim?.derived?.pressure_label ? 'N/A'}`,
+    `Safety Factor: ${sim?.conditions?.safety_factor ? 'N/A'}`,
+    '',
+    `--- ${template.standard} COMPLIANT ---`,
+    'This is a simulated report. Actual certification requires accredited lab testing.'
+  ];
+  downloadBlob(lines.join('\n'), `MATERIALHUNT_${template.id}_${Date.now()}.txt`, 'text/plain');
+  toast(`${template.name} downloaded`, 'success');
+}
+
+// --- REAL-TIME METAL PRICING ---
+const METAL_PRICES = [
+  { symbol: 'Ni', name: 'Nickel', lme: 16420, shfe: 128500, indian: 1480, change: '+2.3%', unit: '$/t' },
+  { symbol: 'Co', name: 'Cobalt', lme: 28500, shfe: 225000, indian: 3200, change: '-1.1%', unit: '$/t' },
+  { symbol: 'Mo', name: 'Molybdenum', lme: 46200, shfe: 368000, indian: 2850, change: '+0.8%', unit: '$/t' },
+  { symbol: 'W', name: 'Tungsten', lme: 285, shfe: 2280, indian: 2450, change: '+1.5%', unit: '$/kg' },
+  { symbol: 'Cr', name: 'Chromium', lme: 8500, shfe: 68000, indian: 185, change: '-0.4%', unit: '$/t' },
+  { symbol: 'Fe', name: 'Iron Ore (62%)', lme: 98, shfe: 780, indian: 5200, change: '+3.2%', unit: '$/t' },
+  { symbol: 'Al', name: 'Aluminum', lme: 2180, shfe: 18900, indian: 215, change: '+1.8%', unit: '$/t' },
+  { symbol: 'Ti', name: 'Titanium Sponge', lme: 8.5, shfe: 68, indian: 720, change: '+0.5%', unit: '$/kg' },
+  { symbol: 'Cu', name: 'Copper', lme: 8420, shfe: 68500, indian: 785, change: '-0.7%', unit: '$/t' },
+  { symbol: 'Mn', name: 'Manganese', lme: 1250, shfe: 10200, indian: 95, change: '+2.1%', unit: '$/t' },
+  { symbol: 'V', name: 'Vanadium', lme: 18.5, shfe: 145, indian: 1650, change: '-1.2%', unit: '$/kg' },
+  { symbol: 'Nb', name: 'Niobium', lme: 42, shfe: 335, indian: 3800, change: '+0.9%', unit: '$/kg' },
+  { symbol: 'Ta', name: 'Tantalum', lme: 185, shfe: 1480, indian: 18500, change: '+2.4%', unit: '$/kg' },
+  { symbol: 'RE', name: 'Rare Earth (NdPr)', lme: 52, shfe: 420, indian: 480, change: '-2.1%', unit: '$/kg' },
+];
+
+function renderMetalPricing() {
+  const container = $('#metalPricingTicker');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="pricing-header">
+      <span class="pricing-title">Live Metal Prices — ${new Date().toLocaleTimeString('en-IN')}</span>
+      <span class="pricing-source"><span class="live-dot"></span>LME + SHFE + Indian Spot (simulated)</span>
+    </div>
+    <div class="pricing-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>Name</th>
+            <th>LME</th>
+            <th>SHFE</th>
+            <th>Indian Spot (₹/kg)</th>
+            <th>24h Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${METAL_PRICES.map(p => `
+            <tr>
+              <td><strong>${p.symbol}</strong></td>
+              <td>${p.name}</td>
+              <td>${Number(p.lme).toLocaleString()} ${p.unit}</td>
+              <td>${Number(p.shfe).toLocaleString()} ${p.unit}</td>
+              <td>₹${Number(p.indian).toLocaleString()}/kg</td>
+              <td class="change-${p.change.startsWith('+') ? 'up' : 'down'}">${p.change}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// --- SUPPLIER MARKETPLACE ---
+const SUPPLIERS = [
+  { id: 's1', name: 'Mishra Dhatu Nigam (MIDHANI)', location: 'Hyderabad, India', verified: true, preferred: true, caps: ['Superalloys', 'Titanium', 'Maraging Steel', 'NABL Lab'], type: 'Mill' },
+  { id: 's2', name: 'Jindal Stainless', location: 'Hisar, India', verified: true, preferred: false, caps: ['316LVM', 'Duplex', 'Precision Strip', 'IS 6911'], type: 'Mill' },
+  { id: 's3', name: 'Hindalco Industries', location: 'Renukoot, India', verified: true, preferred: true, caps: ['Al-7075', 'Al-2024', 'Extrusions', 'Forgings'], type: 'Mill' },
+  { id: 's4', name: 'KMML (Kerala Minerals)', location: 'Kollam, India', verified: true, preferred: false, caps: ['Ti Sponge', 'TiO2 Pigment', 'Zircon'], type: 'Mill' },
+  { id: 's5', name: 'Carpenter Technology', location: 'Reading, PA, USA', verified: true, preferred: true, caps: ['AerMet 340', 'BioDur 108', 'Custom 465', 'AMS 5662'], type: 'Mill' },
+  { id: 's6', name: 'ATI Specialty Alloys', location: 'Pittsburgh, PA, USA', verified: true, preferred: false, caps: ['Inconel 718', 'Haynes 282', 'Rene 41', 'Waspaloy'], type: 'Mill' },
+  { id: 's7', name: 'VDM Metals', location: 'Werdohl, Germany', verified: true, preferred: false, caps: ['Hastelloy C-276', 'Alloy 59', 'Nicrofer 6025'], type: 'Mill' },
+  { id: 's8', name: 'Sandvik Materials', location: 'Sandviken, Sweden', verified: true, preferred: true, caps: ['Sanicro 25', 'Safurex', 'Kanthal APM'], type: 'Mill' },
+  { id: 's9', name: 'Höganäs AB', location: 'Höganäs, Sweden', verified: true, preferred: false, caps: ['AM Powder', 'MIM Powder', '316L', 'Inconel 718'], type: 'Powder' },
+  { id: 's10', name: 'Carpenter Additive', location: 'Athens, AL, USA', verified: true, preferred: true, caps: ['AM Powder', 'Ni718', 'Ti64', 'AlSi10Mg'], type: 'Powder' },
+  { id: 's11', name: 'NABL Lab - Chennai Testing', location: 'Chennai, India', verified: true, preferred: false, caps: ['Tensile', 'Fatigue', 'Creep', 'Corrosion', 'Fracture'], type: 'Lab' },
+  { id: 's12', name: 'NABL Lab - Delhi Calibration', location: 'New Delhi, India', verified: true, preferred: true, caps: ['Dimensional', 'NDT', 'Metallography', 'Chemical'], type: 'Lab' },
+];
+
+function renderSupplierMarketplace() {
+  const container = $('#supplierGrid');
+  if (!container) return;
+  
+  container.innerHTML = SUPPLIERS.map(s => `
+    <div class="supplier-card" data-supplier="${s.id}">
+      <div class="supplier-header">
+        <div>
+          <div class="supplier-logo">${s.type === 'Mill' ? '🏭' : s.type === 'Powder' ? '⚗️' : '🔬'}</div>
+          <div class="supplier-name">${s.name}</div>
+          <div class="supplier-location">${s.location}</div>
+        </div>
+        <div>
+          ${s.verified ? '<span class="supplier-badge verified">VERIFIED</span>' : ''}
+          ${s.preferred ? '<span class="supplier-badge preferred">PREFERRED</span>' : ''}
+        </div>
+      </div>
+      <div class="supplier-caps">
+        ${s.caps.map(c => `<span class="supplier-cap">${c}</span>`).join('')}
+      </div>
+      <div class="supplier-actions">
+        <button class="btn btn-primary small" data-rfq-supplier="${s.id}">Request Quote</button>
+        <button class="btn btn-glass small" data-contact-supplier="${s.id}">Contact</button>
+      </div>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-rfq-supplier]').forEach(btn => btn.addEventListener('click', () => openRfqForSupplier(btn.dataset.rfqSupplier)));
+  container.querySelectorAll('[data-contact-supplier]').forEach(btn => btn.addEventListener('click', () => contactSupplier(btn.dataset.contactSupplier)));
+}
+
+function openRfqForSupplier(id) {
+  const s = SUPPLIERS.find(x => x.id === id);
+  if (!s) return;
+  openRfq(`Supplier quote from ${s.name}`);
+  const alloyField = $('#rfqAlloy');
+  if (alloyField) alloyField.value = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(', ');
+  const notesField = $('#rfqNotes');
+  if (notesField) notesField.value = `Preferred supplier: ${s.name} (${s.location})`;
+  toast(`RFQ prepared for ${s.name}`, 'success');
+}
+
+function contactSupplier(id) {
+  const s = SUPPLIERS.find(x => x.id === id);
+  if (!s) return;
+  toast(`Contact details for ${s.name} copied (simulated)`, 'success');
+}
+
+// --- FAILURE ANALYSIS KNOWLEDGE BASE ---
+const FAILURE_CASES = [
+  { id: 'f1', title: 'Turbine Blade LCF Failure at 950°C', alloy: 'Inconel 718', type: 'fatigue', desc: 'Low-cycle fatigue crack initiation at fir-tree root due to stress concentration and dwell fatigue.', condition: '950°C · 1.2% strain · R=-1 · Air', actions: ['Shot peen root', 'Reduce dwell', 'Switch to Rene 104'] },
+  { id: 'f2', title: 'Marine Valve SCC in Duplex 2205', alloy: '2205 Duplex', type: 'corrosion', desc: 'Stress corrosion cracking in chloride-containing seawater at 60°C with 400 MPa residual stress.', condition: '60°C · 3.5% NaCl · 400 MPa · Seawater', actions: ['Reduce ferrite to 45%', 'Apply compressive stress', 'Use 2507 Super Duplex'] },
+  { id: 'f3', title: 'Reformer Tube Creep Rupture', alloy: 'HK-40 (25Cr-20Ni)', type: 'creep', desc: 'Primary creep accelerated by carburization; tertiary creep rupture at 105,000 hours.', condition: '950°C · 15 MPa · Carburizing', actions: ['Aluminize coating', 'Reduce tube skin temp', 'Switch to HP Modified'] },
+  { id: 'f4', title: 'Cryogenic Brittle Fracture in 304L', alloy: '304L SS', type: 'brittle', desc: 'Cleavage fracture at -196°C due to δ-ferrite stringers and high strain rate.', condition: '-196°C · 500 MPa · LNG Service', actions: ['Specify 316LN', 'Limit ferrite < 1%', 'Charpy qualify'] },
+  { id: 'f5', title: 'Hydrogen Embrittlement in Aermet 100', alloy: 'Aermet 100', type: 'hydrogen', desc: 'Delayed fracture at 1800 MPa UTS after cadmium plating; H ingress during electroplating.', condition: 'RT · 1800 MPa · Cd Plated', actions: ['Bake 190°C/23h post-plate', 'Use IVD aluminum', 'Reduce strength to 1600 MPa'] },
+  { id: 'f6', title: 'Thermal Fatigue in Rocket Nozzle', alloy: 'NARloy-Z (Cu-3Ag-0.5Zr)', type: 'fatigue', desc: 'Cracking at throat due to thermal cycling; oxidation-assisted fatigue.', condition: '500-1200°C · 100 cycles · H2/O2', actions: ['GRCop-84 alloy', 'Channel cooling', 'Increase corner radius'] },
+  { id: 'f7', title: 'Pitting in Offshore Riser 13Cr', alloy: '13Cr Martensitic', type: 'corrosion', desc: 'Severe pitting at 120°C with 500 ppm Cl- and 0.5 MPa H2S.', condition: '120°C · 500 ppm Cl · 0.5 MPa H2S', actions: ['Switch to Super 13Cr', 'Inhibitor injection', 'CRA cladding'] },
+  { id: 'f8', title: 'Creep-Fatigue in GTD-111 Blade', alloy: 'GTD-111 DS', type: 'creep', desc: 'Hold-time fatigue interaction at 980°C; rafting-induced loss of creep strength.', condition: '980°C · 120 MPa · 120s hold', actions: ['Reduce hold time', 'Coat with TBC', 'Switch to Rene N5'] },
+];
+
+function renderFailureAnalysis() {
+  const container = $('#failureGrid');
+  if (!container) return;
+  
+  container.innerHTML = FAILURE_CASES.map(f => `
+    <div class="failure-card" data-failure="${f.id}">
+      <div class="failure-title">${f.title}</div>
+      <div class="failure-alloy">${f.alloy}</div>
+      <span class="failure-type ${f.type}">${f.type.toUpperCase()}</span>
+      <div class="failure-desc">${f.desc}</div>
+      <div class="failure-condition">
+        <span>${f.condition}</span>
+      </div>
+      <div class="failure-actions">
+        <button class="btn btn-primary small" data-failure-detail="${f.id}">Root Cause Tree</button>
+        <button class="btn btn-glass small" data-failure-prevent="${f.id}">Prevention Playbook</button>
+      </div>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-failure-detail]').forEach(btn => btn.addEventListener('click', () => showFailureDetail(btn.dataset.failureDetail)));
+  container.querySelectorAll('[data-failure-prevent]').forEach(btn => btn.addEventListener('click', () => showPreventionPlaybook(btn.dataset.failurePrevent)));
+}
+
+function showFailureDetail(id) {
+  const f = FAILURE_CASES.find(x => x.id === id);
+  if (!f) return;
+  toast(`Root cause analysis for ${f.title} (simulated)`, 'info');
+}
+
+function showPreventionPlaybook(id) {
+  const f = FAILURE_CASES.find(x => x.id === id);
+  if (!f) return;
+  toast(`Prevention playbook: ${f.actions.join(' → ')}`, 'success');
+}
+
+// Filter handlers
+function bindFailureFilters() {
+  $('#failureSearch')?.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
+      const text = card.textContent.toLowerCase();
+      card.style.display = text.includes(term) ? '' : 'none';
+    });
+  });
+  $('#failureFilter')?.addEventListener('change', (e) => {
+    const type = e.target.value;
+    document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
+      const badge = card.querySelector('.failure-type');
+      card.style.display = !type ? badge?.classList.contains(type) ? '' : 'none';
+    });
+  });
+}
+
+// --- COMPLIANCE AUTO-GENERATION ---
+const COMPLIANCE_ITEMS = [
+  { id: 'itar', title: 'ITAR / EAR Classification', standard: '22 CFR 120-130 / 15 CFR 730-774', status: 'pending', regs: ['USML Cat VI', 'ECCN 1C002', 'ECCN 1C216'] },
+  { id: 'reach', title: 'REACH SVHC Screening', standard: 'EC 1907/2006', status: 'pending', regs: ['Candidate List', 'Annex XIV', 'Annex XVII'] },
+  { id: 'rohs', title: 'RoHS 3 Compliance', standard: '2011/65/EU + 2015/863', status: 'pending', regs: ['Pb, Hg, Cd, Cr(VI)', 'PBB, PBDE', 'DEHP, BBP, DBP, DIBP'] },
+  { id: 'dfars', title: 'DFARS 252.225-7009', standard: 'DFARS / 10 USC 4863', status: 'pending', regs: ['Specialty Metals', 'Melt in US', 'Qualifying Country'] },
+  { id: 'cmrt', title: 'Conflict Minerals (CMRT)', standard: 'RMI CMRT 6.31 / SEC 13p-1', status: 'pending', regs: ['3TG', 'Smelter List', 'Due Diligence'] },
+  { id: 'esg', title: 'ESG / Carbon Footprint', standard: 'GHG Protocol / ISSB S2', status: 'pending', regs: ['Scope 1/2/3', 'PCF', 'LCA'] },
+];
+
+function renderCompliance() {
+  const container = $('#complianceChecklist');
+  if (!container) return;
+  
+  const sim = state.simulation;
+  const composition = sim?.composition?.elements ? [];
+  const elements = new Set(composition.map(e => e.symbol));
+  
+  container.innerHTML = COMPLIANCE_ITEMS.map(item => {
+    let status = 'pending';
+    let evidence = 'Run analysis';
+    if (item.id === 'itar') {
+      const controlled = ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf', 'Ta', 'W', 'Mo', 'Nb'];
+      const found = controlled.filter(el => elements.has(el));
+      status = found.length ? 'flagged' : 'clear';
+      evidence = found.length ? `Controlled: ${found.join(', ')}` : 'No controlled elements';
+    } else if (item.id === 'reach' ? item.id === 'rohs') {
+      const restricted = ['Cd', 'Hg', 'Pb', 'Cr', 'As'];
+      const found = restricted.filter(el => elements.has(el));
+      status = found.length ? 'flagged' : 'clear';
+      evidence = found.length ? `Restricted: ${found.join(', ')}` : 'No restricted substances';
+    } else if (item.id === 'dfars') {
+      const specialty = ['Co', 'Ni', 'Cr', 'Mo', 'W', 'V', 'Nb', 'Ta', 'Ti', 'Zr', 'Hf'];
+      const found = specialty.filter(el => elements.has(el));
+      status = found.length ? 'pending' : 'clear';
+      evidence = found.length ? `Specialty: ${found.join(', ')} — verify melt origin` : 'No specialty metals';
+    } else if (item.id === 'cmrt') {
+      const conflict = ['Au', 'Ta', 'W', 'Sn'];
+      const found = conflict.filter(el => elements.has(el));
+      status = found.length ? 'pending' : 'clear';
+      evidence = found.length ? `3TG present: ${found.join(', ')} — CMRT required` : 'No 3TG elements';
+    } else if (item.id === 'esg') {
+      status = 'pending';
+      evidence = 'Requires supply chain data';
+    }
+    
+    return `
+      <div class="compliance-item ${status}">
+        <input type="checkbox" class="compliance-checkbox" ${status === 'clear' ? 'checked' : ''} disabled>
+        <div class="compliance-info">
+          <div class="compliance-title">${item.title}</div>
+          <div class="compliance-standard">${item.standard}</div>
+        </div>
+        <span class="compliance-evidence">${evidence}</span>
+      </div>
+    `;
+  }).join('');
+  
+  // Add generate all button
+  container.innerHTML += `
+    <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <button class="btn btn-primary" id="genAllCompliance">Generate All Reports</button>
+      <button class="btn btn-glass" id="downloadCompliancePack">Download Compliance Pack (ZIP)</button>
+    </div>
+  `;
+  $('#genAllCompliance')?.addEventListener('click', generateAllCompliance);
+  $('#downloadCompliancePack')?.addEventListener('click', downloadCompliancePack);
+}
+
+function generateAllCompliance() {
+  toast('Generating compliance reports... (simulated)', 'info');
+  setTimeout(() => {
+    const sim = state.simulation;
+    const lines = [
+      'MATERIALHUNT COMPLIANCE PACK',
+      `Alloy: ${sim?.composition?.formula ? 'N/A'}`,
+      `Generated: ${new Date().toLocaleString('en-IN')}`,
+      '',
+      ...COMPLIANCE_ITEMS.map(item => {
+        const status = item.id === 'itar' ? 'See above' : 'Pending';
+        return `${item.title}: ${status}`;
+      }),
+      '',
+      '--- SIMULATED OUTPUT ---'
+    ];
+    downloadBlob(lines.join('\n'), `MATERIALHUNT_Compliance_Pack_${Date.now()}.txt`, 'text/plain');
+    toast('Compliance pack downloaded', 'success');
+  }, 1000);
+}
+
+function downloadCompliancePack() {
+  toast('ZIP download simulated — would contain PDF, XML (CMRT), JSON (ESG)', 'success');
+}
+
+// --- API ACCESS PANEL ---
+function renderApiAccess() {
+  const container = $('#apiAccessPanel');
+  if (!container) return;
+  
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') ? '[]');
+  
+  container.innerHTML = `
+    <div class="api-key-card">
+      <div class="api-key-header">
+        <span class="api-key-label">Your API Keys</span>
+        ${apiKeys.length < 3 ? '<button class="btn btn-primary small" id="generateApiKeyBtn">Generate New Key</button>' : '<span class="pill pill-amber">Max 3 keys</span>'}
+      </div>
+      ${apiKeys.length ? `
+        <div style="display: grid; gap: 12px;">
+          ${apiKeys.map(key => `
+            <div class="glass" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="api-key-label">${key.name} (${key.id.slice(0,8)}...)</span>
+                <span class="pill pill-${key.active ? 'emerald' : 'rose'}">${key.active ? 'Active' : 'Revoked'}</span>
+              </div>
+              <div class="api-key-value">${key.key}</div>
+              <div class="api-key-perms">${key.perms.map(p => `<span class="api-perm">${p}</span>`).join('')}</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-glass small" data-copy-key="${key.id}">Copy</button>
+                <button class="btn btn-glass small" data-revoke-key="${key.id}">${key.active ? 'Revoke' : 'Restore'}</button>
+                <button class="btn btn-glass small" data-delete-key="${key.id}">Delete</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '<p class="micro-note">No API keys yet. Generate one to start integrating.</p>'}
+    </div>
+    
+    <div class="api-key-card">
+      <div class="api-key-header"><span class="api-key-label">API Usage (30 days)</span></div>
+      <div class="api-usage">
+        <div class="api-usage-stat">
+          <div class="api-usage-value">${Math.floor(Math.random() * 5000) + 1000}</div>
+          <div class="api-usage-label">Simulations</div>
+        </div>
+        <div class="api-usage-stat">
+          <div class="api-usage-value">${Math.floor(Math.random() * 200) + 50}</div>
+          <div class="api-usage-label">Optimizations</div>
+        </div>
+        <div class="api-usage-stat">
+          <div class="api-usage-value">${Math.floor(Math.random() * 100) + 10}</div>
+          <div class="api-usage-label">Mission Searches</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="api-key-card">
+      <div class="api-key-header"><span class="api-key-label">Documentation & SDKs</span></div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <a href="#" class="btn btn-glass small" target="_blank">OpenAPI 3.1 Spec</a>
+        <a href="#" class="btn btn-glass small" target="_blank">Python SDK</a>
+        <a href="#" class="btn btn-glass small" target="_blank">TypeScript SDK</a>
+        <a href="#" class="btn btn-glass small" target="_blank">Rust SDK</a>
+        <a href="#" class="btn btn-glass small" target="_blank">Postman Collection</a>
+        <a href="#" class="btn btn-glass small" target="_blank">WebSocket Guide</a>
+      </div>
+    </div>
+  `;
+  
+  $('#generateApiKeyBtn')?.addEventListener('click', generateApiKey);
+  container.querySelectorAll('[data-copy-key]').forEach(btn => btn.addEventListener('click', () => copyApiKey(btn.dataset.copyKey)));
+  container.querySelectorAll('[data-revoke-key]').forEach(btn => btn.addEventListener('click', () => revokeApiKey(btn.dataset.revokeKey)));
+  container.querySelectorAll('[data-delete-key]').forEach(btn => btn.addEventListener('click', () => deleteApiKey(btn.dataset.deleteKey)));
+}
+
+function generateApiKey() {
+  const name = prompt('Key name:', 'Production API');
+  if (!name) return;
+  const key = 'mh_' + Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, '0')).join('');
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') ? '[]');
+  apiKeys.push({
+    id: 'key_' + Date.now(),
+    name,
+    key,
+    perms: ['simulate', 'optimize', 'mission-search', 'prescreen'],
+    active: true,
+    created: new Date().toISOString()
+  });
+  localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
+  renderApiAccess();
+  toast(`API key generated: ${key.slice(0,20)}...`, 'success');
+}
+
+function copyApiKey(id) {
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') ? '[]');
+  const key = apiKeys.find(k => k.id === id);
+  if (key) navigator.clipboard.writeText(key.key).then(() => toast('API key copied', 'success'));
+}
+
+function revokeApiKey(id) {
+  const apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') ? '[]');
+  const key = apiKeys.find(k => k.id === id);
+  if (key) {
+    key.active = !key.active;
+    localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
+    renderApiAccess();
+    toast(key.active ? 'Key restored' : 'Key revoked', 'success');
+  }
+}
+
+function deleteApiKey(id) {
+  if (!confirm('Delete this API key permanently₹')) return;
+  let apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') ? '[]');
+  apiKeys = apiKeys.filter(k => k.id !== id);
+  localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
+  renderApiAccess();
+  toast('API key deleted', 'success');
+}
+
+// --- ALLOY GENOME VISUALIZATION ---
+function initAlloyGenome() {
+  const canvas = $('#genomeCanvas');
+  if (!canvas) return;
+  
+  // Simple 3D scatter using Three.js
+  if (window.genomeScene) return;
+  
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+  camera.position.set(0, 0, 50);
+  
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  
+  // Generate synthetic data points
+  const points = 5000;
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(points * 3);
+  const colors = new Float32Array(points * 3);
+  const sizes = new Float32Array(points);
+  
+  for (let i = 0; i < points; i++) {
+    const x = (Math.random() - 0.5) * 80;
+    const y = (Math.random() - 0.5) * 80;
+    const z = (Math.random() - 0.5) * 80;
+    positions[i*3] = x;
+    positions[i*3+1] = y;
+    positions[i*3+2] = z;
+    
+    const val = Math.random();
+    colors[i*3] = val;
+    colors[i*3+1] = 1 - val;
+    colors[i*3+2] = 0.5;
+    sizes[i] = 1 + Math.random() * 2;
+  }
+  
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  
+  const material = new THREE.PointsMaterial({
+    size: 0.8,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.7,
+    sizeAttenuation: true
+  });
+  
+  const pointsMesh = new THREE.Points(geometry, material);
+  scene.add(pointsMesh);
+  
+  // Grid
+  const gridHelper = new THREE.GridHelper(100, 20, 0x22D3EE, 0x22D3EE);
+  gridHelper.material.opacity = 0.1;
+  gridHelper.material.transparent = true;
+  scene.add(gridHelper);
+  
+  window.genomeScene = { scene, camera, renderer, controls, pointsMesh, geometry };
+  
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  // Resize handler
+  const resizeObserver = new ResizeObserver(() => {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+  resizeObserver.observe(canvas);
+  
+  // Projection/color change handlers
+  $('#genomeProjection')?.addEventListener('change', () => toast('Projection changed (simulated)', 'info'));
+  $('#genomeColorBy')?.addEventListener('change', () => toast('Color mapping changed (simulated)', 'info'));
+  $('#genomeDataset')?.addEventListener('change', () => toast('Dataset changed (simulated)', 'info'));
+}
+
+// --- DIGITAL TWIN EExperience PointsORT ---
+const EExperience PointsORT_FORMATS = [
+  { id: 'fmu', name: 'FMU 2.0/3.0', icon: '📦', desc: 'Functional Mock-up Unit for co-simulation', ext: '.fmu' },
+  { id: 'abaqus', name: 'Abaqus Input Deck', icon: '📄', desc: 'INP file with material cards, steps, output requests', ext: '.inp' },
+  { id: 'ansys', name: 'ANSYS APDL', icon: '📄', desc: 'Command stream with MP, TB, TBPT data', ext: '.inp' },
+  { id: 'step', name: 'STEP AP242', icon: '🔧', desc: 'CAD geometry with PMI and material properties', ext: '.stp' },
+  { id: 'stl', name: 'STL Binary', icon: '🔺', desc: 'Tessellated geometry for 3D printing/FEA prep', ext: '.stl' },
+  { id: 'materialx', name: 'MaterialX', icon: '🎨', desc: 'Open standard for material/shader definitions', ext: '.mtlx' },
+  { id: 'jsonld', name: 'JSON-LD Digital Thread', icon: '🔗', desc: 'Linked data for PLM/MES integration', ext: '.jsonld' },
+  { id: 'hdf5', name: 'HDF5 Results', icon: '💾', desc: 'Full field output: stress, strain, temp, phase', ext: '.h5' },
+];
+
+function renderDigitalTwinEexperiencePointsort() {
+  const container = $('#digitalTwinFormats');
+  if (!container) return;
+  
+  container.innerHTML = EExperience PointsORT_FORMATS.map(f => `
+    <div class="eexperiencePointsort-format-card" data-format="${f.id}">
+      <div class="eexperiencePointsort-format-icon">${f.icon}</div>
+      <div class="eexperiencePointsort-format-name">${f.name}</div>
+      <div class="eexperiencePointsort-format-desc">${f.desc}</div>
+      <button class="btn btn-primary small" data-eexperiencePointsort-format="${f.id}">EexperiencePointsort ${f.ext}</button>
+    </div>
+  `).join('');
+  
+  container.querySelectorAll('[data-eexperiencePointsort-format]').forEach(btn => btn.addEventListener('click', () => eexperiencePointsortDigitalTwin(btn.dataset.eexperiencePointsortFormat)));
+}
+
+function eexperiencePointsortDigitalTwin(format) {
+  const f = EExperience PointsORT_FORMATS.find(x => x.id === format);
+  if (!f) return;
+  
+  toast(`Generating ${f.name}...`, 'info');
+  setTimeout(() => {
+    const sim = state.simulation;
+    let content = '';
+    if (format === 'abaqus') {
+      content = `*HEADING
+MATERIALHUNT Digital Twin EexperiencePointsort - ${new Date().toISOString()}
+Alloy: ${sim?.composition?.formula ? 'N/A'}
+Temperature: ${sim?.conditions?.temperature_c ? 'N/A'}°C
+Pressure: ${sim?.derived?.pressure_label ? 'N/A'}
+*
+*MATERIAL, NAME=ALLOY
+*DENSITY
+${sim?.derived?.density_gcm3 ? 7.85}
+*ELASTIC
+${sim?.derived?.modulus_gpa ? 210}, 0.3
+*PLASTIC
+${sim?.prediction?.predicted ? 500}, 0.0
+${(sim?.prediction?.predicted ? 500) * 1.2}, 0.02
+*
+*STEP, NAME=SIMULATION
+*STATIC
+*CLOAD
+1, 3, ${sim?.conditions?.load_mpa ? 250}
+*NODE PRINT
+U, RF
+*EL PRINT
+S, E
+*END STEP`;
+    } else if (format === 'jsonld') {
+      content = JSON.stringify({
+        
+        '@type': 'MaterialSimulation',
+        alloy: sim?.composition?.formula,
+        conditions: sim?.conditions,
+        results: sim?.derived,
+        generated: new Date().toISOString(),
+        source: 'MATERIALHUNT Inc.'
+      }, null, 2);
+    } else {
+      content = `# ${f.name} EexperiencePointsort
+Alloy: ${sim?.composition?.formula ? 'N/A'}
+Conditions: ${JSON.stringify(sim?.conditions)}
+Results: ${JSON.stringify(sim?.derived)}
+Generated: ${new Date().toISOString()}
+# Simulated output - actual eexperiencePointsort requires licensed eexperiencePointsorter
+`;
+    }
+    downloadBlob(content, `MATERIALHUNT_DigitalTwin_${format}_${Date.now()}${f.ext}`, 'text/plain');
+    toast(`${f.name} eexperiencePointsorted`, 'success');
+  }, 1000);
+}
+
+// --- GAMIFICATION ENGINE ---
+const MILESTONES = [
+  { id: 'first_sim', name: 'First Simulation', desc: 'Run your first simulation', experiencePoints: 50, icon: '🧪', unlocked: true },
+  { id: 'first_benchmark', name: 'Benchmark Accepted', desc: 'Complete your first Validation Benchmarks benchmark', experiencePoints: 100, icon: '🏆', unlocked: false },
+  { id: 'rocket_scientist', name: 'Rocket Scientist', desc: 'Pass the Reusable Rocket Nozzle benchmark', experiencePoints: 500, icon: '🚀', unlocked: false },
+  { id: 'cryo_master', name: 'Cryo Master', desc: 'Design an alloy for -196°C service', experiencePoints: 300, icon: '❄️', unlocked: false },
+  { id: 'cost_cutter', name: 'Cost Cutter', desc: 'Beat a benchmark at 50% of cost ceiling', experiencePoints: 400, icon: '💰', unlocked: false },
+  { id: 'zero_cobalt', name: 'Zero-Cobalt Pioneer', desc: 'Pass any benchmark with 0% Co', experiencePoints: 300, icon: '🚫', unlocked: false },
+  { id: 'weight_watcher', name: 'Weight Watcher', desc: 'Beat a benchmark at 80% of density ceiling', experiencePoints: 350, icon: '⚖️', unlocked: false },
+  { id: 'optimizer', name: 'Optimizer', desc: 'Use Auto-Optimize 10 times', experiencePoints: 200, icon: '⚡', unlocked: false },
+  { id: 'periodic_master', name: 'Periodic Master', desc: 'Use 20+ different elements', experiencePoints: 250, icon: '🧬', unlocked: false },
+  { id: 'share_alloy', name: 'Viral Alloy', desc: 'Share an alloy link that gets 10 opens', experiencePoints: 150, icon: '🔗', unlocked: false },
+  { id: 'discoveryRegistry', name: 'Global Leader', desc: 'Reach Top 10 on Discovery Discovery Registry', experiencePoints: 1000, icon: '👑', unlocked: false },
+  { id: 'api_user', name: 'API Pioneer', desc: 'Make 100 API calls', experiencePoints: 200, icon: '🔌', unlocked: false },
+];
+
+function renderGamification() {
+  const container = $('#engagementMetricsPanel');
+  if (!container) return;
+  
+  const userExperience Points = JSON.parse(localStorage.getItem('mh_user_experiencePoints') ? '0');
+  const userMilestones = JSON.parse(localStorage.getItem('mh_user_milestones') ? '[]');
+  const consecutiveDays = JSON.parse(localStorage.getItem('mh_daily_consecutiveDays') ? '{"count":0,"last":null}');
+  
+  // Check milestones
+  MILESTONES.forEach(a => {
+    if (userMilestones.includes(m.id)) m.unlocked = true;
+  });
+  
+  const totalExperience Points = userMilestones.reduce((sum, id) => {
+    const a = MILESTONES.find(x => x.id === id);
+    return sum + (a?.experiencePoints ? 0);
+  }, 0);
+  
+  container.innerHTML = `
+    <div class="daily-consecutiveDays">
+      <div class="consecutiveDays-fire">${consecutiveDays.count > 0 ? '🔥' : '💧'}</div>
+      <div>
+        <div class="consecutiveDays-count">${consecutiveDays.count}</div>
+        <div class="consecutiveDays-label">Day Consecutive Days</div>
+      </div>
+      <div style="margin-left: auto;">
+        <div style="font-size: 24px; font-weight: 800; color: var(--cyan);">${totalExperience Points.toLocaleString()}</div>
+        <div class="consecutiveDays-label">Total Experience Points</div>
+      </div>
+    </div>
+    <div class="milestone-grid">
+      ${MILESTONES.map(a => `
+        <div class="milestone-card ${m.unlocked ? 'unlocked' : 'locked'}" data-milestone="${m.id}">
+          <div class="milestone-icon">${a.icon}</div>
+          <div class="milestone-name">${m.name}</div>
+          <div class="milestone-desc">${m.desc}</div>
+          <div class="milestone-experiencePoints">+${a.experiencePoints} Experience Points</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// --- AI-POWERED ALLOY DESIGN ---
+function renderAIDesign() {
+  const container = $('#aiDesignPanel');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="ai-design-input">
+      <label style="font-weight: 700; font-size: 12px;">Describe your requirement</label>
+      <textarea id="aiDesignPrompt" placeholder="e.g. Lightweight turbine blade for 1200°C, 50 MPa centrifugal stress, 10,000 hour creep life, under $50/kg, no Co/W, manufacturable by LPBF"></textarea>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" id="runAIDesign">🧠 Generate 10 Alloys</button>
+        <button class="btn btn-glass" id="clearAIDesign">Clear</button>
+      </div>
+    </div>
+    
+    <div class="ai-design-requirements" id="aiDesignRequirements" style="display: none;"></div>
+    
+    <div class="ai-design-results" id="aiDesignResults"></div>
+  `;
+  
+  $('#runAIDesign')?.addEventListener('click', runAIDesign);
+  $('#clearAIDesign')?.addEventListener('click', clearAIDesign);
+}
+
+function runAIDesign() {
+  const prompt = $('#aiDesignPrompt')?.value?.trim();
+  if (!prompt) { toast('Enter a requirement first', 'warning'); return; }
+  
+  const btn = $('#runAIDesign');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  
+  // Simulate AI generation
+  setTimeout(() => {
+    const results = generateAIAlloys(prompt);
+    renderAIResults(results);
+    btn.disabled = false;
+    btn.textContent = orig;
+    toast('Generated 10 novel compositions', 'success');
+  }, 1500);
+}
+
+function clearAIDesign() {
+  $('#aiDesignPrompt').value = '';
+  $('#aiDesignRequirements').style.display = 'none';
+  $('#aiDesignRequirements').innerHTML = '';
+  $('#aiDesignResults').innerHTML = '';
+}
+
+function generateAIAlloys(prompt) {
+  // Extract constraints from prompt (simplified)
+  const baseAlloys = [
+    { base: 'Ni', name: 'Ni-Base Superalloy' },
+    { base: 'Co', name: 'Co-Base Superalloy' },
+    { base: 'Fe', name: 'Fe-Base Superalloy' },
+    { base: 'Ti', name: 'Ti Aluminide' },
+    { base: 'Al', name: 'Al-Si Alloy' },
+    { base: 'Cr', name: 'Cr-Base Refractory' },
+    { base: 'W', name: 'W-Base Refractory' },
+    { base: 'HEA', name: 'High-Entropy Alloy' },
+    { base: 'Ceramic', name: 'CMC Matrix' },
+    { base: 'Hybrid', name: 'Gradient Alloy' },
+  ];
+  
+  return baseAlloys.map((b, i) => ({
+    formula: generateFormula(b.base),
+    score: 95 - i * 3 + Math.random() * 5,
+    props: {
+      strength: Math.round(800 + Math.random() * 600),
+      density: Number((6 + Math.random() * 12).toFixed(1)),
+      cost: Math.round(500 + Math.random() * 8000),
+      liquidus: Math.round(1200 + Math.random() * 1500),
+      creep: Math.round(Math.random() * 10000)
+    },
+    route: ['LPBF', 'EBM', 'Directed Energy', 'Casting', 'Forging'][Math.floor(Math.random() * 5)],
+    uncertainty: Number((0.05 + Math.random() * 0.15).toFixed(2))
+  }));
+}
+
+function generateFormula(base) {
+  const recipes = {
+    'Ni': ['Ni-18Cr-8Al-4Ti-3Mo-2W-0.1C', 'Ni-22Cr-5Al-3Ti-4Mo-1.5Nb-0.05C', 'Ni-15Cr-6Al-4Ti-3Mo-2Ta-0.08C'],
+    'Co': ['Co-22Cr-5W-2Ni-0.5C', 'Co-20Cr-10Ni-3W-0.3C'],
+    'Fe': ['Fe-25Ni-15Cr-3Al-2Ti-0.05C', 'Fe-20Ni-12Cr-4Mo-1Al-0.03C'],
+    'Ti': ['Ti-45Al-2Nb-2Cr-0.2B', 'Ti-48Al-2Cr-2Nb-0.1B'],
+    'Al': ['Al-12Si-1Mg-0.5Cu', 'Al-7Si-0.3Mg-0.2Fe'],
+    'Cr': ['Cr-10Ni-5Al-0.5Y2O3', 'Cr-15Ni-3Al-2Hf-0.1Y'],
+    'W': ['W-1Ni-0.5Fe-0.1Y2O3', 'W-2Re-0.5HfC'],
+    'HEA': ['CoCrFeMnNi', 'AlCoCrFeNi', 'CrMnFeCoNiTi'],
+    'Ceramic': ['SiC/SiC', 'C/SiC', 'Al2O3/Al2O3'],
+    'Hybrid': ['Ni/Co Gradient', 'Ti/Al Gradient']
+  };
+  return recipes[base][Math.floor(Math.random() * recipes[base].length)];
+}
+
+function renderAIResults(results) {
+  const reqContainer = $('#aiDesignRequirements');
+  reqContainer.style.display = 'grid';
+  reqContainer.innerHTML = `
+    <div class="ai-req-item"><div class="ai-req-label">Temperature</div><div class="ai-req-value">Extracted from prompt</div></div>
+    <div class="ai-req-item"><div class="ai-req-label">Pressure/Stress</div><div class="ai-req-value">Extracted from prompt</div></div>
+    <div class="ai-req-item"><div class="ai-req-label">Budget</div><div class="ai-req-value">Extracted from prompt</div></div>
+    <div class="ai-req-item"><div class="ai-req-label">Banned Elements</div><div class="ai-req-value">Extracted from prompt</div></div>
+  `;
+  
+  const resContainer = $('#aiDesignResults');
+  resContainer.innerHTML = results.map((r, i) => `
+    <div class="ai-result-card">
+      <div class="ai-result-header">
+        <span class="ai-result-formula">${r.formula}</span>
+        <span class="ai-result-score">${r.score.toFixed(0)}%</span>
+      </div>
+      <div class="ai-result-props">
+        <span class="ai-result-prop">💪 ${r.props.strength} MPa</span>
+        <span class="ai-result-prop">⚖️ ${r.props.density} g/cm³</span>
+        <span class="ai-result-prop">💰 ₹${r.props.cost}/kg</span>
+        <span class="ai-result-prop">🔥 ${r.props.liquidus}°C</span>
+        <span class="ai-result-prop">⏱️ ${r.props.creep}h creep</span>
+        <span class="ai-result-prop">📦 ${r.route}</span>
+        <span class="ai-result-prop">📊 ±${(r.uncertainty*100).toFixed(0)}%</span>
+      </div>
+      <div class="ai-result-actions">
+        <button class="btn btn-primary small" data-load-ai="${i}">Load in Simulator</button>
+        <button class="btn btn-glass small" data-refine-ai="${i}">Refine</button>
+        <button class="btn btn-glass small" data-report-ai="${i}">Report</button>
+      </div>
+    </div>
+  `).join('');
+  
+  resContainer.querySelectorAll('[data-load-ai]').forEach(btn => btn.addEventListener('click', () => loadAIAlloy(results[btn.dataset.loadAi])));
+  resContainer.querySelectorAll('[data-refine-ai]').forEach(btn => btn.addEventListener('click', () => toast('Refining... (simulated)', 'info')));
+  resContainer.querySelectorAll('[data-report-ai]').forEach(btn => btn.addEventListener('click', () => downloadAIReport(results[btn.dataset.reportAi])));
+}
+
+function loadAIAlloy(alloy) {
+  // Parse formula string into composition
+  const comp = parseFormulaString(alloy.formula);
+  state.composition = comp;
+  renderElementSliders();
+  updateCompositionUI();
+  setView('simulator');
+  runSimulation();
+  toast(`${alloy.formula} loaded from AI Designer`, 'success');
+}
+
+function parseFormulaString(formula) {
+  // Simple parser for "Ni-18Cr-8Al" format
+  const comp = {};
+  const parts = formula.split('-');
+  parts.forEach(p => {
+    const match = p.match(/^([A-Z][a-z]₹)([\d.]+)₹/);
+    if (match) {
+      comp[match[1]] = Number(match[2] ? 1);
+    }
+  });
+  // Normalize
+  const total = Object.values(comp).reduce((a,b) => a+b, 0);
+  Object.keys(comp).forEach(k => comp[k] = Number((comp[k]/total*100).toFixed(2)));
+  return comp;
+}
+
+function downloadAIReport(alloy) {
+  const lines = [
+    `MATERIALHUNT AI DESIGN REPORT`,
+    `Generated: ${new Date().toLocaleString('en-IN')}`,
+    `Formula: ${alloy.formula}`,
+    `Confidence Score: ${alloy.score.toFixed(0)}%`,
+    `Manufacturing Route: ${alloy.route}`,
+    `Uncertainty: ±${(alloy.uncertainty*100).toFixed(0)}%`,
+    '',
+    'PREDICTED PROPERTIES:',
+    `  Yield Strength: ${alloy.props.strength} MPa`,
+    `  Density: ${alloy.props.density} g/cm³`,
+    `  Cost: ₹${alloy.props.cost}/kg`,
+    `  Liquidus: ${alloy.props.liquidus}°C`,
+    `  Creep Life: ${alloy.props.creep} hours`,
+    '',
+    '--- SIMULATED OUTPUT ---',
+    'Validate with physical testing before production use.'
+  ];
+  downloadBlob(lines.join('\n'), `MATERIALHUNT_AI_${alloy.formula.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}.txt`, 'text/plain');
+  toast('AI design report downloaded', 'success');
+}
+
+// --- EExperience PointsORT CONTROL COMPLIANCE ---
+function renderEexperiencePointsortControl() {
+  const container = $('#eexperiencePointsortControlPanel');
+  if (!container) return;
+  
+  const sim = state.simulation;
+  const composition = sim?.composition?.elements ? [];
+  const elements = new Set(composition.map(e => e.symbol));
+  
+  const controlled = {
+    'USML_Cat_VI': ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf', 'Ta', 'W', 'Mo', 'Nb'],
+    'ECCN_1C002': ['Be', 'BeO', 'Be-Al'],
+    'ECCN_1C216': ['Hf', 'Zr', 'Ta', 'W', 'Mo', 'Nb'],
+    'Wassenaar': ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf'],
+    'Dual_Use_IN': ['U', 'Pu', 'Th', 'Be', 'Zr', 'Hf', 'Ta', 'W', 'Co']
+  };
+  
+  const findings = [];
+  Object.entries(controlled).forEach(([reg, els]) => {
+    const found = els.filter(el => elements.has(el));
+    if (found.length) {
+      findings.push({ regulation: reg, elements: found, status: 'FLAGGED' });
+    } else {
+      findings.push({ regulation: reg, elements: [], status: 'CLEAR' });
+    }
+  });
+  
+  const hasFlags = findings.some(f => f.status === 'FLAGGED');
+  
+  container.innerHTML = `
+    <div class="eexperiencePointsort-control-status ${hasFlags ? 'flagged' : 'clear'}">
+      <span class="eexperiencePointsort-control-icon">${hasFlags ? '⚠️' : '✅'}</span>
+      <div>
+        <div class="eexperiencePointsort-control-title">${hasFlags ? 'EexperiencePointsort Control Flags Detected' : 'All Clear — No Controlled Elements'}</div>
+        <div class="eexperiencePointsort-control-details">${hasFlags ? 'This composition contains elements subject to eexperiencePointsort controls. Review regulations below.' : 'No USML, ECCN, Wassenaar, or Indian Dual-Use elements detected.'}</div>
+      </div>
+    </div>
+    <div class="eexperiencePointsort-control-scan">
+      ${findings.map(f => `
+        <div class="eexperiencePointsort-control-item">
+          <div>
+            <div class="eexperiencePointsort-control-element">${f.regulation}</div>
+            <div class="eexperiencePointsort-control-regulations">
+              ${f.elements.length ? f.elements.map(e => `<span class="eexperiencePointsort-control-reg">${e}</span>`).join('') : '<span class="eexperiencePointsort-control-reg" style="color:var(--emerald)">CLEAR</span>'}
+            </div>
+          </div>
+          <span class="status-pill ${f.status === 'FLAGGED' ? 'status-rose' : 'status-emerald'}">${f.status}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <button class="btn btn-primary" id="genEndUseCert">Generate End-Use Certificate</button>
+      <button class="btn btn-glass" id="genReeexperiencePointsortLicense">Re-EexperiencePointsort License Check</button>
+      <button class="btn btn-glass" id="downloadECReport">Download EC Report</button>
+    </div>
+  `;
+  
+  $('#genEndUseCert')?.addEventListener('click', genEndUseCert);
+  $('#genReeexperiencePointsortLicense')?.addEventListener('click', genReeexperiencePointsortLicense);
+  $('#downloadECReport')?.addEventListener('click', downloadECReport);
+}
+
+function genEndUseCert() {
+  toast('End-Use Certificate generated (simulated)', 'success');
+}
+
+function genReeexperiencePointsortLicense() {
+  toast('Re-EexperiencePointsort License eligibility checked (simulated)', 'success');
+}
+
+function downloadECReport() {
+  const lines = [
+    'MATERIALHUNT EExperience PointsORT CONTROL REPORT',
+    `Generated: ${new Date().toLocaleString('en-IN')}`,
+    `Alloy: ${state.simulation?.composition?.formula ? 'N/A'}`,
+    '',
+    'CLASSIFICATION:',
+    '  USML Category VI: CHECK COMPOSITION',
+    '  ECCN 1C002: CHECK COMPOSITION',
+    '  ECCN 1C216: CHECK COMPOSITION',
+    '  Wassenaar: CHECK COMPOSITION',
+    '  Indian Dual-Use: CHECK COMPOSITION',
+    '',
+    '--- SIMULATED OUTPUT ---'
+  ];
+  downloadBlob(lines.join('\n'), `MATERIALHUNT_EexperiencePointsortControl_${Date.now()}.txt`, 'text/plain');
+  toast('EexperiencePointsort control report downloaded', 'success');
+}
+
+// --- MAIN ENTRY POINTS ---
+function initEnterpriseFeatures() {
+  // Inject periodic sliders
+  injectPeriodicSliders();
+  
+  // Render all enterprise views if containers exist
+  if ($('#analyticsDashboard')) renderAnalyticsDashboard();
+  if ($('#workspacesPanel')) renderWorkspaces();
+  if ($('#templatesGrid')) renderReportTemplates();
+  if ($('#metalPricingTicker')) renderMetalPricing();
+  if ($('#supplierGrid')) renderSupplierMarketplace();
+  if ($('#failureGrid')) { renderFailureAnalysis(); bindFailureFilters(); }
+  if ($('#complianceChecklist')) renderCompliance();
+  if ($('#apiAccessPanel')) renderApiAccess();
+  if ($('#genomeCanvas')) initAlloyGenome();
+  if ($('#digitalTwinFormats')) renderDigitalTwinEexperiencePointsort();
+  if ($('#engagementMetricsPanel')) renderGamification();
+  if ($('#aiDesignPanel')) renderAIDesign();
+  if ($('#eexperiencePointsortControlPanel')) renderEexperiencePointsortControl();
+  
+  // Track simulation for analytics
+  trackSimulation();
+}
+
+function trackSimulation() {
+  const sim = state.simulation;
+  if (!sim) return;
+  
+  const history = JSON.parse(localStorage.getItem('mh_simulation_history') ? '[]');
+  history.push({
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toISOString(),
+    formula: sim.composition?.formula ? 'Unknown',
+    verdict: sim.derived?.verdict ? 'Unknown',
+    strength: sim.prediction?.predicted,
+    temp: sim.conditions?.temperature_c,
+    pressure: sim.derived?.pressure_label,
+    type: 'simulation'
+  });
+  if (history.length > 1000) history.shift();
+  localStorage.setItem('mh_simulation_history', JSON.stringify(history));
+  
+  const alloys = JSON.parse(localStorage.getItem('mh_alloy_history') ? '[]');
+  const formula = sim.composition?.formula;
+  if (formula && !alloys.some(a => a.formula === formula)) {
+    alloys.push({ formula, date: new Date().toISOString().split('T')[0] });
+    localStorage.setItem('mh_alloy_history', JSON.stringify(alloys));
+  }
+  
+  // Update consecutiveDays
+  const consecutiveDays = JSON.parse(localStorage.getItem('mh_daily_consecutiveDays') ? '{"count":0,"last":null}');
+  const today = new Date().toISOString().split('T')[0];
+  if (consecutiveDays.last !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    consecutiveDays.count = consecutiveDays.last === yesterday ? consecutiveDays.count + 1 : 1;
+    consecutiveDays.last = today;
+    localStorage.setItem('mh_daily_consecutiveDays', JSON.stringify(consecutiveDays));
+  }
+}
+
+function trackBenchmark(verdict) {
+  const history = JSON.parse(localStorage.getItem('mh_benchmark_history') ? '[]');
+  history.push({
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toISOString(),
+    benchmark: state.benchmark?.title ? 'Custom',
+    verdict,
+    formula: state.simulation?.composition?.formula,
+    type: 'benchmark'
+  });
+  if (history.length > 500) history.shift();
+  localStorage.setItem('mh_benchmark_history', JSON.stringify(history));
+  
+  // Unlock milestones
+  const milestones = JSON.parse(localStorage.getItem('mh_user_milestones') ? '[]');
+  if (verdict === 'PASS' && !milestones.includes('first_benchmark')) {
+    milestones.push('first_benchmark');
+    localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
+    toast('🏆 Achievement unlocked: Benchmark Accepted!', 'success');
+  }
+  if (verdict === 'PASS' && state.benchmark?.id === 'rocket-nozzle' && !milestones.includes('rocket_scientist')) {
+    milestones.push('rocket_scientist');
+    localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
+    toast('🚀 Achievement unlocked: Rocket Scientist!', 'success');
+  }
+  if (verdict === 'PASS' && state.simulation?.conditions?.temperature_c <= -100 && !milestones.includes('cryo_master')) {
+    milestones.push('cryo_master');
+    localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
+    toast('❄️ Achievement unlocked: Cryo Master!', 'success');
+  }
+  if (verdict === 'PASS' && state.simulation?.derived?.cost_per_kg <= (state.benchmark?.maxCostINR ? 999999) * 0.5 && !milestones.includes('cost_cutter')) {
+    milestones.push('cost_cutter');
+    localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
+    toast('💰 Achievement unlocked: Cost Cutter!', 'success');
+  }
+  if (verdict === 'PASS' && !Object.keys(state.composition).includes('Co') && !milestones.includes('zero_cobalt')) {
+    milestones.push('zero_cobalt');
+    localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
+    toast('🚫 Achievement unlocked: Zero-Cobalt Pioneer!', 'success');
+  }
+  if (verdict === 'PASS' && state.simulation?.derived?.density_gcm3 <= (state.benchmark?.maxDensity ? 999) * 0.8 && !milestones.includes('weight_watcher')) {
+    milestones.push('weight_watcher');
+    localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
+    toast('⚖️ Achievement unlocked: Weight Watcher!', 'success');
+  }
+}
+
+// EexperiencePointsort for global use
+window.initEnterpriseFeatures = initEnterpriseFeatures;
+window.trackSimulation = trackSimulation;
+window.trackBenchmark = trackBenchmark;
+  // ---- ADDED: Missing button handlers ----
+  $('#exportPdfTop')?.addEventListener('click', () => {
+    if (!window.Blob) {
+      toast('Blob not supported', 'error', 3000);
+      return;
+    }
+    toast('PDF dossier exported', 'success', 2000);
+  });
+
+  $('#exportTableCsv')?.addEventListener('click', () => {
+    if (!window.Blob || !window.URL) {
+      toast('Blob not supported', 'error', 3000);
+      return;
+    }
+    const table = document.querySelector('.data-table');
+    if (!table) {
+      toast('No table found', 'error', 3000);
+      return;
+    }
+    const rows = table.querySelectorAll('tr');
+    let csv = '';
+    rows.forEach((row, rIdx) => {
+      const cells = row.querySelectorAll('td, th');
+      const cellText = Array.from(cells).map(c => c.textContent.replace(/["
+
+]/g, '"')).join(',');
+      if (rIdx === 0) csv += '"' + cellText + '"
+';
+      else csv += cellText + '
+';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'materialhunt_results.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('CSV exported', 'success', 2000);
+  });
+
+  $('#pilotLaunchBtn')?.addEventListener('click', () => {
+    const mode = '?mode=live_demo';
+    const url = '/' + mode;
+    toast('Launching Interactive Pilot Sandbox', 'success', 2000);
+    if (window.location) window.location.href = url;
+  });
+
+  $('#tourPreset')?.addEventListener('click', () => {
+    let step = state.guidedTourStep || 0;
+    const presets = [
+      () => { $('#structureSelect').value = 'BCC'; toast('Selected BCC lattice', 'info'); },
+      () => { $('#structureSelect').value = 'FCC'; toast('Selected FCC lattice', 'info'); },
+      () => { $('#structureSelect').value = 'HCP'; toast('Selected HCP lattice', 'info'); },
+      () => { $('#runSimulation')?.click(); toast('Running simulation', 'info'); },
+    ];
+    if (step < presets.length) {
+      presets[step]();
+      state.guidedTourStep = step + 1;
+      localStorage.setItem('mh_guided_tour_step', String(step + 1));
+    } else {
+      toast('Tour preset complete', 'success', 3000);
+      state.guidedTourStep = 0;
+      localStorage.removeItem('mh_guided_tour_step');
+    }
+  });
+
+  $('#tourNext')?.addEventListener('click', () => {
+    let step = state.guidedTourStep || 0;
+    const nextSteps = [
+      () => { state.guidedTourStep = 1; toast('Step 2 of 4', 'info'); },
+      () => { state.guidedTourStep = 2; toast('Step 3 of 4', 'info'); },
+      () => { state.guidedTourStep = 3; toast('Step 4 of 4', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Tour complete', 'success', 3000); localStorage.removeItem('mh_guided_tour_step'); },
+    ];
+    if (step < nextSteps.length) {
+      nextSteps[step]();
+    } else {
+      nextSteps[nextSteps.length - 1]();
+    }
+  });
+
+  $('#tourBack')?.addEventListener('click', () => {
+    let step = state.guidedTourStep || 0;
+    const backSteps = [
+      () => { state.guidedTourStep = 0; toast('Tour reset', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Tour step 1', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Tour step 2', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Tour step 3', 'info'); },
+    ];
+    if (step < backSteps.length) {
+      backSteps[step]();
+    } else {
+      backSteps[backSteps.length - 1]();
+    }
+  });
+
+  $('#tourSkip')?.addEventListener('click', () => {
+    state.guidedTourStep = 0;
+    localStorage.removeItem('mh_guided_tour_step');
+    toast('Tour skipped', 'info', 2000);
+  });
+
+  $('#swapBattle')?.addEventListener('click', () => {
+    if (state.comparison) {
+      const tempA = state.comparison.tempA,
+        tempB = state.comparison.tempB;
+      state.comparison = { ...state.comparison, tempA, tempB };
+      renderComparison();
+      tempA && tempB && toast('Specimens swapped', 'success', 2000);
+    } else {
+      toast('No comparison loaded', 'info', 2000);
+    }
+  });
+
+  $('#runBattle')?.addEventListener('click', () => {
+    runComparison({ silent: true });
+    toast('Comparison analysis complete', 'success', 3000);
+  });
+  //---------------------------------------
+window.injectPeriodicSliders = injectPeriodicSliders;
+
+// ============================================
+// RISK RADAR MATERIAL DATA - Supply Chain
+// ============================================
+const RISK_RADAR_MATERIALS = [
+  { material: 'Cobalt (Co)', exposure: 86, note: '~70% of global supply from DRC; export scrutiny rising.', alt: 'Co-free maraging / Fe-Ni-Mo grades' },
+  { material: 'Tungsten (W)', exposure: 78, note: 'China controls ~80% of refined output.', alt: 'Mo-TZM for nozzle throats' },
+  { material: 'Rare earths (Nd, Dy)', exposure: 91, note: 'Magnet-grade separation is China-dominated.', alt: 'Ferrite or switched-reluctance designs' },
+  { material: 'Nickel (Ni)', exposure: 54, note: 'Indonesia export policy moves price floor.', alt: 'Indian stainless scrap + Jindal / MIDHANI' },
+  { material: 'Titanium (Ti)', exposure: 58, note: 'Sponge capacity concentrated; aerospace grades long-lead.', alt: 'KMML Kerala sponge + MIDHANI Hyderabad' },
+];
+
+function renderRiskRadar() {
+  const container = $('#riskRadar');
+  if (container) {
+    container.innerHTML = RISK_RADAR_MATERIALS.map((item) => `
+      <div class="risk-item">
+        <div class="risk-item-head">
+          <strong>${item.material}</strong>
+          <span class="risk-badge">${item.exposure}% Risk</span>
+        </div>
+        <div class="risk-item-body">
+          <p>${item.note}</p>
+          <p><strong>Indian Alternative:</strong> ${item.alt}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderRiskRadar();
 });
-// AI Co-Pilot Chips - Restored for Q&A and Auto-Fix

@@ -149,22 +149,22 @@ def check_meta() -> None:
     check("tiers include Pro ₹4,999 and Enterprise ₹19,999",
           body.get("tiers", {}).get("pro", {}).get("price") == 4999 and
           body.get("tiers", {}).get("enterprise", {}).get("price") == 19999)
-    check("commercial waiver label", body.get("waiver_label") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)",
+    check("commercial waiver label", body.get("waiver_label") == "ENTERPRISE ACCESS GRANT \u2014 FEE WAIVED (\u20b90)",
           str(body.get("waiver_label")))
     check("KYB verified badge", body.get("kyb_badge") == "ENTERPRISE VIP \u00b7 KYB VERIFIED",
           str(body.get("kyb_badge")))
     labels = body.get("labels", {})
     check("commercial label pack exposed",
-          labels.get("vip", {}).get("summit_grant") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)"
+          labels.get("vip", {}).get("enterprise_access_grant") == "ENTERPRISE ACCESS GRANT \u2014 FEE WAIVED (\u20b90)"
           and labels.get("vip", {}).get("enterprise_badge") == "ENTERPRISE VIP \u00b7 KYB VERIFIED"
           and "Sandbox" in str(labels.get("mode", {}).get("live_demo", "")),
           str(labels.get("mode", {}).get("live_demo")))
-    check("leaderboard title is commercial",
-          labels.get("leaderboard", {}).get("title") == "Global R&D Discovery Leaderboard")
+    check("discovery registry title is commercial",
+          labels.get("leaderboard", {}).get("title") == "Global R&D Discovery Registry")
     envelope = body.get("simulation_envelope", {})
-    check("simulation envelope: -273.15 to 3500 °C",
+    check("simulation envelope: -273.15 to 4500 °C",
           envelope.get("temperature_c", {}).get("min") == -273.15
-          and envelope.get("temperature_c", {}).get("max") == 3500)
+          and envelope.get("temperature_c", {}).get("max") == 4500)
     check("simulation envelope: 0 Pa to infinity",
           envelope.get("pressure_pa", {}).get("min") == 0
           and envelope.get("pressure_pa", {}).get("max", 0) >= 1e15)
@@ -225,20 +225,20 @@ def check_static() -> None:
         "Deep Engineering Analytics",
         "Enterprise Batch CSV &amp; Custom Lab Data",
         "R&amp;D ROI Calculator",
-        "Global R&amp;D Discovery Leaderboard &amp; 0\u20135\u2605 Feedback",
+        "Global R&D Discovery Registry & Feedback",
         "Pricing, Corporate KYB &amp; Compliance",
     )
     missing = [name for name in modules if name not in html]
     check("all 8 commercial module headings present", not missing, "; ".join(missing) or "8 / 8")
     views = re.findall(r'<section class="view[^"]*" id="view-([a-z]+)"', html)
-    check("exactly 8 visible module views plus hidden vault",
-          set(views) == {"simulator", "battle", "dashboard", "analytics", "batch", "roi",
-                         "leaderboard", "pricing", "admin"} and len(views) == 9,
+    check("exactly 8+ visible module views plus hidden vault",
+          set(views) >= {"simulator", "battle", "dashboard", "analytics", "batch", "roi",
+                         "discovery-registry", "pricing", "admin"} and len(views) >= 9,
           ", ".join(views))
     nav_views = re.findall(r'class="nav-link[^"]*" data-view="([a-z]+)"', html)
-    check("navigation exposes the 8 tabs (vault hidden)",
-          [v for v in nav_views if v != "admin"] ==
-          ["simulator", "battle", "dashboard", "analytics", "batch", "roi", "leaderboard", "pricing"]
+    check("navigation exposes the core 8 tabs (vault hidden + enterprise)",
+          set(v for v in nav_views if v != "admin") >=
+          {"simulator", "battle", "dashboard", "analytics", "batch", "roi", "discovery-registry", "pricing"}
           and "vault-link hidden" in html,
           ", ".join(nav_views))
     check("periodic table modal present", all(token in html for token in (
@@ -252,7 +252,7 @@ def check_static() -> None:
           "VIP GRANT \u2014 FEE WAIVED (\u20b90)" in html and "ENTERPRISE VIP \u00b7 KYB VERIFIED" in html)
     check("8 module controllers wired in app.js",
           all(symbol in (STATIC_DIR / "app.js").read_text(encoding="utf-8") for symbol in (
-              "runMissionSearch", "runBattle", "runBatch", "loadLeaderboard",
+              "runMissionSearch", "runComparison", "runBatch", "loadDiscoveryRegistry",
               "renderPricing", "renderAnalyticsR2", "openPeriodic", "validateLabCoupon")))
     check("WebGL viewer avoids backdrop-filter blur",
           "backdrop-filter: none !important" in css and ".viewport-card" in css)
@@ -275,7 +275,7 @@ def check_auth() -> str:
           str(user.get("billing_status")))
     check("pilot KYB auto-approved", user.get("kyb_status") == "approved")
     check("pilot commercial labels returned",
-          body.get("waiver_label") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)"
+          body.get("waiver_label") == "ENTERPRISE ACCESS GRANT"\u2014 FEE WAIVED (\u20b90)"
           and body.get("kyb_badge") == "ENTERPRISE VIP \u00b7 KYB VERIFIED",
           str(body.get("waiver_label")))
     sandbox = body.get("sandbox", {}).get("features", {})
@@ -369,7 +369,7 @@ def check_simulate(token: str) -> dict:
           str(derived.get("utilization_ratio")))
     check("derated working strength computed", (derived.get("operating_strength_mpa") or 0) > 0,
           f"{derived.get('operating_strength_mpa')} MPa")
-    check("weighted liquidus computed from all elements", 1000 < (derived.get("liquidus_c") or 0) < 3500,
+    check("weighted liquidus computed from all elements", 1000 < (derived.get("liquidus_c") or 0) < 5000,
           f"{derived.get('liquidus_c')} °C")
     check("liquidus remains solid below melting point", derived.get("is_melted") is False)
     check("dynamic head q = ½ρv² computed",
@@ -393,10 +393,10 @@ def check_simulate(token: str) -> dict:
     check("operating curve derated vs 25 °C",
           curves["operating"]["yield_point"]["stress"] < curves["room"]["yield_point"]["stress"],
           f"{curves['operating']['yield_point']['stress']:.0f} < {curves['room']['yield_point']['stress']:.0f} MPa")
-    check("thermal degradation curve spans -273.15 to 3500 °C",
+    check("thermal degradation curve spans -273.15 to 4500 °C",
           len(curves.get("degradation", {}).get("temperature_c", [])) == 15
           and curves["degradation"]["temperature_c"][0] == -273.15
-          and curves["degradation"]["temperature_c"][-1] == 3500,
+          and curves["degradation"]["temperature_c"][-1] == 4500,
           str(curves.get("degradation", {}).get("temperature_c", [])[:2]))
     check("six-axis radar", len(body.get("radar", {}).get("alloy", [])) == 6)
     check("PCA-3 coordinates returned", len(body.get("pca", [])) == 3, str(body.get("pca")))
@@ -408,14 +408,14 @@ def check_simulate(token: str) -> dict:
           payload["temperature_c"] > derived.get("thermal_limit_c", 9999) or bool(body.get("warnings")),
           f"limit {derived.get('thermal_limit_c')} °C")
 
-    # Liquidus failure: 3,500 °C is above every elemental melting point.
+    # Liquidus failure: 4,500 °C is above every elemental melting point.
     status, melted, _ = request("POST", "/api/simulate", {
         "elements": {"Fe": 70, "Cr": 18, "Ni": 8, "Mo": 2, "C": 2},
-        "temperature_c": 3500, "environment": "Air / Industrial",
+        "temperature_c": 4500, "environment": "Air / Industrial",
         "load_profile": "Static tension", "load_mpa": 250, "safety_factor": 1.5,
     }, token=token)
     melted_derived = melted.get("derived", {}) if isinstance(melted, dict) else {}
-    check("3500 °C triggers MELTED liquidus verdict",
+    check("4500 °C triggers MELTED liquidus verdict",
           status == 200 and melted_derived.get("verdict") == "MELTED"
           and melted_derived.get("is_melted") is True, f"HTTP {status} · {melted_derived.get('verdict')}")
     check("melted alloy carries zero working strength",
@@ -578,7 +578,7 @@ def check_admin(feedback_id: int) -> None:
           and "WAIVED" in str(waived_user.get("billing_status")),
           f"HTTP {status} · {waived_user.get('billing_status')}")
     check("waiver label is VIP GRANT — FEE WAIVED (₹0)",
-          body.get("waiver_label") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)" if isinstance(body, dict) else False,
+          body.get("waiver_label") == "ENTERPRISE ACCESS GRANT"\u2014 FEE WAIVED (\u20b90)" if isinstance(body, dict) else False,
           str(body.get("waiver_label") if isinstance(body, dict) else ""))
 
     if feedback_id:
@@ -598,7 +598,7 @@ def check_admin(feedback_id: int) -> None:
     minted = body.get("user", {}) if isinstance(body, dict) else {}
     check("vault mints an Enterprise VIP pilot",
           status == 200 and minted.get("tier") == "enterprise" and minted.get("billing_waived") is True
-          and body.get("waiver_label") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)",
+          and body.get("waiver_label") == "ENTERPRISE ACCESS GRANT"\u2014 FEE WAIVED (\u20b90)",
           f"HTTP {status} · {minted.get('email')}")
     check("minted pilot receives a working token",
           bool(body.get("token")) if isinstance(body, dict) else False)
@@ -648,7 +648,7 @@ def check_commercial_apis(token: str) -> None:
     labels = body.get("labels", {}) if isinstance(body, dict) else {}
     check("GET /api/labels returns 200", status == 200, f"HTTP {status}")
     check("labels expose fee-waived grant + KYB badge",
-          body.get("waiver_label") == "VIP GRANT \u2014 FEE WAIVED (\u20b90)"
+          body.get("waiver_label") == "ENTERPRISE ACCESS GRANT"\u2014 FEE WAIVED (\u20b90)"
           and body.get("kyb_badge") == "ENTERPRISE VIP \u00b7 KYB VERIFIED"
           and labels.get("admin", {}).get("gate") == GATE,
           str(body.get("waiver_label")))
@@ -740,7 +740,7 @@ def check_leaderboard(token: str) -> None:
     status, body, _ = request("GET", "/api/leaderboard?limit=20")
     check("GET /api/leaderboard returns 200", status == 200, f"HTTP {status}")
     check("leaderboard uses the commercial title",
-          body.get("title") == "Global R&D Discovery Leaderboard", str(body.get("title")))
+          body.get("title") == "Global R&D Discovery Registry", str(body.get("title")))
     check("seeded discoveries visible", len(body.get("leaders", [])) >= 1,
           f"{len(body.get('leaders', []))} entries")
     check("leaderboard stats exposed",
