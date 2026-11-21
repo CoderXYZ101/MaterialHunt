@@ -355,8 +355,10 @@ function renderSession() {
   $('#adminAccessBanner')?.classList.toggle('hidden', !enterprise_access);
   if (enterprise_access) {
     const banner = $('#adminAccessBanner');
-    if (banner) banner.querySelector('span:nth-child(3)').innerHTML =
-      `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status ? 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)')}</em> · ${state.user.kyb_status === 'approved' ? 'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
+    if (banner) {
+      const bannerText = `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status ? 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)')}</em> · ${state.user.kyb_status === 'approved' ? 'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
+      banner.querySelector('span:nth-child(3)').innerHTML = bannerText;
+    }
   }
   if (state.gateActive) $('#vaultNav')?.classList.remove('hidden');
 }
