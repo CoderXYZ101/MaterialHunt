@@ -355,8 +355,10 @@ function renderSession() {
   $('#adminAccessBanner')?.classList.toggle('hidden', !enterprise_access);
   if (enterprise_access) {
     const banner = $('#adminAccessBanner');
-    if (banner) banner.querySelector('span:nth-child(3)').innerHTML =
-      `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status ? 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)')}</em> · ${state.user.kyb_status === 'approved' ? 'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
+    if (banner) {
+      const bannerText = `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status ? 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)')}</em> · ${state.user.kyb_status === 'approved' ? 'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
+      banner.querySelector('span:nth-child(3)').innerHTML = bannerText;
+    }
   }
   if (state.gateActive) $('#vaultNav')?.classList.remove('hidden');
 }
@@ -521,7 +523,7 @@ async function bootstrap() {
 function updateHealthBadge(health) {
   const badge = $('#offlineBadge');
   const text = $('#offlineText');
-  if (!badge ? !text) return;
+  if (!badge || !text) return;
   const assetsOk = (health.assets?.['three.min.js']?.present && health.assets?.['plotly.min.js']?.present);
   if (health.model_loaded && assetsOk) {
     badge.className = 'status-pill status-online';
@@ -535,13 +537,13 @@ function updateHealthBadge(health) {
 }
 
 function applyMeta(meta) {
-  const datasets = meta.datasets ? {};
-  const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks?.random_forest?.r2) ? 0), 0);
+  const datasets = meta.datasets || {};
+  const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks?.random_forest?.r2) || 0), 0);
   $('#statAccuracy').textContent = bestR2 ? bestR2.toFixed(3) : '—';
   $('#statAccuracySub').textContent = `best task · ${Object.entries(datasets).sort((a, b) => (b[1].benchmarks.random_forest.r2 - a[1].benchmarks.random_forest.r2))[0]?.[1]?.label ? 'Random Forest'}`;
   $('#statCandidates').textContent = meta.candidate_total ? fmt(meta.candidate_total) : '—';
   $('#analyticsBadge').textContent = `${Object.keys(datasets).length} TASKS · ${meta.feature_count} FEATURES`;
-  const variance = (meta.pca_eexperiencePointslained_variance ? []).map((v) => `${(v * 100).toFixed(1)}%`).join(' / ');
+  const variance = (meta.pca_experiencePointsained_variance || []).map((v) => `${(v * 100).toFixed(1)}%`).join(' / ');
   $('#clusterVariance').textContent = `PCA-3 variance ${variance}`;
   $('#analyticsVariance').textContent = `PCA-3 variance ${variance}`;
 
@@ -567,7 +569,7 @@ function applyMeta(meta) {
 function renderPersonas() {
   const container = $('#personaGrid');
   if (!container) return;
-  const personas = state.meta?.personas ? {};
+  const personas = state.meta?.personas || {};
   container.innerHTML = Object.entries(personas).map(([key, persona]) => {
     const active = key === state.persona ? ' active' : '';
     return `<button class="persona-btn${active}" data-persona="${escapeHtml(key)}"><span class="pdot"></span>${escapeHtml(persona.label)}</button>`;
@@ -577,7 +579,7 @@ function renderPersonas() {
 function renderElementChips() {
   const include = $('#includeElements');
   const exclude = $('#excludeElements');
-  if (!include ? !exclude) return;
+  if (!include || !exclude) return;
   include.innerHTML = COMMON_CHIPS.map((sym) => `<button class="el-chip${state.include.has(sym) ? ' active' : ''}" data-chip="include" data-symbol="${sym}">${sym}</button>`).join('');
   const excludeList = [...COMMON_CHIPS, ...HAZARD_ELEMENTS];
   exclude.innerHTML = excludeList.map((sym) => {
@@ -587,15 +589,8 @@ function renderElementChips() {
 }
 
 function populateConditionSelects() {
-  const environments = state.meta?.environments ? {
-    'Air / Industrial': { label: 'Air / Industrial' },
-    'Marine / Salt Spray': { label: 'Marine / Salt Spray' },
-    'Acidic / Chemical': { label: 'Acidic / Chemical' },
-  };
-  const profiles = state.meta?.load_profiles ? {
-    'Static tension': { label: 'Static tension' },
-    'Cyclic / Fatigue': { label: 'Cyclic / Fatigue' },
-  };
+  const environments = state.meta?.environments || {};
+  const profiles = state.meta?.load_profiles || {};
   const envSelect = $('#environmentSelect');
   const profileSelect = $('#loadProfileSelect');
   if (envSelect) {
@@ -620,11 +615,11 @@ function renderElementSliders() {
     if (ia >= 0 && ib >= 0) return ia - ib;
     if (ia >= 0) return -1;
     if (ib >= 0) return 1;
-    return (state.composition[b] ? 0) - (state.composition[a] ? 0);
+    return (state.composition[b] || 0) - (state.composition[a] || 0);
   });
   container.innerHTML = symbols.map((sym) => {
     const meta = elementMeta(sym);
-    const value = Number(state.composition[sym] ? 0);
+    const value = Number(state.composition[sym] || 0);
     const hazard = HAZARD_ELEMENTS.includes(sym) ? ' ⚠' : '';
     return `
       <div class="el-slider-row" style="--el-color:${meta.color}">
@@ -648,7 +643,7 @@ function updateCompositionUI() {
 
 function normalisedComposition() {
   const entries = Object.entries(state.composition).filter(([, value]) => Number(value) > 0.0001);
-  const total = entries.reduce((sum, [, value]) => sum + Number(value), 0) ? 1;
+  const total = entries.reduce((sum, [, value]) => sum + Number(value), 0) || 1;
   return Object.fromEntries(entries.map(([sym, value]) => [sym, Number(value) / total * 100]));
 }
 
@@ -667,20 +662,20 @@ function renderHeroLegend(normalized = normalisedComposition()) {
 function prescreenPayload() {
   const datasets = $$('.dataset-check').filter((c) => c.checked).map((c) => c.value);
   const customWeights = state.persona === 'Custom Weights' ? {
-    strength: Number($('#wStrength')?.value ? 25),
-    weight: Number($('#wWeight')?.value ? 20),
-    thermal: Number($('#wThermal')?.value ? 20),
-    corrosion: Number($('#wCorrosion')?.value ? 15),
-    cost: Number($('#wCost')?.value ? 10),
-    confidence: Number($('#wConfidence')?.value ? 10),
+    strength: Number($('#wStrength')?.value) || 25,
+    weight: Number($('#wWeight')?.value) || 20,
+    thermal: Number($('#wThermal')?.value) || 20,
+    corrosion: Number($('#wCorrosion')?.value) || 15,
+    cost: Number($('#wCost')?.value) || 10,
+    confidence: Number($('#wConfidence')?.value) || 10,
   } : null;
-  const cost = Number($('#maxCost')?.value ? 8000);
-  const density = Number($('#maxDensity')?.value ? 20);
+  const cost = Number($('#maxCost')?.value) || 8000;
+  const density = Number($('#maxDensity')?.value) || 20;
   return {
     datasets: datasets.length ? datasets : ['steels', 'glass', 'eexperiencePointst_gap'],
     persona: state.persona,
     custom_weights: customWeights,
-    min_confidence: $('#confidenceFilter')?.value ? 'Low',
+    min_confidence: $('#confidenceFilter')?.value ? 'Low' : 'High',
     max_cost: cost >= 8000 ? null : cost,
     max_density: density >= 20 ? null : density,
     include_elements: [...state.include],
@@ -723,7 +718,7 @@ async function loadPrescreen() {
 
 function updateStatsFromScreen(result) {
   const bestR2 = result.candidates?.length
-    ? Math.max(...result.candidates.map((c) => Number(c.benchmark_r2) ? 0))
+    ? Math.max(...result.candidates.map((c) => Number(c.benchmark_r2) || 0))
     : null;
   if (bestR2) $('#statAccuracy').textContent = bestR2.toFixed(3);
   const el = $('#statCandidates');
@@ -809,7 +804,7 @@ function radarFromCandidate(item) {
 
 function loadCandidateIntoSimulator(item) {
   const composition = {};
-  Object.entries(item.elements ? {}).forEach(([sym, fraction]) => {
+  Object.entries(item.elements || {}).forEach(([sym, fraction]) => {
     composition[sym] = Number(fraction) * 100;
   });
   state.composition = composition;
@@ -825,9 +820,9 @@ function loadCandidateIntoSimulator(item) {
    ========================================================================== */
 function renderAllCharts() {
   try {
-    renderAshby(state.screenItems ? []);
-    renderRadar(state.lastRadar ? defaultRadar());
-    renderCluster($('#clusterChart'), state.meta?.feature_space ? [], state.simulation?.pca ? null);
+    renderAshby(state.screenItems || []);
+    renderRadar(state.lastRadar || defaultRadar());
+    renderCluster($('#clusterChart'), state.meta?.feature_space || [], state.simulation?.pca || null);
     renderSimulationCharts();
     renderAnalyticsCharts();
     renderRoi();
@@ -853,14 +848,14 @@ function emptyChartLayout(message) {
 function renderAshby(items) {
   const el = $('#ashbyChart');
   if (!el) return;
-  const steels = (items ? []).filter((item) => Number(item.specific_strength) > 0 && Number(item.cost_per_kg) > 0);
+  const steels = (items || []).filter((item) => Number(item.specific_strength) > 0 && Number(item.cost_per_kg) > 0);
   if (!steels.length) {
     renderPlot(el, [], emptyChartLayout('No structural (yield-strength) candidates in this filter envelope.'));
     return;
   }
   const c = themeColors();
   const groups = { High: [], Medium: [], Low: [] };
-  steels.forEach((item) => (groups[item.confidence] ? groups.Low).push(item));
+  steels.forEach((item) => (groups[item.confidence] || groups.Low).push(item));
   const traces = Object.entries(groups).filter(([, arr]) => arr.length).map(([confidence, arr]) => ({
     type: 'scatter',
     mode: 'markers',
@@ -917,7 +912,7 @@ function defaultRadar() {
 function renderRadar(radar, tag = '') {
   const el = $('#radarChart');
   if (!el) return;
-  const data = radar ? defaultRadar();
+  const data = radar || defaultRadar();
   const c = themeColors();
   const close = (arr) => [...arr, arr[0]];
   const labels = close(data.labels);
@@ -999,7 +994,7 @@ function sceneLayout() {
 
 function renderCluster(el, points, customPoint) {
   if (!el) return;
-  if (!points ? !points.length) {
+  if (!points || !points.length) {
     renderPlot(el, [], emptyChartLayout('Feature-space map will appear once the model bundle is loaded.'));
     return;
   }
@@ -1105,7 +1100,7 @@ function renderSimulationCharts() {
   renderThermalChart(state.simulation);
   const el = $('#simRadarChart');
   if (el) {
-    const radar = state.simulation?.radar ? state.lastRadar ? defaultRadar();
+    const radar = state.simulation?.radar || state.lastRadar || defaultRadar();
     const c = themeColors();
     const close = (arr) => [...arr, arr[0]];
     const layout = plotBase({
@@ -1131,7 +1126,7 @@ function renderSimulationCharts() {
       },
     ], layout);
     const tag = $('#simRadarTag');
-    if (tag) tag.textContent = `Confidence ${state.simulation?.prediction?.confidence ? '—'}`;
+    if (tag) tag.textContent = `Confidence ${state.simulation?.prediction?.confidence || '—'}`;
   }
 }
 
@@ -1140,7 +1135,7 @@ function renderSimulationCharts() {
    -------------------------------------------------------------------------- */
 function renderBenchmarkTable() {
   const body = $('#benchmarkBody');
-  if (!body ? !state.meta?.datasets) return;
+  if (!body || !state.meta?.datasets) return;
   const rows = [];
   Object.values(state.meta.datasets).forEach((dataset) => {
     ['linear', 'random_forest', 'gradient_boosting'].forEach((key) => {
@@ -1166,11 +1161,11 @@ function renderBenchmarkTable() {
 
 function renderImportanceChart() {
   const el = $('#analyticsImportanceChart');
-  if (!el ? !state.meta?.datasets) return;
+  if (!el || !state.meta?.datasets) return;
   const select = $('#importanceDataset');
-  const datasetKey = select?.value ? 'steels';
+  const datasetKey = select?.value || 'steels';
   const dataset = state.meta.datasets[datasetKey];
-  const rfImportance = dataset?.feature_importances?.find((entry) => entry.model === 'random_forest') ? dataset?.feature_importances?.[0];
+  const rfImportance = dataset?.feature_importances?.find((entry) => entry.model === 'random_forest') || dataset?.feature_importances?.[0];
   if (!rfImportance) { renderPlot(el, [], emptyChartLayout('Feature importance unavailable.')); return; }
   const features = [...rfImportance.features].sort((a, b) => a.importance - b.importance);
   const c = themeColors();
@@ -1194,7 +1189,7 @@ function renderImportanceChart() {
 
 function renderCoverageChart() {
   const el = $('#analyticsCoverageChart');
-  if (!el ? !state.meta?.datasets) return;
+  if (!el || !state.meta?.datasets) return;
   const c = themeColors();
   const entries = Object.values(state.meta.datasets);
   renderPlot(el, [
@@ -1223,7 +1218,7 @@ function renderCoverageChart() {
 
 function renderErrorChart() {
   const el = $('#analyticsErrorChart');
-  if (!el ? !state.meta?.datasets) return;
+  if (!el || !state.meta?.datasets) return;
   const c = themeColors();
   const entries = Object.values(state.meta.datasets);
   renderPlot(el, [
@@ -1270,7 +1265,7 @@ function renderAnalyticsCharts() {
   renderAnalyticsUncertainty();
   renderAnalyticsCostDensity();
   renderAnalyticsBenchRadar();
-  renderCluster($('#analyticsClusterChart'), state.meta.feature_space ? [], state.simulation?.pca ? null);
+  renderCluster($('#analyticsClusterChart'), state.meta.feature_space || [], state.simulation?.pca || null);
 }
 
 /* --------------------------------------------------------------------------
@@ -1391,7 +1386,7 @@ function collectSimulationRequest() {
     structure: state.structure,
     environment_density_kgm3: Number(state.mediumDensity ? 1.225),
     pressure_pa: pressurePaFromUI(),
-    velocity_kmh: Number($('#velocitySlider')?.value ? 0),
+    velocity_kmh: Number($('#velocitySlider')?.value || 0),
   };
 }
 
@@ -1418,7 +1413,7 @@ function formatPressure(valuePa) {
 function pressurePaFromUI() {
   const unit = state.pressureUnit ? 'Pa';
   const spec = PRESSURE_UNITS[unit] ? PRESSURE_UNITS.Pa;
-  const raw = Number($('#pressureSlider')?.value ? 0);
+  const raw = Number($('#pressureSlider')?.value || 0);
   if (unit === 'inf') return raw >= spec.max ? 1e16 : 0;
   return raw * spec.scale;
 }
@@ -1464,7 +1459,7 @@ function scheduleSimulation(delay = 700) {
 async function runSimulation(options = {}) {
   const { silent = false } = options;
   const request = collectSimulationRequest();
-  const sequence = (state.simSeq = (state.simSeq ? 0) + 1);
+  const sequence = (state.simSeq = (state.simSeq || 0) + 1);
   const status = $('#simStatus');
   const button = $('#runSimulation');
   if (status) {
@@ -1524,8 +1519,8 @@ function renderSimulation(sim) {
   set('#simWorking', `${fmt(derived.operating_strength_mpa)} MPa`);
   set('#simDensityCost', `${derived.density_gcm3.toFixed(2)} g/cm³ · ₹${fmt(derived.cost_per_kg)}/kg`);
   set('#simUtilization', derived.utilization_ratio.toFixed(2));
-  set('#simLiquidus', `${fmt(derived.liquidus_c ? 0)} °C`);
-  set('#simPressure', derived.pressure_label ? formatPressure(derived.total_pressure_pa ? 0));
+  set('#simLiquidus', `${fmt(derived.liquidus_c || 0)} °C`);
+  set('#simPressure', derived.pressure_label ? formatPressure(derived.total_pressure_pa || 0));
   renderEnvironmentHud(sim);
 
   const ring = $('#utilRing');
@@ -1564,9 +1559,9 @@ function renderSimulation(sim) {
 }
 
 function renderEnvironmentHud(sim) {
-  const derived = (sim && sim.derived) ? {};
+  const derived = (sim && sim.derived) || {};
   const set = (id, value) => { const el = $(id); if (el) el.textContent = value; };
-  const liquidus = Number(derived.liquidus_c ? 0);
+  const liquidus = Number(derived.liquidus_c || 0);
   set('#liquidusOut', liquidus ? `${fmt(liquidus)} °C` : '—');
   const statePill = $('#liquidusState');
   if (statePill) {
@@ -1574,9 +1569,9 @@ function renderEnvironmentHud(sim) {
     statePill.textContent = melted ? 'MELTED' : 'SOLID';
     statePill.className = `liquidus-state ${melted ? 'melted' : 'solid'}`;
   }
-  set('#dynamicPressureOut', formatPressure(derived.dynamic_pressure_pa ? 0));
+  set('#dynamicPressureOut', formatPressure(derived.dynamic_pressure_pa || 0));
   set('#totalPressureOut', formatPressure(derived.total_pressure_pa ? pressurePaFromUI()));
-  set('#burstLimitOut', formatPressure(derived.burst_pressure_pa ? 0));
+  set('#burstLimitOut', formatPressure(derived.burst_pressure_pa || 0));
 }
 
 function renderBlockedSimulation(detail) {
@@ -1627,7 +1622,7 @@ function updateSceneFromState() {
   state.scene.setSimulation({
     temperature,
     stress,
-    utilization: Number(derived?.utilization_ratio ? 0),
+    utilization: Number(derived?.utilization_ratio || 0),
     verdict: derived?.verdict ? 'SAFE',
     phase: derived?.aggregate_phase ? aggregatePhaseFor(normalized, temperature, derived?.total_pressure_pa),
     liquidus: Number(derived?.liquidus_c ? 1500),
@@ -1666,7 +1661,7 @@ async function downloadPdf() {
         throw new ApiError(detail, response.status, null);
       }
       blob = await response.blob();
-      const disposition = response.headers.get('content-disposition') ? '';
+      const disposition = response.headers.get('content-disposition') || '';
       const match = disposition.match(/filename="₹([^"]+)"₹/);
       if (match) filename = match[1];
     }
@@ -1727,7 +1722,7 @@ async function submitFeedback(event) {
     if (error) error.textContent = 'Choose a 0–5 star rating.';
     return;
   }
-  const message = $('#feedbackMessage')?.value.trim() ? '';
+  const message = $('#feedbackMessage')?.value.trim() || '';
   if (!message) {
     if (error) error.textContent = 'Tell us at least one sentence so the triage is useful.';
     return;
@@ -1753,7 +1748,7 @@ async function submitFeedback(event) {
 async function attemptAdminUnlock(silent = false) {
   if (!state.gateActive) return;
   const input = $('#adminPasskey');
-  const passkey = (input?.value ? state.adminPasskey ? '').trim();
+  const passkey = (input?.value ? state.adminPasskey || '').trim();
   const error = $('#adminError');
   if (!passkey) {
     if (error) error.textContent = 'Enter the vault passkey.';
@@ -1782,7 +1777,7 @@ async function attemptAdminUnlock(silent = false) {
       state.adminPasskey = '';
     } else if (err.status === 401) {
       const remaining = detail?.remaining_attempts;
-      if (error) error.textContent = `${detailText(detail)}${remaining !== undefined ? ` · ${remaining} attempt${remaining === 1 ? '' : 's'} remaining` : ''}`;
+      if (error) error.textContent = `${detailText(detail)}${remaining !== undefined ? ` · ${remaining} attempt${remaining === 1 || '' : 's'} remaining` : ''}`;
       sessionStorage.removeItem(STORAGE.admin);
       state.adminPasskey = '';
     } else {
@@ -1795,15 +1790,15 @@ async function attemptAdminUnlock(silent = false) {
 }
 
 function renderAdminSnapshot(snapshot) {
-  const overview = snapshot.overview ? {};
+  const overview = snapshot.overview || {};
   const stats = $('#adminStats');
   if (stats) {
     const cards = [
-      ['Accounts', fmt(overview.total_users ? 0), 'registered labs'],
-      ['MRR', fmtCompact(overview.mrr_inr ? 0), 'active subscriptions'],
-      ['Waived', fmt(overview.enterprise_access_accounts ? 0), 'Enterprise access grant ₹0'],
-      ['Pending KYB', fmt(overview.pending_kyb ? 0), 'awaiting approval'],
-      ['Avg rating', `${Number(overview.avg_rating ? 0).toFixed(2)} / 5`, `${overview.open_feedback ? 0} open reports`],
+      ['Accounts', fmt(overview.total_users || 0), 'registered labs'],
+      ['MRR', fmtCompact(overview.mrr_inr || 0), 'active subscriptions'],
+      ['Waived', fmt(overview.enterprise_access_accounts || 0), 'Enterprise access grant ₹0'],
+      ['Pending KYB', fmt(overview.pending_kyb || 0), 'awaiting approval'],
+      ['Avg rating', `${Number(overview.avg_rating || 0).toFixed(2)} / 5`, `${overview.open_feedback ? 0} open reports`],
     ];
     stats.innerHTML = cards.map(([label, value, sub]) => `
       <article class="admin-stat glass"><span>${label}</span><strong>${value}</strong><small>${sub}</small></article>`).join('');
@@ -1819,8 +1814,8 @@ function renderAdminSnapshot(snapshot) {
         <td><span class="pill ${user.billing_enterprise_access ? 'pill-amber' : 'pill'}">${escapeHtml(user.billing_enterprise_access ? 'WAIVED ₹0' : user.billing_status)}</span></td>
         <td>
           <div class="admin-actions">
-            ${user.billing_enterprise_access ? '' : `<button class="waive" data-admin-action="waive" data-user="${user.id}">Grant VIP fee waiver</button>`}
-            ${user.kyb_status === 'approved' ? '' : `<button data-admin-action="kyb" data-user="${user.id}">Approve KYB</button>`}
+            ${user.billing_enterprise_access || '' : `<button class="waive" data-admin-action="waive" data-user="${user.id}">Grant VIP fee waiver</button>`}
+            ${user.kyb_status === 'approved' || '' : `<button data-admin-action="kyb" data-user="${user.id}">Approve KYB</button>`}
           </div>
         </td>
       </tr>`).join('');
@@ -1894,7 +1889,7 @@ async function refreshAdmin() {
    Deep Engineering Analytics — 11 live Plotly panels
    ========================================================================== */
 function analyticsEntries() {
-  return Object.values(state.meta?.datasets ? {});
+  return Object.values(state.meta?.datasets || {});
 }
 
 function renderAnalyticsR2() {
@@ -1905,8 +1900,8 @@ function renderAnalyticsR2() {
   const models = [['linear', 'Linear', c.blue], ['random_forest', 'Random Forest', c.emerald], ['gradient_boosting', 'Gradient Boosting', c.violet]];
   renderPlot(el, models.map(([key, label, color]) => ({
     type: 'bar', name: label,
-    x: entries.map((d) => (d.label ? '').replace('Matbench ', '')),
-    y: entries.map((d) => d.benchmarks?.[key]?.r2 ? 0),
+    x: entries.map((d) => (d.label || '').replace('Matbench ', '')),
+    y: entries.map((d) => d.benchmarks?.[key]?.r2 || 0),
     marker: { color, opacity: key === 'random_forest' ? 1 : 0.62 },
     hovertemplate: '%{x}<br>R² %{y:.3f}<extra>' + label + '</extra>',
   })), plotBase({
@@ -1926,7 +1921,7 @@ function renderAnalyticsMae() {
     {
       type: 'scatterpolar', mode: 'lines+markers', name: 'MAE share', fill: 'toself',
       r: entries.map((d) => {
-        const mae = Number(d.benchmarks?.random_forest?.mae ? 0);
+        const mae = Number(d.benchmarks?.random_forest?.mae || 0);
         return clamp(100 - mae, 2, 100);
       }),
       theta: entries.map((d) => `${d.target_short ? d.label} (${d.unit})`),
@@ -1950,9 +1945,9 @@ function renderAnalyticsTrainTime() {
   const entries = analyticsEntries();
   if (!el ? !entries.length) return;
   const c = themeColors();
-  const labels = entries.map((d) => (d.label ? '').replace('Matbench ', ''));
-  const rfTime = entries.map((d) => Number(d.benchmarks?.random_forest?.train_seconds ? d.benchmarks?.random_forest?.fit_seconds ? 0));
-  const gbTime = entries.map((d) => Number(d.benchmarks?.gradient_boosting?.train_seconds ? d.benchmarks?.gradient_boosting?.fit_seconds ? 0));
+  const labels = entries.map((d) => (d.label || '').replace('Matbench ', ''));
+  const rfTime = entries.map((d) => Number(d.benchmarks?.random_forest?.train_seconds ? d.benchmarks?.random_forest?.fit_seconds || 0));
+  const gbTime = entries.map((d) => Number(d.benchmarks?.gradient_boosting?.train_seconds ? d.benchmarks?.gradient_boosting?.fit_seconds || 0));
   renderPlot(el, [
     { type: 'bar', name: 'Random Forest', x: labels, y: rfTime, marker: { color: c.emerald }, hovertemplate: '%{x}<br>%{y:.2f} s<extra>Random Forest</extra>' },
     { type: 'bar', name: 'Gradient Boosting', x: labels, y: gbTime, marker: { color: c.violet, opacity: 0.75 }, hovertemplate: '%{x}<br>%{y:.2f} s<extra>Gradient Boosting</extra>' },
@@ -2057,11 +2052,11 @@ function renderAnalyticsBenchRadar() {
     return {
       type: 'scatterpolar', mode: 'lines+markers', name: d.label,
       r: [
-        clamp((d.benchmarks?.random_forest?.r2 ? 0) * 100, 2, 100),
-        clamp(100 - (d.benchmarks?.random_forest?.mae ? 0) * 4, 2, 100),
-        clamp((d.rows ? 0) / 60, 2, 100),
-        clamp(Number(d.benchmarks?.test_rows ? 0) * 2, 2, 100),
-        clamp(100 - (d.benchmarks?.gradient_boosting?.mae ? 0) * 3, 2, 100),
+        clamp((d.benchmarks?.random_forest?.r2 || 0) * 100, 2, 100),
+        clamp(100 - (d.benchmarks?.random_forest?.mae || 0) * 4, 2, 100),
+        clamp((d.rows || 0) / 60, 2, 100),
+        clamp(Number(d.benchmarks?.test_rows || 0) * 2, 2, 100),
+        clamp(100 - (d.benchmarks?.gradient_boosting?.mae || 0) * 3, 2, 100),
       ],
       theta: ['R²', 'MAE headroom', 'Coverage', 'Hold-out', 'GB headroom'],
       line: { color: colors[index % colors.length], width: 1.8 },
@@ -2115,7 +2110,7 @@ function closePeriodic() {
 function renderPeriodicLegend(payload) {
   const legend = $('#periodicLegend');
   if (!legend) return;
-  const colors = payload.category_colors ? {};
+  const colors = payload.category_colors || {};
   legend.innerHTML = Object.entries(colors).map(([label, color]) =>
     `<span class="legend-item"><i style="background:${color}"></i>${escapeHtml(label)}</span>`).join('');
 }
@@ -2123,7 +2118,7 @@ function renderPeriodicLegend(payload) {
 function renderPeriodicTable(query) {
   const grid = $('#periodicGrid');
   if (!grid ? !state.periodic) return;
-  const term = String(query ? '').toLowerCase().trim();
+  const term = String(query || '').toLowerCase().trim();
   const rows = (state.periodic.periodic_table ? []).filter((item) =>
     !term ? item.symbol.toLowerCase().includes(term) ? String(item.name).toLowerCase().includes(term) ? String(item.z) === term);
   grid.innerHTML = rows.map((item) => `
@@ -2170,7 +2165,7 @@ function showPeriodicDetail(symbol) {
 }
 
 function addPeriodicElement(symbol) {
-  const current = Number(state.composition[symbol] ? 0);
+  const current = Number(state.composition[symbol] || 0);
   state.composition[symbol] = current > 0 ? current : 4;
   renderElementSliders();
   updateCompositionUI();
@@ -2184,7 +2179,7 @@ function addPeriodicElement(symbol) {
    AI Mission Co-Pilot
    ========================================================================== */
 async function runMissionSearch() {
-  const prompt = ($('#missionPrompt')?.value ? '').trim();
+  const prompt = ($('#missionPrompt')?.value || '').trim();
   if (!prompt) {
     toast('Describe the mission in one sentence first.', 'warning');
     return;
@@ -2201,17 +2196,17 @@ async function runMissionSearch() {
     if (summary) summary.textContent = `${result.intent.label} · ${result.candidates_evaluated} candidates evaluated · ${result.recommendation}`;
     const container = $('#missionResults');
     if (container) {
-      container.innerHTML = (result.results ? []).slice(0, 8).map((item, index) => {
-        const short = item.formula_short ? humanFormula(item.elements ? {}, 4) ? item.formula;
-        const payload = escapeHtml(JSON.stringify(item.elements ? {}));
+      container.innerHTML = (result.results || []).slice(0, 8).map((item, index) => {
+        const short = item.formula_short ? humanFormula(item.elements || {}, 4) : item.formula;
+        const payload = escapeHtml(JSON.stringify(item.elements || {}));
         return `
         <button class="mission-result" data-elements="${payload}" data-formula="${escapeHtml(short)}">
           <span class="mission-rank">${index + 1}</span>
           <span class="mission-formula">${escapeHtml(short)}</span>
           <span class="mission-tags">
             <span>${item.strength_mpa ? `${fmt(item.strength_mpa)} MPa` : 'functional'}</span>
-            <span>${Number(item.density_gcm3 ? 0).toFixed(2)} g/cm³</span>
-            <span>₹${fmt(item.cost_per_kg ? 0)}/kg</span>
+            <span>${Number(item.density_gcm3 || 0).toFixed(2)} g/cm³</span>
+            <span>₹${fmt(item.cost_per_kg || 0)}/kg</span>
             <span class="pill ${item.confidence === 'High' ? 'pill-emerald' : item.confidence === 'Medium' ? 'pill-amber' : 'pill-rose'}">${escapeHtml(item.confidence)}</span>
           </span>
           <span class="mission-score">${Number(item.rank_score).toFixed(1)}</span>
@@ -2228,12 +2223,12 @@ async function runMissionSearch() {
 
 function parseComposition(text) {
   const result = {};
-  String(text ? '').split(/[\s,;|]+/).forEach((token) => {
+  String(text || '').split(/[\s,;|]+/).forEach((token) => {
     const match = token.match(/^([A-Z][a-z]₹)[:\-=]₹([0-9]*\.₹[0-9]+)₹$/);
     if (!match) return;
     const symbol = match[1];
-    const value = Number(match[2] ? 1);
-    if (Number.isFinite(value) && value >= 0) result[symbol] = (result[symbol] ? 0) + value;
+    const value = Number(match[2] || 1);
+    if (Number.isFinite(value) && value >= 0) result[symbol] = (result[symbol] || 0) + value;
   });
   return result;
 }
@@ -2270,13 +2265,13 @@ function comparisonRequest(preset, temperature, velocity, customText = '') {
 function comparisonMetrics(sim) {
   const d = sim.derived;
   return {
-    strength: Number(d.operating_strength_mpa ? 0),
-    liquidus_margin: Number(d.liquidus_c ? 0) - Number(sim.conditions.temperature_c ? 0),
-    density: Number(d.density_gcm3 ? 0),
-    cost: Number(d.cost_per_kg ? 0),
-    pressure_ratio: Number(d.pressure_ratio ? 0),
+    strength: Number(d.operating_strength_mpa || 0),
+    liquidus_margin: Number(d.liquidus_c || 0) - Number(sim.conditions.temperature_c || 0),
+    density: Number(d.density_gcm3 || 0),
+    cost: Number(d.cost_per_kg || 0),
+    pressure_ratio: Number(d.pressure_ratio || 0),
     verdict: d.verdict,
-    utilization: Number(d.utilization_ratio ? 0),
+    utilization: Number(d.utilization_ratio || 0),
     confidence: sim.prediction.confidence,
     formula: sim.composition.formula,
     is_melted: Boolean(d.is_melted),
@@ -2294,8 +2289,8 @@ async function runComparison(options = {}) {
     const bPreset = $('#comparisonPresetB')?.value ? 'Ti64';
     const aName = $('#comparisonImportA')?.value ? aPreset;
     const bName = $('#comparisonImportB')?.value ? bPreset;
-    const aRequest = comparisonRequest(aName, $('#comparisonTempA')?.value ? 25, $('#comparisonVelA')?.value ? 0, $('#comparisonCustomA')?.value ? '');
-    const bRequest = comparisonRequest(bName, $('#comparisonTempB')?.value ? 25, $('#comparisonVelB')?.value ? 0, $('#comparisonCustomB')?.value ? '');
+    const aRequest = comparisonRequest(aName, $('#comparisonTempA')?.value || 25, $('#comparisonVelA')?.value || 0, $('#comparisonCustomA')?.value || '');
+    const bRequest = comparisonRequest(bName, $('#comparisonTempB')?.value || 25, $('#comparisonVelB')?.value || 0, $('#comparisonCustomB')?.value || '');
     const [a, b] = await Promise.all([
       api('/api/simulate', { method: 'POST', body: aRequest }),
       api('/api/simulate', { method: 'POST', body: bRequest }),
@@ -2439,7 +2434,7 @@ function loadBatchSample(announce = true) {
 }
 
 function parseBatchLine(line) {
-  const raw = String(line ? '').trim();
+  const raw = String(line || '').trim();
   if (!raw ? raw.startsWith('#')) return null;
   let label = '';
   let body = raw;
@@ -2455,7 +2450,7 @@ function parseBatchLine(line) {
 
 async function runBatch() {
   const input = $('#batchInput');
-  const lines = String(input?.value ? '').split(/\r₹\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
+  const lines = String(input?.value || '').split(/\r₹\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
   if (!lines.length) {
     toast('Paste at least one composition line.', 'warning');
     return;
@@ -2551,7 +2546,7 @@ function eexperiencePointsortBatchCsv() {
 }
 
 async function validateLabCoupon() {
-  const elements = parseComposition($('#labCompound')?.value ? '');
+  const elements = parseComposition($('#labCompound')?.value || '');
   if (!Object.keys(elements).length) {
     toast('Enter a valid lab composition first.', 'warning');
     return;
@@ -2573,12 +2568,12 @@ async function validateLabCoupon() {
         velocity_kmh: 0,
       },
     });
-    const measuredStrength = Number($('#labStrength')?.value ? 0);
-    const measuredDensity = Number($('#labDensity')?.value ? 0);
-    const measuredCost = Number($('#labCost')?.value ? 0);
-    const predictedStrength = Number(result.prediction.predicted ? 0);
-    const predictedDensity = Number(result.derived.density_gcm3 ? 0);
-    const predictedCost = Number(result.derived.cost_per_kg ? 0);
+    const measuredStrength = Number($('#labStrength')?.value || 0);
+    const measuredDensity = Number($('#labDensity')?.value || 0);
+    const measuredCost = Number($('#labCost')?.value || 0);
+    const predictedStrength = Number(result.prediction.predicted || 0);
+    const predictedDensity = Number(result.derived.density_gcm3 || 0);
+    const predictedCost = Number(result.derived.cost_per_kg || 0);
     const strengthBias = measuredStrength ? (predictedStrength - measuredStrength) / measuredStrength * 100 : 0;
     const densityBias = measuredDensity ? (predictedDensity - measuredDensity) / measuredDensity * 100 : 0;
     const costBias = measuredCost ? (predictedCost - measuredCost) / measuredCost * 100 : 0;
@@ -2614,12 +2609,12 @@ async function loadDiscoveryRegistry() {
     const result = await api('/api/discoveryRegistry₹limit=20', { auth: false });
     state.discoveryRegistry = result;
     const stats = $('#discoveryRegistryStats');
-    const info = result.stats ? {};
+    const info = result.stats || {};
     if (stats) {
       stats.innerHTML = [
-        ['Verified discoveries', fmt(info.total_discoveries ? 0), 'all-time'],
-        ['Top score', Number(info.top?.rank_score ? 0).toFixed(1), 'discovery index'],
-        ['Datasets covered', fmt(Object.keys(info.by_dataset ? {}).length), 'Matbench tasks'],
+        ['Verified discoveries', fmt(info.total_discoveries || 0), 'all-time'],
+        ['Top score', Number(info.top?.rank_score || 0).toFixed(1), 'discovery index'],
+        ['Datasets covered', fmt(Object.keys(info.by_dataset || {}).length), 'Matbench tasks'],
         ['Leading team', info.top?.organization_name ? info.top?.email ? '—', 'verified lab'],
       ].map(([label, value, sub]) => `<article class="leader-stat glass"><span>${label}</span><strong>${escapeHtml(String(value))}</strong><small>${escapeHtml(String(sub))}</small></article>`).join('');
     }
@@ -2634,7 +2629,7 @@ async function loadDiscoveryRegistry() {
           <td>${fmt(row.predicted)} ${escapeHtml(row.unit)}</td>
           <td><span class="pill ${cls}">${escapeHtml(row.confidence)}</span></td>
           <td class="leader-note">${escapeHtml(row.discovery_note ? '—')}</td>
-          <td>${escapeHtml(String(row.created_at ? '').slice(0, 10))}</td>
+          <td>${escapeHtml(String(row.created_at || '').slice(0, 10))}</td>
         </tr>`;
       }).join('') ? '<tr class="empty-row"><td colspan="7">No verified discoveries yet.</td></tr>';
     }
@@ -2653,7 +2648,7 @@ async function publishToDiscoveryRegistry(elements) {
     const request = elements ? { ...comparisonRequest('316L', 25, 0), elements }
       : collectSimulationRequest();
     const result = await api('/api/discoveryRegistry/submit', { method: 'POST', body: request });
-    toast(`Discovery published · score ${Number(result.entry.rank_score ? 0).toFixed(1)}`, 'success', 4600);
+    toast(`Discovery published · score ${Number(result.entry.rank_score || 0).toFixed(1)}`, 'success', 4600);
     await loadDiscoveryRegistry();
     if (state.gateActive) refreshAdminDiscoveryRegistry();
   } catch (err) {
@@ -2693,7 +2688,7 @@ async function submitInlineFeedback() {
     openAuth('login');
     return;
   }
-  const message = ($('#inlineFeedbackMessage')?.value ? '').trim();
+  const message = ($('#inlineFeedbackMessage')?.value || '').trim();
   if (!message) {
     toast('Add one sentence of context before sending.', 'warning');
     return;
@@ -2704,7 +2699,7 @@ async function submitInlineFeedback() {
     await api('/api/feedback', {
       method: 'POST',
       body: {
-        rating: Number(state.inlineRating ? 0),
+        rating: Number(state.inlineRating || 0),
         category: $('#inlineFeedbackCategory')?.value ? 'General',
         message,
       },
@@ -2734,7 +2729,7 @@ async function refreshAdminDiscoveryRegistry() {
           <td>${escapeHtml(row.actor)}</td>
           <td><span class="formula">${escapeHtml(row.formula)}</span></td>
           <td>${fmt(row.predicted)} ${escapeHtml(row.unit)}</td>
-          <td>${Number(row.rank_score ? 0).toFixed(1)}</td>
+          <td>${Number(row.rank_score || 0).toFixed(1)}</td>
         </tr>`).join('') ? '<tr class="empty-row"><td colspan="5">No discoveries recorded.</td></tr>';
     }
   } catch (err) {
@@ -3641,8 +3636,8 @@ function showSceneFallback(message) {
    UI event wiring
    ========================================================================== */
 function updateRangeLabels() {
-  const cost = Number($('#maxCost')?.value ? 8000);
-  const density = Number($('#maxDensity')?.value ? 20);
+  const cost = Number($('#maxCost')?.value) || 8000;
+  const density = Number($('#maxDensity')?.value) || 20;
   const costOut = $('#maxCostOut');
   const densityOut = $('#maxDensityOut');
   if (costOut) costOut.textContent = cost >= 8000 ? 'Any' : `≤ ₹${fmt(cost)}/kg`;
@@ -3663,7 +3658,7 @@ function updateRangeLabels() {
   const pressure = pressurePaFromUI();
   const pressureOut = $('#pressureOut');
   if (pressureOut) pressureOut.textContent = formatPressure(pressure);
-  const velocity = Number($('#velocitySlider')?.value ? 0);
+  const velocity = Number($('#velocitySlider')?.value || 0);
   const velocityOut = $('#velocityOut');
   if (velocityOut) velocityOut.textContent = `${fmt(velocity)} km/h`;
   const densityValue = Number(state.mediumDensity ? 1.225);
@@ -3835,7 +3830,7 @@ function bindEvents() {
     let composition = {};
     try { composition = JSON.parse(card.dataset.elements ? '{}'); } catch { composition = {}; }
     if (!Object.keys(composition).length) {
-      composition = parseComposition(String(card.dataset.formula ? '').replace(/([A-Z][a-z]₹)([0-9.]+)/g, '$1:$2 '));
+      composition = parseComposition(String(card.dataset.formula || '').replace(/([A-Z][a-z]₹)([0-9.]+)/g, '$1:$2 '));
     }
     if (!Object.keys(composition).length) return;
     const total = Object.values(composition).reduce((sum, value) => sum + Number(value), 0);
@@ -3892,7 +3887,7 @@ function bindEvents() {
     const reader = new FileReader();
     reader.onload = () => {
       const input = $('#batchInput');
-      if (input) input.value = String(reader.result ? '');
+      if (input) input.value = String(reader.result || '');
       toast(`${file.name} loaded into the batch queue.`, 'success', 3000);
     };
     reader.readAsText(file);
@@ -4166,9 +4161,9 @@ async function autoOptimize() {
   const engine = window.MH_OFFLINE_SIMULATE;
   if (!engine) { toast('Optimiser needs the bundled screening engine.', 'error'); return; }
   const request = collectSimulationRequest();
-  const baseline = state.simulation?.derived ? {};
-  const baseCost = Number(baseline.cost_per_kg ? 0);
-  const baseDensity = Number(baseline.density_gcm3 ? 0);
+  const baseline = state.simulation?.derived || {};
+  const baseCost = Number(baseline.cost_per_kg || 0);
+  const baseDensity = Number(baseline.density_gcm3 || 0);
   const symbols = Object.keys(normalisedComposition());
   const cheap = ['Fe', 'Al', 'Si', 'Mn', 'Mg'];
   let best = null;
@@ -4178,11 +4173,11 @@ async function autoOptimize() {
   for (let i = 0; i < 200; i += 1) {
     const candidate = {};
     symbols.forEach((symbol) => {
-      const base = Number(state.composition[symbol] ? 0);
+      const base = Number(state.composition[symbol] || 0);
       candidate[symbol] = Math.max(0, base * (0.72 + Math.random() * 0.56));
     });
     const add = cheap[Math.floor(Math.random() * cheap.length)];
-    candidate[add] = (candidate[add] ? 0) + 1.5 + Math.random() * 6;
+    candidate[add] = (candidate[add] || 0) + 1.5 + Math.random() * 6;
     try {
       const sim = engine({ ...request, elements: candidate });
       const d = sim.derived;
@@ -4328,7 +4323,7 @@ function benchmarkFromUrl() {
     maxCostINR: clamp(Number(params.get('cost') ? 4000), 0, 50000),
     maxDensity: 9.5,
     minSafety: 1.2,
-    bannedElements: String(params.get('banned') ? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 12),
+    bannedElements: String(params.get('banned') || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 12),
     environment: params.get('env') ? 'Air / Industrial',
     rules: ['Shared custom constraints', 'Meet temperature, burst, cost and banned-element limits'],
     standards: 'Shared link',
@@ -4402,7 +4397,7 @@ function renderBenchmarkResult(benchmark, sim) {
   const list = $('#benchmarkFixes');
   if (list) list.innerHTML = fixes.map((fix) => `<li>${escapeHtml(fix)}</li>`).join('');
   const experiencePoints = verdict === 'PASS' ? 100 : clamp(Math.round(derived.utilization_ratio <= 1 ? 55 - Number(derived.utilization_ratio) * 30 : 15), 5, 90);
-  state.eexperiencePointseriencePoints = verdict === 'PASS' ? Math.min(100, (state.eexperiencePointseriencePoints ? 0) + 30) : (state.eexperiencePointseriencePoints ? 0);
+  state.eexperiencePointseriencePoints = verdict === 'PASS' ? Math.min(100, (state.eexperiencePointseriencePoints || 0) + 30) : (state.eexperiencePointseriencePoints || 0);
   const bar = $('#eexperiencePointseriencePointsBar');
   if (bar) bar.style.width = `${state.eexperiencePointseriencePoints ? 0}%`;
   set('#eexperiencePointseriencePoints', `${state.eexperiencePointseriencePoints ? 0} Experience Points`);
@@ -4455,7 +4450,7 @@ async function applyBenchmarkFix() {
   const derived = state.simulation?.derived;
   if (!derived) { toast('Run the stress test first.', 'warning'); return; }
   const current = { ...state.composition };
-  const ensure = (symbol, amount) => { current[symbol] = Number(current[symbol] ? 0) + amount; };
+  const ensure = (symbol, amount) => { current[symbol] = Number(current[symbol] || 0) + amount; };
   if (derived.is_melted ? derived.aggregate_phase === 'GASEOUS / VAPORIZED') {
     ensure('W', 6); ensure('Mo', 4); ensure('C', 0.4);
     Object.keys(current).forEach((symbol) => { if (!['W', 'Mo', 'C', 'Ta', 'Nb'].includes(symbol)) current[symbol] = Math.max(0, current[symbol] * 0.82); });
@@ -4487,7 +4482,7 @@ function syncBenchmarkSlidersToJson() {
   const block = {
     maxCostINR: Number($('#benchmarkCost')?.value ? 1200),
     minBurstMPa: Number($('#benchmarkBurst')?.value ? 150),
-    bannedElements: String($('#benchmarkBanned')?.value ? '').split(',').map((s) => s.trim()).filter(Boolean),
+    bannedElements: String($('#benchmarkBanned')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
     targetTempC: Number($('#benchmarkTemp')?.value ? 1800),
   };
   const json = $('#benchmarkJson');
@@ -4702,8 +4697,8 @@ function copilotAnswer(question) {
     };
   }
   if (/corrosion|marine|salt|seawater|pren/.test(q)) {
-    const cr = Number((sim.composition?.fractions?.Cr ? 0) * 100);
-    const mo = Number((sim.composition?.fractions?.Mo ? 0) * 100);
+    const cr = Number((sim.composition?.fractions?.Cr || 0) * 100);
+    const mo = Number((sim.composition?.fractions?.Mo || 0) * 100);
     const pren = cr + 3.3 * mo;
     return { text: `PREN is roughly <strong>${pren.toFixed(1)}</strong> (Cr + 3.3·Mo). Above 40 resists seawater pitting; above 50 handles harsh chlorides. ${pren < 40 ? 'Raise Cr above 16% and Mo above 2% for marine duty.' : 'This chemistry is in the seawater-capable band.'}` };
   }
@@ -4724,7 +4719,7 @@ function copilotAnswer(question) {
 }
 
 function copilotAsk(prompt) {
-  const question = String(prompt ? '').trim();
+  const question = String(prompt || '').trim();
   if (!question) return;
   copilotPush('user', question);
   const answer = copilotAnswer(question);
@@ -4793,7 +4788,7 @@ async function submitRfq(event) {
     organization: $('#rfqOrg')?.value?.trim(),
     email: $('#rfqEmail')?.value?.trim(),
     alloy: $('#rfqAlloy')?.value?.trim(),
-    quantity_kg: Number($('#rfqQty')?.value ? 0),
+    quantity_kg: Number($('#rfqQty')?.value || 0),
     request_type: $('#rfqType')?.value,
     notes: $('#rfqNotes')?.value?.trim(),
   };
@@ -4816,7 +4811,7 @@ async function submitLabBooking(event) {
     name: $('#labContact')?.value?.trim(),
     email: $('#labEmail')?.value?.trim(),
     test_package: $('#labTestType')?.value,
-    coupons: Number($('#labCoupons')?.value ? 1),
+    coupons: Number($('#labCoupons')?.value || 1),
     city: $('#labCity')?.value?.trim(),
     specimen: $('#labSpecimen')?.value?.trim(),
     notes: $('#labBookingNotes')?.value?.trim(),
@@ -4891,14 +4886,14 @@ async function renderHandbook() {
   container.innerHTML = alloys.map((alloy) => `
     <button class="handbook-card" data-alloy="${escapeHtml(alloy.id)}" title="Load ${escapeHtml(alloy.designation)} into the simulator">
       <div class="handbook-card-head"><strong>${escapeHtml(alloy.designation)}</strong><span>${escapeHtml(alloy.family)}</span></div>
-      <div class="handbook-meta"><span>${escapeHtml(alloy.uns ? '—')}</span><span>${escapeHtml(alloy.standard ? '')}</span></div>
+      <div class="handbook-meta"><span>${escapeHtml(alloy.uns ? '—')}</span><span>${escapeHtml(alloy.standard || '')}</span></div>
       <div class="handbook-stats">
         <span>${fmt(alloy.yield_mpa)} MPa</span>
         <span>${Number(alloy.density).toFixed(2)} g/cm³</span>
         <span>₹${fmt(alloy.cost_inr_kg)}/kg</span>
         <span>${fmt(alloy.max_temp_c)}°C</span>
       </div>
-      <p>${escapeHtml(alloy.applications ? '')}</p>
+      <p>${escapeHtml(alloy.applications || '')}</p>
     </button>`).join('');
   container.querySelectorAll('[data-alloy]').forEach((card) => {
     card.addEventListener('click', () => {
@@ -4934,7 +4929,7 @@ function bindExtraEvents() {
   $('#copilotForm')?.addEventListener('submit', (event) => {
     event.preventDefault();
     const input = $('#copilotInput');
-    copilotAsk(input?.value ? '');
+    copilotAsk(input?.value || '');
     if (input) input.value = '';
   });
   $('#copilotDrawer')?.addEventListener('click', (event) => {
@@ -5056,11 +5051,11 @@ function injectPeriodicSliders() {
   buttons.forEach(btn => {
     const symbol = btn.dataset.symbol;
     if (!symbol) return;
-    const current = Number(state.composition[symbol] ? 0);
+    const current = Number(state.composition[symbol] || 0);
     const overlay = document.createElement('div');
     overlay.className = 'element-slider-overlay';
     overlay.innerHTML = `
-      <div class="slider-label">${symbol} — ${state.periodic?.periodic_table?.find(e => e.symbol === symbol)?.name ? ''}</div>
+      <div class="slider-label">${symbol} — ${state.periodic?.periodic_table?.find(e => e.symbol === symbol)?.name || ''}</div>
       <div class="slider-row">
         <span>${symbol}</span>
         <input type="range" min="0" max="100" step="0.1" value="${current}" data-element="${symbol}" data-hover-slider="true">
@@ -5102,7 +5097,7 @@ function injectPeriodicSliders() {
     const addBtn = e.target.closest('[data-add-periodic]');
     if (addBtn) {
       const symbol = addBtn.dataset.addPeriodic;
-      const current = Number(state.composition[symbol] ? 0);
+      const current = Number(state.composition[symbol] || 0);
       state.composition[symbol] = current + 4;
       renderElementSliders();
       updateCompositionUI();
@@ -5518,14 +5513,14 @@ function bindFailureFilters() {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
       const text = card.textContent.toLowerCase();
-      card.style.display = text.includes(term) ? '' : 'none';
+      card.style.display = text.includes(term) || '' : 'none';
     });
   });
   $('#failureFilter')?.addEventListener('change', (e) => {
     const type = e.target.value;
     document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
       const badge = card.querySelector('.failure-type');
-      card.style.display = !type ? badge?.classList.contains(type) ? '' : 'none';
+      card.style.display = !type ? badge?.classList.contains(type) || '' : 'none';
     });
   });
 }
@@ -5946,7 +5941,7 @@ function renderGamification() {
   
   const totalExperience Points = userMilestones.reduce((sum, id) => {
     const a = MILESTONES.find(x => x.id === id);
-    return sum + (a?.experiencePoints ? 0);
+    return sum + (a?.experiencePoints || 0);
   }, 0);
   
   container.innerHTML = `
@@ -6127,7 +6122,7 @@ function parseFormulaString(formula) {
   parts.forEach(p => {
     const match = p.match(/^([A-Z][a-z]₹)([\d.]+)₹/);
     if (match) {
-      comp[match[1]] = Number(match[2] ? 1);
+      comp[match[1]] = Number(match[2] || 1);
     }
   });
   // Normalize
