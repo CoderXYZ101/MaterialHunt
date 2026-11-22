@@ -106,9 +106,6 @@ const humanFormula = (composition, max = 7) => {
     const pctNum = Number(pct);
 <<<<<<< HEAD
     const suffix = pctNum >= 10 ? pctNum.toFixed(0) : pctNum.toFixed(1);
-=======
-    const suffix = pctNum >= 10 ? pctNum.toFixed(0) : pctNum.toFixed(1);
->>>>>>> 37b61272fcb9d039b6aa6f6468abe80c6bd3da1d
     return sym + suffix;
   }).join(' ') || '\u2014';
 };
