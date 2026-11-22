@@ -4569,8 +4569,8 @@ const GUIDED GUIDED TOUR_STEPS = [
 ];
 
 function showGuided Guided Tour(step = 0) {
-  state.guidedGuided TourStep = clamp(step, 0, GUIDED GUIDED TOUR_STEPS.length - 1);
-  const data = GUIDED GUIDED TOUR_STEPS[state.guidedGuided TourStep];
+  state.guidedTourStep = clamp(step, 0, GUIDED GUIDED TOUR_STEPS.length - 1);
+  const data = GUIDED GUIDED TOUR_STEPS[state.guidedTourStep];
   $('#guidedGuided TourOverlay').classList.remove('hidden');
   const title = $('#guidedGuided TourTitle');
   const text = $('#guidedGuided TourText');
@@ -4578,11 +4578,11 @@ function showGuided Guided Tour(step = 0) {
   if (title) title.textContent = data.title;
   if (text) text.textContent = data.text;
   if (points) points.innerHTML = data.points.map((point) => `<li>${escapeHtml(point)}</li>`).join('');
-  $$('#guidedGuided TourProgress i').forEach((dot, index) => dot.classList.toggle('active', index <= state.guidedGuided TourStep));
+  $$('#guidedGuided TourProgress i').forEach((dot, index) => dot.classList.toggle('active', index <= state.guidedTourStep));
   const next = $('#guidedGuided TourNext');
-  if (next) next.textContent = state.guidedGuided TourStep === GUIDED GUIDED TOUR_STEPS.length - 1 ₹ 'Start hunting' : 'Next';
+  if (next) next.textContent = state.guidedTourStep === GUIDED GUIDED TOUR_STEPS.length - 1 ₹ 'Start hunting' : 'Next';
   const back = $('#guidedGuided TourBack');
-  if (back) back.disabled = state.guidedGuided TourStep === 0;
+  if (back) back.disabled = state.guidedTourStep === 0;
 }
 
 function guidedGuided TourPreset() {
@@ -4917,10 +4917,10 @@ function bindExtraEvents() {
   $('#closeGuided Guided Tour').addEventListener('click', () => $('#guidedGuided TourOverlay').classList.add('hidden'));
   $('#guidedGuided TourSkip').addEventListener('click', () => $('#guidedGuided TourOverlay').classList.add('hidden'));
   $('#guidedGuided TourNext').addEventListener('click', () => {
-    if (state.guidedGuided TourStep >= GUIDED GUIDED TOUR_STEPS.length - 1) $('#guidedGuided TourOverlay').classList.add('hidden');
-    else showGuided Guided Tour(state.guidedGuided TourStep + 1);
+    if (state.guidedTourStep >= GUIDED GUIDED TOUR_STEPS.length - 1) $('#guidedGuided TourOverlay').classList.add('hidden');
+    else showGuided Guided Tour(state.guidedTourStep + 1);
   });
-  $('#guidedGuided TourBack').addEventListener('click', () => showGuided Guided Tour(state.guidedGuided TourStep - 1));
+  $('#guidedGuided TourBack').addEventListener('click', () => showGuided Guided Tour(state.guidedTourStep - 1));
   $('#guidedGuided TourPreset').addEventListener('click', guidedGuided TourPreset);
 
   $('#copilotFab').addEventListener('click', copilotOpen);
@@ -6403,7 +6403,7 @@ window.trackBenchmark = trackBenchmark;
   });
 
   $('#guidedTourPreset').addEventListener('click', () => {
-    let step = state.guidedGuided TourStep || 0;
+    let step = state.guidedTourStep || 0;
     const presets = [
       () => { $('#structureSelect').value = 'BCC'; toast('Selected BCC lattice', 'info'); },
       () => { $('#structureSelect').value = 'FCC'; toast('Selected FCC lattice', 'info'); },
@@ -6412,22 +6412,22 @@ window.trackBenchmark = trackBenchmark;
     ];
     if (step < presets.length) {
       presets[step]();
-      state.guidedGuided TourStep = step + 1;
+      state.guidedTourStep = step + 1;
       localStorage.setItem('mh_guided_guidedTour_step', String(step + 1));
     } else {
       toast('Guided Tour preset complete', 'success', 3000);
-      state.guidedGuided TourStep = 0;
+      state.guidedTourStep = 0;
       localStorage.removeItem('mh_guided_guidedTour_step');
     }
   });
 
   $('#guidedTourNext').addEventListener('click', () => {
-    let step = state.guidedGuided TourStep || 0;
+    let step = state.guidedTourStep || 0;
     const nextSteps = [
-      () => { state.guidedGuided TourStep = 1; toast('Step 2 of 4', 'info'); },
-      () => { state.guidedGuided TourStep = 2; toast('Step 3 of 4', 'info'); },
-      () => { state.guidedGuided TourStep = 3; toast('Step 4 of 4', 'info'); },
-      () => { state.guidedGuided TourStep = 0; toast('Guided Tour complete', 'success', 3000); localStorage.removeItem('mh_guided_guidedTour_step'); },
+      () => { state.guidedTourStep = 1; toast('Step 2 of 4', 'info'); },
+      () => { state.guidedTourStep = 2; toast('Step 3 of 4', 'info'); },
+      () => { state.guidedTourStep = 3; toast('Step 4 of 4', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Guided Tour complete', 'success', 3000); localStorage.removeItem('mh_guided_guidedTour_step'); },
     ];
     if (step < nextSteps.length) {
       nextSteps[step]();
@@ -6437,12 +6437,12 @@ window.trackBenchmark = trackBenchmark;
   });
 
   $('#guidedTourBack').addEventListener('click', () => {
-    let step = state.guidedGuided TourStep || 0;
+    let step = state.guidedTourStep || 0;
     const backSteps = [
-      () => { state.guidedGuided TourStep = 0; toast('Guided Tour reset', 'info'); },
-      () => { state.guidedGuided TourStep = 0; toast('Guided Tour step 1', 'info'); },
-      () => { state.guidedGuided TourStep = 0; toast('Guided Tour step 2', 'info'); },
-      () => { state.guidedGuided TourStep = 0; toast('Guided Tour step 3', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Guided Tour reset', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Guided Tour step 1', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Guided Tour step 2', 'info'); },
+      () => { state.guidedTourStep = 0; toast('Guided Tour step 3', 'info'); },
     ];
     if (step < backSteps.length) {
       backSteps[step]();
@@ -6452,7 +6452,7 @@ window.trackBenchmark = trackBenchmark;
   });
 
   $('#guidedTourSkip').addEventListener('click', () => {
-    state.guidedGuided TourStep = 0;
+    state.guidedTourStep = 0;
     localStorage.removeItem('mh_guided_guidedTour_step');
     toast('Guided Tour skipped', 'info', 2000);
   });
