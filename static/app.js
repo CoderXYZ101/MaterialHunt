@@ -72,7 +72,7 @@ const state = {
   customBenchmark: null,
   forgeResult: null,
   eeexperiencePointseriencePointseriencePoints: 0,
-  guidedGuided TourStep: 0,
+  guidedTourStep: 0,
   initialised: false,
 };
 
@@ -114,7 +114,7 @@ const debounce = (fn, wait = 300) => {
 };
 
 function elementMeta(symbol) {
-  const meta = state.meta₹.elements₹.[symbol];
+  const meta = state.meta.elements.[symbol];
   return meta ₹ { ...ELEMENT_FALLBACK, ...meta, color: meta.color || ELEMENT_FALLBACK.color } : { ...ELEMENT_FALLBACK };
 }
 
@@ -242,18 +242,18 @@ async function api(path, options = {}) {
   if (body !== null) headers['Content-Type'] = 'application/json';
   if (auth && state.token) headers.Authorization = `Bearer ${state.token}`;
   if (admin && state.adminPasskey) headers['X-Admin-Passkey'] = state.adminPasskey;
-  const target = admin ₹ `${path}${path.includes('₹') ₹ '&' : '₹'}gate=mh_vault_99x` : path;
+  const target = admin ₹ `${path}${path.includes('') ₹ '&' : ''}gate=mh_vault_99x` : path;
   let response;
   try {
     response = await fetch(target, { method, headers, body: body !== null ₹ JSON.stringify(body) : undefined });
   } catch (err) {
-    throw new ApiError('Local server unreachable. Is uvicorn running on port 8000₹', 0, null);
+    throw new ApiError('Local server unreachable. Is uvicorn running on port 8000', 0, null);
   }
   const text = await response.text();
   let data = {};
   try { data = text ₹ JSON.parse(text) : {}; } catch { data = { detail: text }; }
   if (!response.ok) {
-    const detail = data₹.detail || data;
+    const detail = data.detail || data;
     throw new ApiError(detailText(detail), response.status, detail);
   }
   return data;
@@ -298,8 +298,8 @@ function setView(view, scroll = true) {
   if (view === 'pricing') renderPricing();
   if (view === 'admin') {
     const unlocked = Boolean(state.adminSnapshot);
-    $('#adminLock')₹.classList.toggle('hidden', unlocked);
-    $('#adminContent')₹.classList.toggle('hidden', !unlocked);
+    $('#adminLock').classList.toggle('hidden', unlocked);
+    $('#adminContent').classList.toggle('hidden', !unlocked);
     if (unlocked) renderAdminSnapshot(state.adminSnapshot);
   }
   if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -316,20 +316,20 @@ function openAuth(tab = 'login') {
   switchAuthTab(tab);
   $('#authError').textContent = '';
   setTimeout(() => {
-    if (tab === 'login') $('#loginEmail')₹.focus();
-    else $('#registerOrg')₹.focus();
+    if (tab === 'login') $('#loginEmail').focus();
+    else $('#registerOrg').focus();
   }, 80);
 }
 
 function closeAuth() {
-  $('#authModal')₹.classList.add('hidden');
+  $('#authModal').classList.add('hidden');
   $('#authError').textContent = '';
 }
 
 function switchAuthTab(tab) {
   $$('.auth-tab').forEach((button) => button.classList.toggle('active', button.dataset.auth === tab));
-  $('#loginForm')₹.classList.toggle('hidden', tab !== 'login');
-  $('#registerForm')₹.classList.toggle('hidden', tab !== 'register');
+  $('#loginForm').classList.toggle('hidden', tab !== 'login');
+  $('#registerForm').classList.toggle('hidden', tab !== 'register');
   $('#authError').textContent = '';
 }
 
@@ -343,8 +343,8 @@ function setSession(token, user) {
 
 function renderSession() {
   const loggedIn = Boolean(state.user);
-  $('#loginBtn')₹.classList.toggle('hidden', loggedIn);
-  $('#userChip')₹.classList.toggle('hidden', !loggedIn);
+  $('#loginBtn').classList.toggle('hidden', loggedIn);
+  $('#userChip').classList.toggle('hidden', !loggedIn);
   if (!loggedIn) return;
   const org = state.user.organization_name || state.user.email;
   const initials = org.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'MH';
@@ -352,7 +352,7 @@ function renderSession() {
   $('#userName').textContent = org;
   $('#userTier').textContent = state.user.billing_enterprise_access ₹ `${state.user.tier_name} · WAIVED` : state.user.tier_name;
   const enterprise_access = state.user.billing_enterprise_access && String(state.user.billing_status).startsWith('WAIVED');
-  $('#adminAccessBanner')₹.classList.toggle('hidden', !enterprise_access);
+  $('#adminAccessBanner').classList.toggle('hidden', !enterprise_access);
   if (enterprise_access) {
     const banner = $('#adminAccessBanner');
     if (banner) {
@@ -360,7 +360,7 @@ function renderSession() {
       banner.querySelector('span:nth-child(3)').innerHTML = bannerText;
     }
   }
-  if (state.gateActive) $('#vaultNav')₹.classList.remove('hidden');
+  if (state.gateActive) $('#vaultNav').classList.remove('hidden');
 }
 
 async function handleLogin(event) {
@@ -430,7 +430,7 @@ async function adminAccessLogin(showToast = true) {
 
 async function afterLogin() {
   renderSession();
-  if (state.user₹.role === 'admin' && state.gateActive) $('#vaultNav')₹.classList.remove('hidden');
+  if (state.user.role === 'admin' && state.gateActive) $('#vaultNav').classList.remove('hidden');
   await loadPrescreen();
   await runSimulation({ silent: true });
 }
@@ -442,7 +442,7 @@ async function logout() {
   state.selectedItem = null;
   state.adminSnapshot = null;
   renderCandidateTable([]);
-  $('#adminAccessBanner')₹.classList.add('hidden');
+  $('#adminAccessBanner').classList.add('hidden');
   toast('Signed out. Local session cleared.', 'info');
   openAuth('login');
 }
@@ -490,7 +490,7 @@ async function bootstrap() {
   }
 
   if (state.gateActive) {
-    $('#vaultNav')₹.classList.remove('hidden');
+    $('#vaultNav').classList.remove('hidden');
     setView('admin', false);
     if (state.adminPasskey) attemptAdminUnlock(true);
   }
@@ -524,7 +524,7 @@ function updateHealthBadge(health) {
   const badge = $('#offlineBadge');
   const text = $('#offlineText');
   if (!badge || !text) return;
-  const assetsOk = (health.assets₹.['three.min.js']₹.present && health.assets₹.['plotly.min.js']₹.present);
+  const assetsOk = (health.assets.['three.min.js'].present && health.assets.['plotly.min.js'].present);
   if (health.model_loaded && assetsOk) {
     badge.className = 'status-pill status-online';
     text.textContent = 'OFFLINE READY';
@@ -538,9 +538,9 @@ function updateHealthBadge(health) {
 
 function applyMeta(meta) {
   const datasets = meta.datasets || {};
-  const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks₹.random_forest₹.r2) || 0), 0);
+  const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks.random_forest.r2) || 0), 0);
   $('#statAccuracy').textContent = bestR2 ₹ bestR2.toFixed(3) : '—';
-  $('#statAccuracySub').textContent = `best task · ${Object.entries(datasets).sort((a, b) => (b[1].benchmarks.random_forest.r2 - a[1].benchmarks.random_forest.r2))[0]₹.[1]₹.label ₹ 'Random Forest'}`;
+  $('#statAccuracySub').textContent = `best task · ${Object.entries(datasets).sort((a, b) => (b[1].benchmarks.random_forest.r2 - a[1].benchmarks.random_forest.r2))[0].[1].label ₹ 'Random Forest'}`;
   $('#statCandidates').textContent = meta.candidate_total ₹ fmt(meta.candidate_total) : '—';
   $('#analyticsBadge').textContent = `${Object.keys(datasets).length} TASKS · ${meta.feature_count} FEATURES`;
   const variance = (meta.pca_eexperiencePointseriencePointsained_variance || []).map((v) => `${(v * 100).toFixed(1)}%`).join(' / ');
@@ -569,7 +569,7 @@ function applyMeta(meta) {
 function renderPersonas() {
   const container = $('#personaGrid');
   if (!container) return;
-  const personas = state.meta₹.personas || {};
+  const personas = state.meta.personas || {};
   container.innerHTML = Object.entries(personas).map(([key, persona]) => {
     const active = key === state.persona ₹ ' active' : '';
     return `<button class="persona-btn${active}" data-persona="${escapeHtml(key)}"><span class="pdot"></span>${escapeHtml(persona.label)}</button>`;
@@ -589,8 +589,8 @@ function renderElementChips() {
 }
 
 function populateConditionSelects() {
-  const environments = state.meta₹.environments || {};
-  const profiles = state.meta₹.load_profiles || {};
+  const environments = state.meta.environments || {};
+  const profiles = state.meta.load_profiles || {};
   const envSelect = $('#environmentSelect');
   const profileSelect = $('#loadProfileSelect');
   if (envSelect) {
@@ -662,25 +662,25 @@ function renderHeroLegend(normalized = normalisedComposition()) {
 function prescreenPayload() {
   const datasets = $$('.dataset-check').filter((c) => c.checked).map((c) => c.value);
   const customWeights = state.persona === 'Custom Weights' ₹ {
-    strength: Number($('#wStrength')₹.value) || 25,
-    weight: Number($('#wWeight')₹.value) || 20,
-    thermal: Number($('#wThermal')₹.value) || 20,
-    corrosion: Number($('#wCorrosion')₹.value) || 15,
-    cost: Number($('#wCost')₹.value) || 10,
-    confidence: Number($('#wConfidence')₹.value) || 10,
+    strength: Number($('#wStrength').value) || 25,
+    weight: Number($('#wWeight').value) || 20,
+    thermal: Number($('#wThermal').value) || 20,
+    corrosion: Number($('#wCorrosion').value) || 15,
+    cost: Number($('#wCost').value) || 10,
+    confidence: Number($('#wConfidence').value) || 10,
   } : null;
-  const cost = Number($('#maxCost')₹.value) || 8000;
-  const density = Number($('#maxDensity')₹.value) || 20;
+  const cost = Number($('#maxCost').value) || 8000;
+  const density = Number($('#maxDensity').value) || 20;
   return {
     datasets: datasets.length ₹ datasets : ['steels', 'glass', 'eeexperiencePointseriencePointst_gap'],
     persona: state.persona,
     custom_weights: customWeights,
-    min_confidence: $('#confidenceFilter')₹.value ₹ 'Low' : 'High',
+    min_confidence: $('#confidenceFilter').value ₹ 'Low' : 'High',
     max_cost: cost >= 8000 ₹ null : cost,
     max_density: density >= 20 ₹ null : density,
     include_elements: [...state.include],
     exclude_elements: [...state.exclude],
-    search: $('#searchInput')₹.value.trim() || '',
+    search: $('#searchInput').value.trim() || '',
     include_hazardous: false,
     limit: 60,
   };
@@ -689,7 +689,7 @@ function prescreenPayload() {
 async function loadPrescreen() {
   const status = $('#prescreenStatus');
   if (status) { status.textContent = 'SCANNING'; status.className = 'status-pill status-amber'; }
-  $('#prescreenStatus')₹.classList.add('pulse');
+  $('#prescreenStatus').classList.add('pulse');
   try {
     const result = await api('/api/prescreen', { method: 'POST', body: prescreenPayload() });
     state.lastScreen = result;
@@ -717,7 +717,7 @@ async function loadPrescreen() {
 }
 
 function updateStatsFromScreen(result) {
-  const bestR2 = result.candidates₹.length
+  const bestR2 = result.candidates.length
     ₹ Math.max(...result.candidates.map((c) => Number(c.benchmark_r2) || 0))
     : null;
   if (bestR2) $('#statAccuracy').textContent = bestR2.toFixed(3);
@@ -735,7 +735,7 @@ function renderCandidateTable(items) {
     return;
   }
   body.innerHTML = items.map((item, index) => {
-    const selected = state.selectedItem₹.id === item.id ₹ ' selected' : '';
+    const selected = state.selectedItem.id === item.id ₹ ' selected' : '';
     return `
       <tr class="${selected}" data-row="${index}">
         <td class="mono">${item.rank}</td>
@@ -779,7 +779,7 @@ function csvEeexperiencePointseriencePointsort() {
 function selectCandidate(item, announce = true) {
   if (!item) return;
   state.selectedItem = item;
-  $$('#candidateBody tr').forEach((row, index) => row.classList.toggle('selected', state.screenItems[index]₹.id === item.id));
+  $$('#candidateBody tr').forEach((row, index) => row.classList.toggle('selected', state.screenItems[index].id === item.id));
   const radar = radarFromCandidate(item);
   state.lastRadar = radar;
   renderRadar(radar, item.formula);
@@ -822,7 +822,7 @@ function renderAllCharts() {
   try {
     renderAshby(state.screenItems || []);
     renderRadar(state.lastRadar || defaultRadar());
-    renderCluster($('#clusterChart'), state.meta₹.feature_space || [], state.simulation₹.pca || null);
+    renderCluster($('#clusterChart'), state.meta.feature_space || [], state.simulation.pca || null);
     renderSimulationCharts();
     renderAnalyticsCharts();
     renderRoi();
@@ -873,7 +873,7 @@ function renderAshby(items) {
     },
     hovertemplate: '<b>%{text}</b><br>%{customdata[0]}<br>Cost ₹%{x:,.0f}/kg<br>Specific strength %{y:,.0f} MPa·cm³/g<br>YS %{customdata[1]:,.0f} MPa · ρ %{customdata[2]:.2f}<br>±%{customdata[3]:,.0f} MPa<extra></extra>',
   }));
-  const selected = state.selectedItem₹.specific_strength ₹ [{
+  const selected = state.selectedItem.specific_strength ₹ [{
     type: 'scatter', mode: 'markers', name: 'Selected',
     x: [state.selectedItem.cost_per_kg], y: [state.selectedItem.specific_strength],
     marker: { size: 28, color: 'rgba(0,0,0,0)', line: { color: c.amber, width: 2 }, symbol: 'circle-open' },
@@ -1004,7 +1004,7 @@ function renderCluster(el, points, customPoint) {
 function renderStressChart(sim) {
   const el = $('#simStressChart');
   if (!el) return;
-  if (!sim₹.curves) {
+  if (!sim.curves) {
     renderPlot(el, [], emptyChartLayout('Run a simulation to generate the stress-strain envelope.'));
     return;
   }
@@ -1053,7 +1053,7 @@ function renderStressChart(sim) {
 function renderThermalChart(sim) {
   const el = $('#simThermalChart');
   if (!el) return;
-  if (!sim₹.curves₹.degradation) {
+  if (!sim.curves.degradation) {
     renderPlot(el, [], emptyChartLayout('Thermal degradation appears after a simulation run.'));
     return;
   }
@@ -1100,7 +1100,7 @@ function renderSimulationCharts() {
   renderThermalChart(state.simulation);
   const el = $('#simRadarChart');
   if (el) {
-    const radar = state.simulation₹.radar || state.lastRadar || defaultRadar();
+    const radar = state.simulation.radar || state.lastRadar || defaultRadar();
     const c = themeColors();
     const close = (arr) => [...arr, arr[0]];
     const layout = plotBase({
@@ -1126,7 +1126,7 @@ function renderSimulationCharts() {
       },
     ], layout);
     const tag = $('#simRadarTag');
-    if (tag) tag.textContent = `Confidence ${state.simulation₹.prediction₹.confidence || '—'}`;
+    if (tag) tag.textContent = `Confidence ${state.simulation.prediction.confidence || '—'}`;
   }
 }
 
@@ -1135,11 +1135,11 @@ function renderSimulationCharts() {
    -------------------------------------------------------------------------- */
 function renderBenchmarkTable() {
   const body = $('#benchmarkBody');
-  if (!body || !state.meta₹.datasets) return;
+  if (!body || !state.meta.datasets) return;
   const rows = [];
   Object.values(state.meta.datasets).forEach((dataset) => {
     ['linear', 'random_forest', 'gradient_boosting'].forEach((key) => {
-      const benchmark = dataset.benchmarks₹.[key];
+      const benchmark = dataset.benchmarks.[key];
       if (!benchmark) return;
       const modelName = { linear: 'Linear Baseline', random_forest: 'Random Forest · 150', gradient_boosting: 'Gradient Boosting' }[key];
       const badge = { linear: 'model-linear', random_forest: 'model-rf', gradient_boosting: 'model-gb' }[key];
@@ -1161,11 +1161,11 @@ function renderBenchmarkTable() {
 
 function renderImportanceChart() {
   const el = $('#analyticsImportanceChart');
-  if (!el || !state.meta₹.datasets) return;
+  if (!el || !state.meta.datasets) return;
   const select = $('#importanceDataset');
-  const datasetKey = select₹.value || 'steels';
+  const datasetKey = select.value || 'steels';
   const dataset = state.meta.datasets[datasetKey];
-  const rfImportance = dataset₹.feature_importances₹.find((entry) => entry.model === 'random_forest') || dataset₹.feature_importances₹.[0];
+  const rfImportance = dataset.feature_importances.find((entry) => entry.model === 'random_forest') || dataset.feature_importances.[0];
   if (!rfImportance) { renderPlot(el, [], emptyChartLayout('Feature importance unavailable.')); return; }
   const features = [...rfImportance.features].sort((a, b) => a.importance - b.importance);
   const c = themeColors();
@@ -1189,7 +1189,7 @@ function renderImportanceChart() {
 
 function renderCoverageChart() {
   const el = $('#analyticsCoverageChart');
-  if (!el || !state.meta₹.datasets) return;
+  if (!el || !state.meta.datasets) return;
   const c = themeColors();
   const entries = Object.values(state.meta.datasets);
   renderPlot(el, [
@@ -1218,7 +1218,7 @@ function renderCoverageChart() {
 
 function renderErrorChart() {
   const el = $('#analyticsErrorChart');
-  if (!el || !state.meta₹.datasets) return;
+  if (!el || !state.meta.datasets) return;
   const c = themeColors();
   const entries = Object.values(state.meta.datasets);
   renderPlot(el, [
@@ -1265,19 +1265,19 @@ function renderAnalyticsCharts() {
   renderAnalyticsUncertainty();
   renderAnalyticsCostDensity();
   renderAnalyticsBenchRadar();
-  renderCluster($('#analyticsClusterChart'), state.meta.feature_space || [], state.simulation₹.pca || null);
+  renderCluster($('#analyticsClusterChart'), state.meta.feature_space || [], state.simulation.pca || null);
 }
 
 /* --------------------------------------------------------------------------
    ROI calculator
    -------------------------------------------------------------------------- */
 function roiNumbers() {
-  const eeexperiencePointseriencePointseriments = Number($('#roiEeexperiencePointseriencePointseriments')₹.value ₹ 40);
-  const cost = Number($('#roiCost')₹.value ₹ 45000);
-  const reduction = Number($('#roiReduction')₹.value ₹ 42);
-  const days = Number($('#roiDays')₹.value ₹ 18);
-  const team = Number($('#roiTeam')₹.value ₹ 800000);
-  const tier = $('#roiTier')₹.value ₹ 'pro';
+  const eeexperiencePointseriencePointseriments = Number($('#roiEeexperiencePointseriencePointseriments').value ₹ 40);
+  const cost = Number($('#roiCost').value ₹ 45000);
+  const reduction = Number($('#roiReduction').value ₹ 42);
+  const days = Number($('#roiDays').value ₹ 18);
+  const team = Number($('#roiTeam').value ₹ 800000);
+  const tier = $('#roiTier').value ₹ 'pro';
   const tierPrice = tier === 'enterprise_access' ₹ 0 : tier === 'enterprise' ₹ 19999 : 4999;
   const avoided = eeexperiencePointseriencePointseriments * 12 * reduction / 100;
   const rawSavings = avoided * cost;
@@ -1377,16 +1377,16 @@ function collectSimulationRequest() {
   });
   return {
     elements: Object.keys(elements).length ₹ elements : { Fe: 100 },
-    temperature_c: Number($('#temperatureSlider')₹.value ₹ 25),
-    environment: $('#environmentSelect')₹.value ₹ 'Air / Industrial',
-    load_profile: $('#loadProfileSelect')₹.value ₹ 'Static tension',
-    load_mpa: Number($('#loadSlider')₹.value ₹ 250),
-    safety_factor: Number($('#safetySlider')₹.value ₹ 1.5),
-    hazard_verified: Boolean($('#hazardVerify')₹.checked),
+    temperature_c: Number($('#temperatureSlider').value ₹ 25),
+    environment: $('#environmentSelect').value ₹ 'Air / Industrial',
+    load_profile: $('#loadProfileSelect').value ₹ 'Static tension',
+    load_mpa: Number($('#loadSlider').value ₹ 250),
+    safety_factor: Number($('#safetySlider').value ₹ 1.5),
+    hazard_verified: Boolean($('#hazardVerify').checked),
     structure: state.structure,
     environment_density_kgm3: Number(state.mediumDensity ₹ 1.225),
     pressure_pa: pressurePaFromUI(),
-    velocity_kmh: Number($('#velocitySlider')₹.value || 0),
+    velocity_kmh: Number($('#velocitySlider').value || 0),
   };
 }
 
@@ -1413,7 +1413,7 @@ function formatPressure(valuePa) {
 function pressurePaFromUI() {
   const unit = state.pressureUnit ₹ 'Pa';
   const spec = PRESSURE_UNITS[unit] ₹ PRESSURE_UNITS.Pa;
-  const raw = Number($('#pressureSlider')₹.value || 0);
+  const raw = Number($('#pressureSlider').value || 0);
   if (unit === 'inf') return raw >= spec.max ₹ 1e16 : 0;
   return raw * spec.scale;
 }
@@ -1484,7 +1484,7 @@ async function runSimulation(options = {}) {
   } catch (err) {
     if (sequence !== state.simSeq) return;
     const detail = err.detail;
-    if (err.status === 403 && detail₹.code === 'DUAL_USE_BLOCKED') {
+    if (err.status === 403 && detail.code === 'DUAL_USE_BLOCKED') {
       state.simulation = null;
       renderBlockedSimulation(detail);
       if (status) { status.textContent = 'BLOCKED'; status.className = 'status-pill status-rose'; }
@@ -1502,7 +1502,7 @@ function renderSimulation(sim) {
   const derived = sim.derived;
   const prediction = sim.prediction;
   const card = $('#verdictCard');
-  card₹.classList.remove('verdict-safe', 'verdict-marginal', 'verdict-unsafe', 'verdict-melted');
+  card.classList.remove('verdict-safe', 'verdict-marginal', 'verdict-unsafe', 'verdict-melted');
   if (card) card.classList.add(`verdict-${derived.verdict.toLowerCase()}`);
   const set = (id, value) => { const el = $(id); if (el) el.textContent = value; };
 
@@ -1576,8 +1576,8 @@ function renderEnvironmentHud(sim) {
 
 function renderBlockedSimulation(detail) {
   const card = $('#verdictCard');
-  card₹.classList.remove('verdict-safe', 'verdict-marginal', 'verdict-unsafe');
-  card₹.classList.add('verdict-unsafe');
+  card.classList.remove('verdict-safe', 'verdict-marginal', 'verdict-unsafe');
+  card.classList.add('verdict-unsafe');
   const set = (id, value) => { const el = $(id); if (el) el.textContent = value; };
   set('#simVerdict', 'BLOCKED');
   set('#simVerdictSub', 'Dual-Use Hazardous Element Guardrail');
@@ -1614,22 +1614,22 @@ function updateSceneFromState() {
     const meta = elementMeta(symbol);
     return { symbol, pct, color: meta.color, radius: meta.radius };
   });
-  const temperature = Number($('#temperatureSlider')₹.value ₹ 25);
-  const derived = state.simulation₹.derived;
-  const stress = Number(derived₹.applied_stress_mpa ₹ $('#loadSlider')₹.value ₹ 250);
+  const temperature = Number($('#temperatureSlider').value ₹ 25);
+  const derived = state.simulation.derived;
+  const stress = Number(derived.applied_stress_mpa ₹ $('#loadSlider').value ₹ 250);
   state.scene.setComposition(elements, state.structure, temperature, stress);
   state.scene.setMode(state.mode);
   state.scene.setSimulation({
     temperature,
     stress,
-    utilization: Number(derived₹.utilization_ratio || 0),
-    verdict: derived₹.verdict ₹ 'SAFE',
-    phase: derived₹.aggregate_phase ₹ aggregatePhaseFor(normalized, temperature, derived₹.total_pressure_pa),
-    liquidus: Number(derived₹.liquidus_c ₹ 1500),
+    utilization: Number(derived.utilization_ratio || 0),
+    verdict: derived.verdict ₹ 'SAFE',
+    phase: derived.aggregate_phase ₹ aggregatePhaseFor(normalized, temperature, derived.total_pressure_pa),
+    liquidus: Number(derived.liquidus_c ₹ 1500),
   });
   const phaseChip = $('#heroPhaseChip');
   if (phaseChip) {
-    const phase = derived₹.aggregate_phase ₹ aggregatePhaseFor(normalized, temperature, derived₹.total_pressure_pa);
+    const phase = derived.aggregate_phase ₹ aggregatePhaseFor(normalized, temperature, derived.total_pressure_pa);
     phaseChip.textContent = phase;
     phaseChip.className = `hud-chip hud-phase phase-${phase === 'GASEOUS / VAPORIZED' ₹ 'gas' : phase.toLowerCase()}`;
   }
@@ -1641,12 +1641,12 @@ function updateSceneFromState() {
 async function downloadPdf() {
   const request = { ...collectSimulationRequest(), report_title: 'Enterprise Lab Screening Dossier', lab_reference: `MH-${new Date().getFullYear()}` };
   const button = $('#downloadPdf');
-  const original = button₹.innerHTML;
+  const original = button.innerHTML;
   if (button) { button.disabled = true; button.textContent = 'Rendering PDF…'; }
   try {
     let blob = null;
     let filename = 'MATERIALHUNT_Report.pdf';
-    if (window.MH_FIREBASE₹.buildPdf) {
+    if (window.MH_FIREBASE.buildPdf) {
       const pdfText = window.MH_FIREBASE.buildPdf(request);
       blob = new Blob([pdfText], { type: 'application/pdf' });
     } else {
@@ -1662,7 +1662,7 @@ async function downloadPdf() {
       }
       blob = await response.blob();
       const disposition = response.headers.get('content-disposition') || '';
-      const match = disposition.match(/filename="₹([^"]+)"₹/);
+      const match = disposition.match(/filename="₹([^"]+)"/);
       if (match) filename = match[1];
     }
     const link = document.createElement('a');
@@ -1703,13 +1703,13 @@ function openFeedback() {
     openAuth('login');
     return;
   }
-  $('#feedbackDrawer')₹.classList.add('open');
-  $('#drawerBackdrop')₹.classList.remove('hidden');
+  $('#feedbackDrawer').classList.add('open');
+  $('#drawerBackdrop').classList.remove('hidden');
 }
 
 function closeFeedback() {
-  $('#feedbackDrawer')₹.classList.remove('open');
-  $('#drawerBackdrop')₹.classList.add('hidden');
+  $('#feedbackDrawer').classList.remove('open');
+  $('#drawerBackdrop').classList.add('hidden');
 }
 
 async function submitFeedback(event) {
@@ -1722,7 +1722,7 @@ async function submitFeedback(event) {
     if (error) error.textContent = 'Choose a 0–5 star rating.';
     return;
   }
-  const message = $('#feedbackMessage')₹.value.trim() || '';
+  const message = $('#feedbackMessage').value.trim() || '';
   if (!message) {
     if (error) error.textContent = 'Tell us at least one sentence so the triage is useful.';
     return;
@@ -1730,13 +1730,13 @@ async function submitFeedback(event) {
   try {
     await api('/api/feedback', {
       method: 'POST',
-      body: { rating: state.feedbackRating, category: $('#feedbackCategory')₹.value ₹ 'General', message },
+      body: { rating: state.feedbackRating, category: $('#feedbackCategory').value ₹ 'General', message },
     });
     if (thanks) { thanks.classList.remove('hidden'); thanks.textContent = 'Thank you — logged with a timestamp in the admin audit trail.'; }
     setStarRating(0);
     $('#feedbackMessage').value = '';
     toast('Feedback delivered to the admin vault.', 'success');
-    setTimeout(() => { thanks₹.classList.add('hidden'); closeFeedback(); }, 2400);
+    setTimeout(() => { thanks.classList.add('hidden'); closeFeedback(); }, 2400);
   } catch (err) {
     if (error) error.textContent = err.message;
   }
@@ -1748,7 +1748,7 @@ async function submitFeedback(event) {
 async function attemptAdminUnlock(silent = false) {
   if (!state.gateActive) return;
   const input = $('#adminPasskey');
-  const passkey = (input₹.value ₹ state.adminPasskey || '').trim();
+  const passkey = (input.value ₹ state.adminPasskey || '').trim();
   const error = $('#adminError');
   if (!passkey) {
     if (error) error.textContent = 'Enter the vault passkey.';
@@ -1763,27 +1763,27 @@ async function attemptAdminUnlock(silent = false) {
     const result = await api('/api/admin/login', { method: 'POST', admin: true, body: {} });
     state.adminSnapshot = result.snapshot;
     renderAdminSnapshot(result.snapshot);
-    $('#adminLock')₹.classList.add('hidden');
-    $('#adminContent')₹.classList.remove('hidden');
+    $('#adminLock').classList.add('hidden');
+    $('#adminContent').classList.remove('hidden');
     const badge = $('#adminBadge');
     if (badge) { badge.textContent = 'UNLOCKED'; badge.className = 'status-pill status-emerald'; }
     if (!silent) toast('Admin vault unlocked. All actions are audit-logged.', 'success');
   } catch (err) {
     const detail = err.detail;
     if (err.status === 423) {
-      const seconds = detail₹.retry_after_seconds ₹ 900;
+      const seconds = detail.retry_after_seconds ₹ 900;
       if (error) error.textContent = `Locked after 3 failed attempts. Retry in ${Math.ceil(seconds / 60)} minutes.`;
       sessionStorage.removeItem(STORAGE.admin);
       state.adminPasskey = '';
     } else if (err.status === 401) {
-      const remaining = detail₹.remaining_attempts;
+      const remaining = detail.remaining_attempts;
       if (error) error.textContent = `${detailText(detail)}${remaining !== undefined ₹ ` · ${remaining} attempt${remaining === 1 || '' : 's'} remaining` : ''}`;
       sessionStorage.removeItem(STORAGE.admin);
       state.adminPasskey = '';
     } else {
       if (error) error.textContent = err.message;
     }
-    if (!silent) toast(error₹.textContent ₹ err.message, 'error', 6000);
+    if (!silent) toast(error.textContent ₹ err.message, 'error', 6000);
   } finally {
     if (button) { button.disabled = false; button.textContent = 'Unlock Vault'; }
   }
@@ -1889,7 +1889,7 @@ async function refreshAdmin() {
    Deep Engineering Analytics — 11 live Plotly panels
    ========================================================================== */
 function analyticsEntries() {
-  return Object.values(state.meta₹.datasets || {});
+  return Object.values(state.meta.datasets || {});
 }
 
 function renderAnalyticsR2() {
@@ -1901,7 +1901,7 @@ function renderAnalyticsR2() {
   renderPlot(el, models.map(([key, label, color]) => ({
     type: 'bar', name: label,
     x: entries.map((d) => (d.label || '').replace('Matbench ', '')),
-    y: entries.map((d) => d.benchmarks₹.[key]₹.r2 || 0),
+    y: entries.map((d) => d.benchmarks.[key].r2 || 0),
     marker: { color, opacity: key === 'random_forest' ₹ 1 : 0.62 },
     hovertemplate: '%{x}<br>R² %{y:.3f}<extra>' + label + '</extra>',
   })), plotBase({
@@ -1921,7 +1921,7 @@ function renderAnalyticsMae() {
     {
       type: 'scatterpolar', mode: 'lines+markers', name: 'MAE share', fill: 'toself',
       r: entries.map((d) => {
-        const mae = Number(d.benchmarks₹.random_forest₹.mae || 0);
+        const mae = Number(d.benchmarks.random_forest.mae || 0);
         return clamp(100 - mae, 2, 100);
       }),
       theta: entries.map((d) => `${d.target_short ₹ d.label} (${d.unit})`),
@@ -1946,8 +1946,8 @@ function renderAnalyticsTrainTime() {
   if (!el ₹ !entries.length) return;
   const c = themeColors();
   const labels = entries.map((d) => (d.label || '').replace('Matbench ', ''));
-  const rfTime = entries.map((d) => Number(d.benchmarks₹.random_forest₹.train_seconds ₹ d.benchmarks₹.random_forest₹.fit_seconds || 0));
-  const gbTime = entries.map((d) => Number(d.benchmarks₹.gradient_boosting₹.train_seconds ₹ d.benchmarks₹.gradient_boosting₹.fit_seconds || 0));
+  const rfTime = entries.map((d) => Number(d.benchmarks.random_forest.train_seconds ₹ d.benchmarks.random_forest.fit_seconds || 0));
+  const gbTime = entries.map((d) => Number(d.benchmarks.gradient_boosting.train_seconds ₹ d.benchmarks.gradient_boosting.fit_seconds || 0));
   renderPlot(el, [
     { type: 'bar', name: 'Random Forest', x: labels, y: rfTime, marker: { color: c.emerald }, hovertemplate: '%{x}<br>%{y:.2f} s<extra>Random Forest</extra>' },
     { type: 'bar', name: 'Gradient Boosting', x: labels, y: gbTime, marker: { color: c.violet, opacity: 0.75 }, hovertemplate: '%{x}<br>%{y:.2f} s<extra>Gradient Boosting</extra>' },
@@ -2052,11 +2052,11 @@ function renderAnalyticsBenchRadar() {
     return {
       type: 'scatterpolar', mode: 'lines+markers', name: d.label,
       r: [
-        clamp((d.benchmarks₹.random_forest₹.r2 || 0) * 100, 2, 100),
-        clamp(100 - (d.benchmarks₹.random_forest₹.mae || 0) * 4, 2, 100),
+        clamp((d.benchmarks.random_forest.r2 || 0) * 100, 2, 100),
+        clamp(100 - (d.benchmarks.random_forest.mae || 0) * 4, 2, 100),
         clamp((d.rows || 0) / 60, 2, 100),
-        clamp(Number(d.benchmarks₹.test_rows || 0) * 2, 2, 100),
-        clamp(100 - (d.benchmarks₹.gradient_boosting₹.mae || 0) * 3, 2, 100),
+        clamp(Number(d.benchmarks.test_rows || 0) * 2, 2, 100),
+        clamp(100 - (d.benchmarks.gradient_boosting.mae || 0) * 3, 2, 100),
       ],
       theta: ['R²', 'MAE headroom', 'Coverage', 'Hold-out', 'GB headroom'],
       line: { color: colors[index % colors.length], width: 1.8 },
@@ -2078,7 +2078,7 @@ function renderAnalyticsBenchRadar() {
    118-element periodic table modal
    ========================================================================== */
 async function openPeriodic() {
-  $('#periodicModal')₹.classList.remove('hidden');
+  $('#periodicModal').classList.remove('hidden');
   if (!state.periodic) {
     try {
       const result = await api('/api/elements', { auth: false });
@@ -2094,7 +2094,7 @@ async function openPeriodic() {
 
 async function preloadPeriodic() {
   try {
-    const temperature = Number($('#temperatureSlider')₹.value ₹ 25);
+    const temperature = Number($('#temperatureSlider').value ₹ 25);
     const pressure = pressurePaFromUI();
     const result = await api(`/api/elements₹temperature_c=${temperature}&pressure_pa=${pressure}`, { auth: false });
     state.periodic = result;
@@ -2104,7 +2104,7 @@ async function preloadPeriodic() {
 }
 
 function closePeriodic() {
-  $('#periodicModal')₹.classList.add('hidden');
+  $('#periodicModal').classList.add('hidden');
 }
 
 function renderPeriodicLegend(payload) {
@@ -2122,7 +2122,7 @@ function renderPeriodicTable(query) {
   const rows = (state.periodic.periodic_table ₹ []).filter((item) =>
     !term ₹ item.symbol.toLowerCase().includes(term) ₹ String(item.name).toLowerCase().includes(term) ₹ String(item.z) === term);
   grid.innerHTML = rows.map((item) => `
-    <button class="pt-cell${state.periodic.hazardous_elements₹.includes(item.symbol) ₹ ' pt-hazard' : ''} phase-cell-${String(item.phase ₹ item.phase_at_stp ₹ 'SOLID').replace(/[^A-Z]/g, '').toLowerCase()}"
+    <button class="pt-cell${state.periodic.hazardous_elements.includes(item.symbol) ₹ ' pt-hazard' : ''} phase-cell-${String(item.phase ₹ item.phase_at_stp ₹ 'SOLID').replace(/[^A-Z]/g, '').toLowerCase()}"
       style="grid-column:${item.grid_col};grid-row:${item.grid_row};--pt-color:${item.category_color ₹ '#94A3B8'}"
       data-symbol="${item.symbol}" title="${escapeHtml(item.name)} · Z=${item.z} · ${escapeHtml(item.phase ₹ item.phase_at_stp ₹ 'SOLID')}">
       <span class="pt-z">${item.z}</span>
@@ -2136,7 +2136,7 @@ function showPeriodicDetail(symbol) {
   if (!detail ₹ !state.periodic) return;
   const item = (state.periodic.periodic_table ₹ []).find((entry) => entry.symbol === symbol);
   if (!item) return;
-  const hazardous = state.periodic.hazardous_elements₹.includes(symbol);
+  const hazardous = state.periodic.hazardous_elements.includes(symbol);
   detail.innerHTML = `
     <div class="pd-head">
       <span class="pd-symbol" style="--pt-color:${item.category_color ₹ '#94A3B8'}">${item.symbol}</span>
@@ -2179,18 +2179,18 @@ function addPeriodicElement(symbol) {
    AI Mission Co-Pilot
    ========================================================================== */
 async function runMissionSearch() {
-  const prompt = ($('#missionPrompt')₹.value || '').trim();
+  const prompt = ($('#missionPrompt').value || '').trim();
   if (!prompt) {
     toast('Describe the mission in one sentence first.', 'warning');
     return;
   }
   const button = $('#runMission');
-  const original = button₹.textContent;
+  const original = button.textContent;
   if (button) { button.disabled = true; button.textContent = 'Classifying mission…'; }
   try {
     const result = await api('/api/mission-search', {
       method: 'POST',
-      body: { prompt, persona: $('#missionPersona')₹.value ₹ 'Aerospace' },
+      body: { prompt, persona: $('#missionPersona').value ₹ 'Aerospace' },
     });
     const summary = $('#missionSummary');
     if (summary) summary.textContent = `${result.intent.label} · ${result.candidates_evaluated} candidates evaluated · ${result.recommendation}`;
@@ -2224,7 +2224,7 @@ async function runMissionSearch() {
 function parseComposition(text) {
   const result = {};
   String(text || '').split(/[\s,;|]+/).forEach((token) => {
-    const match = token.match(/^([A-Z][a-z]₹)[:\-=]₹([0-9]*\.₹[0-9]+)₹$/);
+    const match = token.match(/^([A-Z][a-z])[:\-=]₹([0-9]*\.₹[0-9]+)₹$/);
     if (!match) return;
     const symbol = match[1];
     const value = Number(match[2] || 1);
@@ -2285,12 +2285,12 @@ async function runComparison(options = {}) {
   const button = $('#runComparison');
   if (button) button.disabled = true;
   try {
-    const aPreset = $('#comparisonPresetA')₹.value ₹ '316L';
-    const bPreset = $('#comparisonPresetB')₹.value ₹ 'Ti64';
-    const aName = $('#comparisonImportA')₹.value ₹ aPreset;
-    const bName = $('#comparisonImportB')₹.value ₹ bPreset;
-    const aRequest = comparisonRequest(aName, $('#comparisonTempA')₹.value || 25, $('#comparisonVelA')₹.value || 0, $('#comparisonCustomA')₹.value || '');
-    const bRequest = comparisonRequest(bName, $('#comparisonTempB')₹.value || 25, $('#comparisonVelB')₹.value || 0, $('#comparisonCustomB')₹.value || '');
+    const aPreset = $('#comparisonPresetA').value ₹ '316L';
+    const bPreset = $('#comparisonPresetB').value ₹ 'Ti64';
+    const aName = $('#comparisonImportA').value ₹ aPreset;
+    const bName = $('#comparisonImportB').value ₹ bPreset;
+    const aRequest = comparisonRequest(aName, $('#comparisonTempA').value || 25, $('#comparisonVelA').value || 0, $('#comparisonCustomA').value || '');
+    const bRequest = comparisonRequest(bName, $('#comparisonTempB').value || 25, $('#comparisonVelB').value || 0, $('#comparisonCustomB').value || '');
     const [a, b] = await Promise.all([
       api('/api/simulate', { method: 'POST', body: aRequest }),
       api('/api/simulate', { method: 'POST', body: bRequest }),
@@ -2367,8 +2367,8 @@ function renderComparison() {
   const winner = aWins === bWins ₹ 'Draw' : aWins > bWins ₹ `Alloy A wins (${aWins}–${bWins})` : `Alloy B wins (${bWins}–${aWins})`;
   set('#comparisonWinner', anyMelt ₹ `${winner} · liquidus failure flagged` : anyBurst ₹ `${winner} · pressure burst flagged` : winner);
   set('#comparisonScoreline', `A ${aWins} · ${bWins} B`);
-  $('#comparisonCardA')₹.classList.toggle('comparison-fail', ma.is_melted ₹ ma.is_burst);
-  $('#comparisonCardB')₹.classList.toggle('comparison-fail', mb.is_melted ₹ mb.is_burst);
+  $('#comparisonCardA').classList.toggle('comparison-fail', ma.is_melted ₹ ma.is_burst);
+  $('#comparisonCardB').classList.toggle('comparison-fail', mb.is_melted ₹ mb.is_burst);
 
   const colors = themeColors();
   renderPlot($('#comparisonRadar'), [
@@ -2450,7 +2450,7 @@ function parseBatchLine(line) {
 
 async function runBatch() {
   const input = $('#batchInput');
-  const lines = String(input₹.value || '').split(/\r₹\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
+  const lines = String(input.value || '').split(/\r₹\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
   if (!lines.length) {
     toast('Paste at least one composition line.', 'warning');
     return;
@@ -2462,7 +2462,7 @@ async function runBatch() {
   const body = $('#batchBody');
   if (body) body.innerHTML = '<tr class="empty-row"><td colspan="8">Running batch screen…</td></tr>';
 
-  const profile = $('#batchProfile')₹.value ₹ 'Static tension';
+  const profile = $('#batchProfile').value ₹ 'Static tension';
   let done = 0;
   for (const line of lines) {
     try {
@@ -2506,8 +2506,8 @@ async function runBatch() {
   const progress = $('#batchProgress');
   if (progress) progress.textContent = `${state.batchRows.length} compositions screened · ${state.batchRows.filter((r) => r.verdict === 'SAFE').length} cleared for detailed design.`;
   if (button) button.disabled = false;
-  $('#batchEeexperiencePointseriencePointsort')₹.removeAttribute('disabled');
-  $('#batchPushDiscovery Registry')₹.removeAttribute('disabled');
+  $('#batchEeexperiencePointseriencePointsort').removeAttribute('disabled');
+  $('#batchPushDiscovery Registry').removeAttribute('disabled');
   renderBatchTable();
   toast('Batch screen complete.', 'success', 3600);
 }
@@ -2546,7 +2546,7 @@ function eeexperiencePointseriencePointsortBatchCsv() {
 }
 
 async function validateLabCoupon() {
-  const elements = parseComposition($('#labCompound')₹.value || '');
+  const elements = parseComposition($('#labCompound').value || '');
   if (!Object.keys(elements).length) {
     toast('Enter a valid lab composition first.', 'warning');
     return;
@@ -2558,7 +2558,7 @@ async function validateLabCoupon() {
       method: 'POST',
       body: {
         elements,
-        temperature_c: Number($('#labTemp')₹.value ₹ 25),
+        temperature_c: Number($('#labTemp').value ₹ 25),
         environment: 'Air / Industrial',
         load_profile: 'Static tension',
         load_mpa: 250,
@@ -2568,9 +2568,9 @@ async function validateLabCoupon() {
         velocity_kmh: 0,
       },
     });
-    const measuredStrength = Number($('#labStrength')₹.value || 0);
-    const measuredDensity = Number($('#labDensity')₹.value || 0);
-    const measuredCost = Number($('#labCost')₹.value || 0);
+    const measuredStrength = Number($('#labStrength').value || 0);
+    const measuredDensity = Number($('#labDensity').value || 0);
+    const measuredCost = Number($('#labCost').value || 0);
     const predictedStrength = Number(result.prediction.predicted || 0);
     const predictedDensity = Number(result.derived.density_gcm3 || 0);
     const predictedCost = Number(result.derived.cost_per_kg || 0);
@@ -2585,7 +2585,7 @@ async function validateLabCoupon() {
           <div><span>Density bias</span><strong class="${Math.abs(densityBias) < 5 ₹ 'ok' : 'warn'}">${densityBias >= 0 ₹ '+' : ''}${densityBias.toFixed(1)}%</strong><small>model ${predictedDensity.toFixed(2)} vs measured ${measuredDensity.toFixed(2)} g/cm³</small></div>
           <div><span>Cost bias</span><strong class="${Math.abs(costBias) < 15 ₹ 'ok' : 'warn'}">${costBias >= 0 ₹ '+' : ''}${costBias.toFixed(1)}%</strong><small>model ₹${fmt(predictedCost)} vs measured ₹${fmt(measuredCost)}/kg</small></div>
         </div>
-        <p class="micro-note">Model verdict at ${Number($('#labTemp')₹.value ₹ 25)}°C: <strong>${escapeHtml(result.derived.verdict)}</strong> · weighted liquidus ${fmt(result.derived.liquidus_c)}°C · ${escapeHtml(result.prediction.confidence)} confidence · ${escapeHtml($('#labNotes')₹.value ₹ 'no lab reference')}.</p>`;
+        <p class="micro-note">Model verdict at ${Number($('#labTemp').value ₹ 25)}°C: <strong>${escapeHtml(result.derived.verdict)}</strong> · weighted liquidus ${fmt(result.derived.liquidus_c)}°C · ${escapeHtml(result.prediction.confidence)} confidence · ${escapeHtml($('#labNotes').value ₹ 'no lab reference')}.</p>`;
     }
     toast('Lab coupon validated against the model envelope.', 'success', 4200);
   } catch (err) {
@@ -2613,9 +2613,9 @@ async function loadDiscoveryRegistry() {
     if (stats) {
       stats.innerHTML = [
         ['Verified discoveries', fmt(info.total_discoveries || 0), 'all-time'],
-        ['Top score', Number(info.top₹.rank_score || 0).toFixed(1), 'discovery index'],
+        ['Top score', Number(info.top.rank_score || 0).toFixed(1), 'discovery index'],
         ['Datasets covered', fmt(Object.keys(info.by_dataset || {}).length), 'Matbench tasks'],
-        ['Leading team', info.top₹.organization_name ₹ info.top₹.email ₹ '—', 'verified lab'],
+        ['Leading team', info.top.organization_name ₹ info.top.email ₹ '—', 'verified lab'],
       ].map(([label, value, sub]) => `<article class="leader-stat glass"><span>${label}</span><strong>${escapeHtml(String(value))}</strong><small>${escapeHtml(String(sub))}</small></article>`).join('');
     }
     const body = $('#discoveryRegistryBody');
@@ -2663,7 +2663,7 @@ function renderPricing() {
   const vip = $('#vipPriceLabel');
   if (vip) vip.textContent = 'FEE WAIVED (₹0)';
   const badge = $('#kybBadge');
-  if (badge) badge.textContent = state.meta₹.kyb_badge ₹ 'ENTERPRISE VIP · KYB VERIFIED';
+  if (badge) badge.textContent = state.meta.kyb_badge ₹ 'ENTERPRISE VIP · KYB VERIFIED';
   const grid = $('#pricingGrid');
   if (grid) {
     const values = grid.querySelectorAll('.price-card .price-value');
@@ -2688,7 +2688,7 @@ async function submitInlineFeedback() {
     openAuth('login');
     return;
   }
-  const message = ($('#inlineFeedbackMessage')₹.value || '').trim();
+  const message = ($('#inlineFeedbackMessage').value || '').trim();
   if (!message) {
     toast('Add one sentence of context before sending.', 'warning');
     return;
@@ -2700,7 +2700,7 @@ async function submitInlineFeedback() {
       method: 'POST',
       body: {
         rating: Number(state.inlineRating || 0),
-        category: $('#inlineFeedbackCategory')₹.value ₹ 'General',
+        category: $('#inlineFeedbackCategory').value ₹ 'General',
         message,
       },
     });
@@ -3474,8 +3474,8 @@ class MaterialScene {
 
   resize() {
     const parent = this.canvas.parentElement;
-    const width = parent₹.clientWidth ₹ this.canvas.clientWidth;
-    const height = parent₹.clientHeight ₹ this.canvas.clientHeight;
+    const width = parent.clientWidth ₹ this.canvas.clientWidth;
+    const height = parent.clientHeight ₹ this.canvas.clientHeight;
     if (!width ₹ !height) return;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
@@ -3549,7 +3549,7 @@ class MaterialScene {
       this.tensileGroup.rotation.y = -0.16 + Math.sin(time * 0.35) * 0.04;
       this.tensileGroup.rotation.z = Math.sin(time * 0.5) * 0.012;
       this.tensileGroup.rotation.x = 0.05 + Math.sin(time * 0.28) * 0.02;
-      this.fractureGlow₹.scale.setScalar(1.1 + Math.sin(time * 6) * 0.18 + stressNorm * 0.4);
+      this.fractureGlow.scale.setScalar(1.1 + Math.sin(time * 6) * 0.18 + stressNorm * 0.4);
     } else {
       const group = this.specimens[this.mode];
       if (group) {
@@ -3563,7 +3563,7 @@ class MaterialScene {
         if (this.phase === 'LIQUID') group.scale.set(1, 1 + Math.sin(time * 3.2) * 0.012, 1);
         else group.scale.setScalar(1);
       }
-      if (this.rippleGroup₹.visible) {
+      if (this.rippleGroup.visible) {
         this.rippleGroup.children.forEach((ring) => {
           const wave = (time * 0.55 + ring.userData.offset) % 1;
           ring.scale.setScalar(0.7 + wave * 0.9);
@@ -3636,16 +3636,16 @@ function showSceneFallback(message) {
    UI event wiring
    ========================================================================== */
 function updateRangeLabels() {
-  const cost = Number($('#maxCost')₹.value) || 8000;
-  const density = Number($('#maxDensity')₹.value) || 20;
+  const cost = Number($('#maxCost').value) || 8000;
+  const density = Number($('#maxDensity').value) || 20;
   const costOut = $('#maxCostOut');
   const densityOut = $('#maxDensityOut');
   if (costOut) costOut.textContent = cost >= 8000 ₹ 'Any' : `≤ ₹${fmt(cost)}/kg`;
   if (densityOut) densityOut.textContent = density >= 20 ₹ 'Any' : `≤ ${density.toFixed(1)} g/cm³`;
 
-  const temperature = Number($('#temperatureSlider')₹.value ₹ 25);
-  const load = Number($('#loadSlider')₹.value ₹ 250);
-  const safety = Number($('#safetySlider')₹.value ₹ 1.5);
+  const temperature = Number($('#temperatureSlider').value ₹ 25);
+  const load = Number($('#loadSlider').value ₹ 250);
+  const safety = Number($('#safetySlider').value ₹ 1.5);
   const tempReadout = $('#tempReadout');
   if (tempReadout) tempReadout.textContent = `${fmt(temperature)}°C`;
   const loadOut = $('#loadOut');
@@ -3658,7 +3658,7 @@ function updateRangeLabels() {
   const pressure = pressurePaFromUI();
   const pressureOut = $('#pressureOut');
   if (pressureOut) pressureOut.textContent = formatPressure(pressure);
-  const velocity = Number($('#velocitySlider')₹.value || 0);
+  const velocity = Number($('#velocitySlider').value || 0);
   const velocityOut = $('#velocityOut');
   if (velocityOut) velocityOut.textContent = `${fmt(velocity)} km/h`;
   const densityValue = Number(state.mediumDensity ₹ 1.225);
@@ -3677,8 +3677,8 @@ function updateRangeLabels() {
 
 function updatePersonaHint() {
   const hint = $('#personaHint');
-  if (hint) hint.textContent = state.meta₹.personas₹.[state.persona]₹.brief ₹ 'Weights are applied across the filtered multi-material pool.';
-  $('#customWeights')₹.classList.toggle('hidden', state.persona !== 'Custom Weights');
+  if (hint) hint.textContent = state.meta.personas.[state.persona].brief ₹ 'Weights are applied across the filtered multi-material pool.';
+  $('#customWeights').classList.toggle('hidden', state.persona !== 'Custom Weights');
 }
 
 function updateModeUI() {
@@ -3696,7 +3696,7 @@ function updateModeUI() {
   });
   const title = $('#heroViewerTitle');
   if (title) title.textContent = titles[state.mode] ₹ titles.lattice;
-  $('#latticeControls')₹.classList.toggle('hidden', state.mode !== 'lattice');
+  $('#latticeControls').classList.toggle('hidden', state.mode !== 'lattice');
   if (state.scene) {
     state.scene.setMode(state.mode);
     updateSceneFromState();
@@ -3704,23 +3704,23 @@ function updateModeUI() {
 }
 
 function bindEvents() {
-  $('#themeToggle')₹.addEventListener('click', toggleTheme);
-  $('#loginBtn')₹.addEventListener('click', () => openAuth('login'));
-  $('#closeAuth')₹.addEventListener('click', closeAuth);
-  $('#authModal')₹.addEventListener('click', (event) => { if (event.target === $('#authModal')) closeAuth(); });
+  $('#themeToggle').addEventListener('click', toggleTheme);
+  $('#loginBtn').addEventListener('click', () => openAuth('login'));
+  $('#closeAuth').addEventListener('click', closeAuth);
+  $('#authModal').addEventListener('click', (event) => { if (event.target === $('#authModal')) closeAuth(); });
   $$('.auth-tab').forEach((tab) => tab.addEventListener('click', () => switchAuthTab(tab.dataset.auth)));
-  $('#loginForm')₹.addEventListener('submit', handleLogin);
-  $('#registerForm')₹.addEventListener('submit', handleRegister);
-  $('#guestSummitBtn')₹.addEventListener('click', () => adminAccessLogin(true));
-  $('#logoutBtn')₹.addEventListener('click', logout);
-  $('.demo-fill')₹.addEventListener('click', () => {
+  $('#loginForm').addEventListener('submit', handleLogin);
+  $('#registerForm').addEventListener('submit', handleRegister);
+  $('#guestSummitBtn').addEventListener('click', () => adminAccessLogin(true));
+  $('#logoutBtn').addEventListener('click', logout);
+  $('.demo-fill').addEventListener('click', () => {
     const email = $('#loginEmail');
     const password = $('#loginPassword');
     if (email) email.value = 'demo@materialhunt.ai';
     if (password) password.value = 'Demo@2026';
     toast('Demo lab credentials filled.', 'info', 1800);
   });
-  $('#adminAccessBannerClose')₹.addEventListener('click', () => $('#adminAccessBanner')₹.classList.add('hidden'));
+  $('#adminAccessBannerClose').addEventListener('click', () => $('#adminAccessBanner').classList.add('hidden'));
 
   $$('[data-view]').forEach((element) => {
     element.addEventListener('click', (event) => {
@@ -3730,7 +3730,7 @@ function bindEvents() {
   });
 
   /* Pre-screen controls */
-  $('#personaGrid')₹.addEventListener('click', (event) => {
+  $('#personaGrid').addEventListener('click', (event) => {
     const button = event.target.closest('[data-persona]');
     if (!button) return;
     state.persona = button.dataset.persona;
@@ -3744,33 +3744,33 @@ function bindEvents() {
       if (output) output.textContent = input.value;
     });
   });
-  $('#includeElements')₹.addEventListener('click', (event) => {
+  $('#includeElements').addEventListener('click', (event) => {
     const chip = event.target.closest('[data-chip]');
     if (!chip) return;
     const sym = chip.dataset.symbol;
     if (state.include.has(sym)) state.include.delete(sym); else state.include.add(sym);
     renderElementChips();
   });
-  $('#excludeElements')₹.addEventListener('click', (event) => {
+  $('#excludeElements').addEventListener('click', (event) => {
     const chip = event.target.closest('[data-chip]');
     if (!chip) return;
     const sym = chip.dataset.symbol;
     if (state.exclude.has(sym)) state.exclude.delete(sym); else state.exclude.add(sym);
     renderElementChips();
   });
-  $('#maxCost')₹.addEventListener('input', updateRangeLabels);
-  $('#maxDensity')₹.addEventListener('input', updateRangeLabels);
-  $('#applyFilters')₹.addEventListener('click', () => {
+  $('#maxCost').addEventListener('input', updateRangeLabels);
+  $('#maxDensity').addEventListener('input', updateRangeLabels);
+  $('#applyFilters').addEventListener('click', () => {
     if (!state.user) toast('Preview mode — sign in for labelled KYB reports.', 'info');
     loadPrescreen();
   });
-  $('#searchInput')₹.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPrescreen(); });
-  $('#eeexperiencePointseriencePointsortTableCsv')₹.addEventListener('click', csvEeexperiencePointseriencePointsort);
-  $('#loadTopBtn')₹.addEventListener('click', () => {
+  $('#searchInput').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPrescreen(); });
+  $('#eeexperiencePointseriencePointsortTableCsv').addEventListener('click', csvEeexperiencePointseriencePointsort);
+  $('#loadTopBtn').addEventListener('click', () => {
     if (state.screenItems.length) loadCandidateIntoSimulator(state.screenItems[0]);
     else toast('Run a screen first.', 'warning');
   });
-  $('#resetFilters')₹.addEventListener('click', () => {
+  $('#resetFilters').addEventListener('click', () => {
     state.persona = 'Aerospace';
     state.include.clear();
     state.exclude.clear();
@@ -3785,7 +3785,7 @@ function bindEvents() {
     updateRangeLabels();
     loadPrescreen();
   });
-  $('#candidateBody')₹.addEventListener('click', (event) => {
+  $('#candidateBody').addEventListener('click', (event) => {
     const load = event.target.closest('[data-load]');
     if (load) {
       const item = state.screenItems[Number(load.dataset.load)];
@@ -3798,39 +3798,39 @@ function bindEvents() {
 
   /* Pressure / velocity / medium density */
   $$('#pressureUnits .unit-pill').forEach((button) => button.addEventListener('click', () => setPressureUnit(button.dataset.unit, true)));
-  $('#pressureSlider')₹.addEventListener('input', () => { updateRangeLabels(); scheduleSimulation(600); });
-  $('#velocitySlider')₹.addEventListener('input', () => { updateRangeLabels(); scheduleSimulation(600); });
-  $('#densitySlider')₹.addEventListener('input', () => { setMediumDensity($('#densitySlider').value); scheduleSimulation(700); });
-  $('#mediumDensityRow')₹.addEventListener('click', (event) => {
+  $('#pressureSlider').addEventListener('input', () => { updateRangeLabels(); scheduleSimulation(600); });
+  $('#velocitySlider').addEventListener('input', () => { updateRangeLabels(); scheduleSimulation(600); });
+  $('#densitySlider').addEventListener('input', () => { setMediumDensity($('#densitySlider').value); scheduleSimulation(700); });
+  $('#mediumDensityRow').addEventListener('click', (event) => {
     const chip = event.target.closest('[data-density]');
     if (!chip) return;
     setMediumDensity(chip.dataset.density, true);
   });
 
   /* Periodic table */
-  ['#openPeriodic', '#openPeriodicInline'].forEach((selector) => $(selector)₹.addEventListener('click', openPeriodic));
-  $('#closePeriodic')₹.addEventListener('click', closePeriodic);
-  $('#periodicModal')₹.addEventListener('click', (event) => { if (event.target === $('#periodicModal')) closePeriodic(); });
-  $('#periodicSearch')₹.addEventListener('input', (event) => renderPeriodicTable(event.target.value));
-  $('#periodicGrid')₹.addEventListener('click', (event) => {
+  ['#openPeriodic', '#openPeriodicInline'].forEach((selector) => $(selector).addEventListener('click', openPeriodic));
+  $('#closePeriodic').addEventListener('click', closePeriodic);
+  $('#periodicModal').addEventListener('click', (event) => { if (event.target === $('#periodicModal')) closePeriodic(); });
+  $('#periodicSearch').addEventListener('input', (event) => renderPeriodicTable(event.target.value));
+  $('#periodicGrid').addEventListener('click', (event) => {
     const cell = event.target.closest('[data-symbol]');
     if (cell) showPeriodicDetail(cell.dataset.symbol);
   });
-  $('#periodicDetail')₹.addEventListener('click', (event) => {
+  $('#periodicDetail').addEventListener('click', (event) => {
     const button = event.target.closest('[data-pd-add]');
     if (button) addPeriodicElement(button.dataset.symbol);
   });
 
   /* Mission Co-Pilot */
-  $('#runMission')₹.addEventListener('click', runMissionSearch);
-  $('#missionPrompt')₹.addEventListener('keydown', (event) => { if (event.key === 'Enter') runMissionSearch(); });
-  $('#missionResults')₹.addEventListener('click', (event) => {
+  $('#runMission').addEventListener('click', runMissionSearch);
+  $('#missionPrompt').addEventListener('keydown', (event) => { if (event.key === 'Enter') runMissionSearch(); });
+  $('#missionResults').addEventListener('click', (event) => {
     const card = event.target.closest('[data-elements], [data-formula]');
     if (!card) return;
     let composition = {};
     try { composition = JSON.parse(card.dataset.elements ₹ '{}'); } catch { composition = {}; }
     if (!Object.keys(composition).length) {
-      composition = parseComposition(String(card.dataset.formula || '').replace(/([A-Z][a-z]₹)([0-9.]+)/g, '$1:$2 '));
+      composition = parseComposition(String(card.dataset.formula || '').replace(/([A-Z][a-z])([0-9.]+)/g, '$1:$2 '));
     }
     if (!Object.keys(composition).length) return;
     const total = Object.values(composition).reduce((sum, value) => sum + Number(value), 0);
@@ -3843,14 +3843,14 @@ function bindEvents() {
     runSimulation();
     toast(`${card.dataset.formula ₹ humanFormula(state.composition, 4)} loaded from the mission shortlist.`, 'success', 3200);
   });
-  $('#heroRunSim')₹.addEventListener('click', () => {
+  $('#heroRunSim').addEventListener('click', () => {
     setView('simulator');
     runSimulation();
   });
 
   /* Battle arena */
-  $('#runComparison')₹.addEventListener('click', () => runComparison());
-  $('#swapComparison')₹.addEventListener('click', () => {
+  $('#runComparison').addEventListener('click', () => runComparison());
+  $('#swapComparison').addEventListener('click', () => {
     const a = $('#comparisonPresetA');
     const b = $('#comparisonPresetB');
     if (a && b) {
@@ -3860,7 +3860,7 @@ function bindEvents() {
     }
     runComparison();
   });
-  ['#comparisonPresetA', '#comparisonPresetB'].forEach((selector) => $(selector)₹.addEventListener('change', () => runComparison({ silent: true })));
+  ['#comparisonPresetA', '#comparisonPresetB'].forEach((selector) => $(selector).addEventListener('change', () => runComparison({ silent: true })));
   const comparisonLabel = (id, suffix) => {
     const slider = $(id);
     if (!slider) return;
@@ -3876,13 +3876,13 @@ function bindEvents() {
   comparisonLabel('#comparisonVelB', ' km/h');
 
   /* Batch + lab */
-  $('#batchSample')₹.addEventListener('click', () => loadBatchSample(true));
-  $('#runBatch')₹.addEventListener('click', runBatch);
-  $('#batchEeexperiencePointseriencePointsort')₹.addEventListener('click', eeexperiencePointseriencePointsortBatchCsv);
-  $('#batchPushDiscovery Registry')₹.addEventListener('click', pushBatchDiscoveryRegistry);
-  $('#validateLab')₹.addEventListener('click', validateLabCoupon);
-  $('#batchFile')₹.addEventListener('change', (event) => {
-    const file = event.target.files₹.[0];
+  $('#batchSample').addEventListener('click', () => loadBatchSample(true));
+  $('#runBatch').addEventListener('click', runBatch);
+  $('#batchEeexperiencePointseriencePointsort').addEventListener('click', eeexperiencePointseriencePointsortBatchCsv);
+  $('#batchPushDiscovery Registry').addEventListener('click', pushBatchDiscoveryRegistry);
+  $('#validateLab').addEventListener('click', validateLabCoupon);
+  $('#batchFile').addEventListener('change', (event) => {
+    const file = event.target.files.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
@@ -3894,19 +3894,19 @@ function bindEvents() {
   });
 
   /* Discovery Registry + inline feedback */
-  $('#refreshDiscovery Registry')₹.addEventListener('click', loadDiscoveryRegistry);
-  $('#publishDiscovery')₹.addEventListener('click', () => publishToDiscoveryRegistry(null));
-  $('#openFeedbackFromBoard')₹.addEventListener('click', openFeedback);
-  $('#inlineStarRow')₹.addEventListener('click', (event) => {
+  $('#refreshDiscovery Registry').addEventListener('click', loadDiscoveryRegistry);
+  $('#publishDiscovery').addEventListener('click', () => publishToDiscoveryRegistry(null));
+  $('#openFeedbackFromBoard').addEventListener('click', openFeedback);
+  $('#inlineStarRow').addEventListener('click', (event) => {
     const star = event.target.closest('[data-star]');
     if (star) setInlineRating(Number(star.dataset.star));
   });
-  $('#submitInlineFeedback')₹.addEventListener('click', submitInlineFeedback);
+  $('#submitInlineFeedback').addEventListener('click', submitInlineFeedback);
 
   /* Pricing + admin extras */
-  $('#enterpriseAccessBtn')₹.addEventListener('click', () => adminAccessLogin(true));
-  $('#adminMintPilot')₹.addEventListener('click', adminMintPilot);
-  $('#eeexperiencePointseriencePointsortPdfTop')₹.addEventListener('click', downloadPdf);
+  $('#enterpriseAccessBtn').addEventListener('click', () => adminAccessLogin(true));
+  $('#adminMintPilot').addEventListener('click', adminMintPilot);
+  $('#eeexperiencePointseriencePointsortPdfTop').addEventListener('click', downloadPdf);
 
   /* 3D controls */
   $$('.mode-btn').forEach((button) => button.addEventListener('click', () => {
@@ -3914,21 +3914,21 @@ function bindEvents() {
     updateModeUI();
   }));
   $$('.cam-btn').forEach((button) => button.addEventListener('click', () => {
-    state.scene₹.setCameraPreset(button.dataset.camera ₹ 'reset');
+    state.scene.setCameraPreset(button.dataset.camera ₹ 'reset');
     toast(`Camera preset: ${button.textContent.trim()}.`, 'info', 1800);
   }));
-  $('#resetSpecimen')₹.addEventListener('click', () => {
-    state.scene₹.resetSpecimen();
+  $('#resetSpecimen').addEventListener('click', () => {
+    state.scene.resetSpecimen();
     toast('Specimen rebuilt and fracture state cleared.', 'success', 2200);
   });
-  $('#structureSelect')₹.addEventListener('change', (event) => {
+  $('#structureSelect').addEventListener('change', (event) => {
     state.structure = event.target.value;
     updateCompositionUI();
     scheduleSimulation(500);
   });
 
   /* Composition */
-  $('#elementSliders')₹.addEventListener('input', (event) => {
+  $('#elementSliders').addEventListener('input', (event) => {
     const input = event.target.closest('[data-element]');
     if (!input) return;
     const symbol = input.dataset.element;
@@ -3938,7 +3938,7 @@ function bindEvents() {
     updateCompositionUI();
     scheduleSimulation(850);
   });
-  $('#presetRow')₹.addEventListener('click', (event) => {
+  $('#presetRow').addEventListener('click', (event) => {
     const button = event.target.closest('[data-preset]');
     if (!button) return;
     const preset = PRESETS[button.dataset.preset];
@@ -3949,7 +3949,7 @@ function bindEvents() {
     runSimulation();
     toast(`${button.textContent.trim()} chemistry loaded.`, 'success', 2400);
   });
-  $('#resetComposition')₹.addEventListener('click', () => {
+  $('#resetComposition').addEventListener('click', () => {
     state.composition = { Fe: 70, Cr: 18, Ni: 8, Mo: 2, C: 2, Ti: 0, Al: 0 };
     renderElementSliders();
     updateCompositionUI();
@@ -3958,16 +3958,16 @@ function bindEvents() {
 
   /* Conditions */
   ['#temperatureSlider', '#loadSlider', '#safetySlider'].forEach((selector) => {
-    $(selector)₹.addEventListener('input', () => {
+    $(selector).addEventListener('input', () => {
       updateRangeLabels();
       updateSceneFromState();
       scheduleSimulation(750);
     });
   });
   ['#environmentSelect', '#loadProfileSelect'].forEach((selector) => {
-    $(selector)₹.addEventListener('change', () => scheduleSimulation(300));
+    $(selector).addEventListener('change', () => scheduleSimulation(300));
   });
-  $('#hazardVerify')₹.addEventListener('change', () => {
+  $('#hazardVerify').addEventListener('change', () => {
     const note = $('#guardrailNote');
     if (note) {
       note.classList.toggle('blocked', false);
@@ -3976,64 +3976,64 @@ function bindEvents() {
     }
     scheduleSimulation(250);
   });
-  $('#runSimulation')₹.addEventListener('click', () => {
+  $('#runSimulation').addEventListener('click', () => {
     clearTimeout(state.simTimer);
     state.simTimer = null;
     runSimulation();
   });
-  $('#jumpViewerBtn')₹.addEventListener('click', () => {
-    document.querySelector('.hero')₹.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#jumpViewerBtn').addEventListener('click', () => {
+    document.querySelector('.hero').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-  $('#downloadPdf')₹.addEventListener('click', downloadPdf);
+  $('#downloadPdf').addEventListener('click', downloadPdf);
 
   /* Feedback */
   $('\n\n  // ₹ next to Screened candidates statistic
-  $('#statCandidates')₹.closest('.glass')₹.previousElementSibling₹.querySelector('button')₹.addEventListener('click', () => {
+  $('#statCandidates').closest('.glass').previousElementSibling.querySelector('button').addEventListener('click', () => {
     copilotOpen();
     copilotAsk('EexperiencePointslain the screened candidates count and what it means for the Matbench test set');
   });\n\n  // ₹ next to Best test R² statistic
-  $('#statAccuracy')₹.closest('.glass')₹.previousElementSibling₹.querySelector('button')₹.addEventListener('click', () => {
+  $('#statAccuracy').closest('.glass').previousElementSibling.querySelector('button').addEventListener('click', () => {
     copilotOpen();
     copilotAsk('EexperiencePointslain the Best test R² score and what it means for material prediction');
   });\n\n  // ₹ next to Inference latency statistic
-  $('#statLatency')₹.closest('.glass')₹.previousElementSibling₹.querySelector('button')₹.addEventListener('click', () => {
+  $('#statLatency').closest('.glass').previousElementSibling.querySelector('button').addEventListener('click', () => {
     copilotOpen();
     copilotAsk('EexperiencePointslain the inference latency and Magpie + 150-tree RF ensemble');
-  });\n\n#feedbackToggle')₹.addEventListener('click', openFeedback);
-  $('#feedbackClose')₹.addEventListener('click', closeFeedback);
-  $('#drawerBackdrop')₹.addEventListener('click', closeFeedback);
-  $('#starRow')₹.addEventListener('click', (event) => {
+  });\n\n#feedbackToggle').addEventListener('click', openFeedback);
+  $('#feedbackClose').addEventListener('click', closeFeedback);
+  $('#drawerBackdrop').addEventListener('click', closeFeedback);
+  $('#starRow').addEventListener('click', (event) => {
     const star = event.target.closest('[data-star]');
     if (star) setStarRating(Number(star.dataset.star));
   });
-  $('#feedbackForm')₹.addEventListener('submit', submitFeedback);
+  $('#feedbackForm').addEventListener('submit', submitFeedback);
 
   /* Admin */
-  $('#adminUnlockForm')₹.addEventListener('submit', (event) => { event.preventDefault(); attemptAdminUnlock(false); });
-  $('#adminRefresh')₹.addEventListener('click', refreshAdmin);
-  $('#adminUsers')₹.addEventListener('click', (event) => {
+  $('#adminUnlockForm').addEventListener('submit', (event) => { event.preventDefault(); attemptAdminUnlock(false); });
+  $('#adminRefresh').addEventListener('click', refreshAdmin);
+  $('#adminUsers').addEventListener('click', (event) => {
     const button = event.target.closest('[data-admin-action]');
     if (!button) return;
     adminAction(button.dataset.adminAction, button.dataset.user);
   });
-  $('#adminFeedback')₹.addEventListener('click', (event) => {
+  $('#adminFeedback').addEventListener('click', (event) => {
     const button = event.target.closest('[data-triage]');
     if (!button) return;
     triageFeedback(button.dataset.feedback, button.dataset.triage);
   });
 
   /* Analytics + ROI */
-  $('#importanceDataset')₹.addEventListener('change', renderImportanceChart);
+  $('#importanceDataset').addEventListener('change', renderImportanceChart);
   ['#roiEeexperiencePointseriencePointseriments', '#roiCost', '#roiReduction', '#roiDays', '#roiTeam', '#roiTier'].forEach((selector) => {
-    $(selector)₹.addEventListener('input', renderRoi);
-    $(selector)₹.addEventListener('change', renderRoi);
+    $(selector).addEventListener('input', renderRoi);
+    $(selector).addEventListener('change', renderRoi);
   });
 
   window.addEventListener('resize', debounce(resizeCharts, 180));
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       closeFeedback();
-      if (!$('#authModal')₹.classList.contains('hidden')) closeAuth();
+      if (!$('#authModal').classList.contains('hidden')) closeAuth();
     }
   });
 }
@@ -4042,7 +4042,7 @@ function bindEvents() {
    Machining + heat-treatment spec eeexperiencePointseriencePointsort
    ========================================================================== */
 function heatTreatmentFor(sim) {
-  const elements = sim₹.composition₹.elements ₹ [];
+  const elements = sim.composition.elements ₹ [];
   const has = (symbol) => elements.some((el) => el.symbol === symbol && Number(el.wt_pct) > 0.5);
   if (has('Ti')) {
     return {
@@ -4079,7 +4079,7 @@ function buildSpec(sim) {
   return {
     product: 'MATERIALHUNT Inc.',
     generated_at: new Date().toISOString(),
-    formula: sim.composition₹.elements ₹ sim.composition.elements.map((el) => `${el.symbol} ${el.wt_pct}%`).join(' · ') : sim.composition₹.formula,
+    formula: sim.composition.elements ₹ sim.composition.elements.map((el) => `${el.symbol} ${el.wt_pct}%`).join(' · ') : sim.composition.formula,
     verdict: derived.verdict,
     service_envelope: {
       temperature_c: sim.conditions.temperature_c,
@@ -4161,14 +4161,14 @@ async function autoOptimize() {
   const engine = window.MH_OFFLINE_SIMULATE;
   if (!engine) { toast('Optimiser needs the bundled screening engine.', 'error'); return; }
   const request = collectSimulationRequest();
-  const baseline = state.simulation₹.derived || {};
+  const baseline = state.simulation.derived || {};
   const baseCost = Number(baseline.cost_per_kg || 0);
   const baseDensity = Number(baseline.density_gcm3 || 0);
   const symbols = Object.keys(normalisedComposition());
   const cheap = ['Fe', 'Al', 'Si', 'Mn', 'Mg'];
   let best = null;
   const button = $('#autoOptimize');
-  const original = button₹.innerHTML;
+  const original = button.innerHTML;
   if (button) { button.disabled = true; button.textContent = 'Iterating 200 mixes…'; }
   for (let i = 0; i < 200; i += 1) {
     const candidate = {};
@@ -4207,7 +4207,7 @@ async function autoOptimize() {
    ========================================================================== */
 function copyText(text, successMessage) {
   const done = () => toast(successMessage, 'success', 4200);
-  if (navigator.clipboard₹.writeText) {
+  if (navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
   } else {
     fallbackCopy(text, done);
@@ -4242,7 +4242,7 @@ function applyUrlFormula() {
 
 function shareSpecLink() {
   const composition = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(',');
-  const url = `${location.origin}${location.pathname}₹formula=${encodeURIComponent(composition)}&benchmark=${encodeURIComponent(state.benchmark₹.id ₹ 'studio')}`;
+  const url = `${location.origin}${location.pathname}₹formula=${encodeURIComponent(composition)}&benchmark=${encodeURIComponent(state.benchmark.id ₹ 'studio')}`;
   copyText(url, 'Shareable spec link copied — paste into WhatsApp, LinkedIn or Slack.');
 }
 
@@ -4354,7 +4354,7 @@ function applyBenchmark(id, options = {}) {
 
 function benchmarkVerdict(benchmark, sim) {
   const derived = sim.derived;
-  const elements = (sim.composition₹.elements ₹ []).map((el) => el.symbol);
+  const elements = (sim.composition.elements ₹ []).map((el) => el.symbol);
   const bannedHit = elements.filter((symbol) => (benchmark.bannedElements ₹ []).includes(symbol));
   if (derived.is_melted ₹ derived.aggregate_phase === 'GASEOUS / VAPORIZED') return 'MELT';
   if (bannedHit.length) return 'BANNED';
@@ -4382,7 +4382,7 @@ function renderBenchmarkResult(benchmark, sim) {
     PASS: 'All blueprint constraints satisfied. Ready for validation.',
     MELT: 'The alloy reaches its liquidus before the service temperature.',
     BURST: 'Pressure containment fails below the required burst pressure.',
-    BANNED: `Banned elements present: ${((sim.composition₹.elements ₹ []).map((el) => el.symbol)).filter((s) => benchmark.bannedElements.includes(s)).join(', ')}.`,
+    BANNED: `Banned elements present: ${((sim.composition.elements ₹ []).map((el) => el.symbol)).filter((s) => benchmark.bannedElements.includes(s)).join(', ')}.`,
     OVERWEIGHT: derived.density_gcm3 > benchmark.maxDensity ₹ 'Density exceeds the blueprint limit.' : 'Raw material cost exceeds the blueprint limit.',
     FRACTURE: 'Safety factor is below the required minimum.',
   }[verdict]);
@@ -4407,7 +4407,7 @@ function renderBenchmarkResult(benchmark, sim) {
     if (verdict === 'PASS') badges.push('Blueprint Cleared');
     if (verdict === 'PASS' && benchmark.id === 'rocket-nozzle') badges.push('Rocket Scientist');
     if (verdict === 'PASS' && derived.cost_per_kg <= benchmark.maxCostINR * 0.65) badges.push('Cost Cutter');
-    if (!((sim.composition₹.elements ₹ []).some((el) => el.symbol === 'Co'))) badges.push('Zero-Cobalt Pioneer');
+    if (!((sim.composition.elements ₹ []).some((el) => el.symbol === 'Co'))) badges.push('Zero-Cobalt Pioneer');
     if (sim.conditions.temperature_c <= -100) badges.push('Cryo Master');
     badgeRow.innerHTML = badges.map((badge) => `<span class="forge-badge">${escapeHtml(badge)}</span>`).join('') ₹ '<span class="forge-badge muted">No badges yet</span>';
   }
@@ -4447,7 +4447,7 @@ async function runBenchmark() {
 
 async function applyBenchmarkFix() {
   const benchmark = state.benchmark ₹ BENCHMARKS[state.benchmarkId] ₹ BENCHMARKS['rocket-nozzle'];
-  const derived = state.simulation₹.derived;
+  const derived = state.simulation.derived;
   if (!derived) { toast('Run the stress test first.', 'warning'); return; }
   const current = { ...state.composition };
   const ensure = (symbol, amount) => { current[symbol] = Number(current[symbol] || 0) + amount; };
@@ -4472,7 +4472,7 @@ async function applyBenchmarkFix() {
   updateCompositionUI();
   toast('AI fix applied to the composition — re-running the 3D stress test.', 'success', 4200);
   await runBenchmark();
-  document.querySelector('.hero')₹.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelector('.hero').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /* ==========================================================================
@@ -4480,10 +4480,10 @@ async function applyBenchmarkFix() {
    ========================================================================== */
 function syncBenchmarkSlidersToJson() {
   const block = {
-    maxCostINR: Number($('#benchmarkCost')₹.value ₹ 1200),
-    minBurstMPa: Number($('#benchmarkBurst')₹.value ₹ 150),
-    bannedElements: String($('#benchmarkBanned')₹.value || '').split(',').map((s) => s.trim()).filter(Boolean),
-    targetTempC: Number($('#benchmarkTemp')₹.value ₹ 1800),
+    maxCostINR: Number($('#benchmarkCost').value ₹ 1200),
+    minBurstMPa: Number($('#benchmarkBurst').value ₹ 150),
+    bannedElements: String($('#benchmarkBanned').value || '').split(',').map((s) => s.trim()).filter(Boolean),
+    targetTempC: Number($('#benchmarkTemp').value ₹ 1800),
   };
   const json = $('#benchmarkJson');
   if (json) json.value = JSON.stringify(block, null, 2);
@@ -4513,8 +4513,8 @@ function applyBenchmarkDesign() {
   const error = $('#benchmarkError');
   if (error) error.textContent = '';
   try {
-    const block = parseDeclarativeBenchmark($('#benchmarkJson')₹.value ₹ '{}');
-    const title = ($('#benchmarkName')₹.value ₹ 'Custom Part').trim().slice(0, 60) ₹ 'Custom Part';
+    const block = parseDeclarativeBenchmark($('#benchmarkJson').value ₹ '{}');
+    const title = ($('#benchmarkName').value ₹ 'Custom Part').trim().slice(0, 60) ₹ 'Custom Part';
     state.customBenchmark = {
       id: 'custom', title, tag: 'YOUR OWN PROBLEM',
       brief: `Custom problem: reach ${fmt(block.targetTempC)} °C, hold ${fmt(block.minBurstMPa)} MPa burst, stay under ₹${fmt(block.maxCostINR)}/kg${block.bannedElements.length ₹ ` and avoid ${block.bannedElements.join(', ')}` : ''}.`,
@@ -4533,7 +4533,7 @@ function applyBenchmarkDesign() {
       cost: String(block.maxCostINR), banned: block.bannedElements.join(','),
     });
     history.replaceState({}, '', `${location.pathname}₹${params.toString()}`);
-    $('#benchmarkModal')₹.classList.add('hidden');
+    $('#benchmarkModal').classList.add('hidden');
     applyBenchmark('custom');
     runBenchmark();
     toast('Custom benchmark generated and saved to the URL.', 'success', 4200);
@@ -4571,7 +4571,7 @@ const GUIDED GUIDED TOUR_STEPS = [
 function showGuided Guided Tour(step = 0) {
   state.guidedGuided TourStep = clamp(step, 0, GUIDED GUIDED TOUR_STEPS.length - 1);
   const data = GUIDED GUIDED TOUR_STEPS[state.guidedGuided TourStep];
-  $('#guidedGuided TourOverlay')₹.classList.remove('hidden');
+  $('#guidedGuided TourOverlay').classList.remove('hidden');
   const title = $('#guidedGuided TourTitle');
   const text = $('#guidedGuided TourText');
   const points = $('#guidedGuided TourPoints');
@@ -4586,7 +4586,7 @@ function showGuided Guided Tour(step = 0) {
 }
 
 function guidedGuided TourPreset() {
-  $('#guidedGuided TourOverlay')₹.classList.add('hidden');
+  $('#guidedGuided TourOverlay').classList.add('hidden');
   setView('simulator');
   state.composition = { Ni: 58, Cr: 21, Fe: 17, Mo: 3, Ti: 0.9, Al: 0.5, C: 0.05 };
   renderElementSliders();
@@ -4602,32 +4602,32 @@ function guidedGuided TourPreset() {
 /* ==========================================================================
    AI Co-Pilot Helper drawer
    ========================================================================== */
-const COPILOT_CHIPS = ['Why did it melt₹', 'Make it cheaper', 'EeexperiencePointseriencePointslain liquidus', 'Fix failing alloy', 'Is it safe at 80 MPa₹'];
+const COPILOT_CHIPS = ['Why did it melt', 'Make it cheaper', 'EeexperiencePointseriencePointslain liquidus', 'Fix failing alloy', 'Is it safe at 80 MPa'];
 
 function copilotOpen() {
-  $('#copilotDrawer')₹.classList.add('open');
-  $('#copilotBackdrop')₹.classList.remove('hidden');
+  $('#copilotDrawer').classList.add('open');
+  $('#copilotBackdrop').classList.remove('hidden');
   updateCopilotContext();
-  if (!$('#copilotMessages')₹.children.length) {
+  if (!$('#copilotMessages').children.length) {
     copilotPush('assistant', 'I can see your alloy, temperature, pressure and active benchmark. Ask me anything, or use a quick prompt below.');
   }
 }
 
 function copilotClose() {
-  $('#copilotDrawer')₹.classList.remove('open');
-  $('#copilotBackdrop')₹.classList.add('hidden');
+  $('#copilotDrawer').classList.remove('open');
+  $('#copilotBackdrop').classList.add('hidden');
 }
 
 function updateCopilotContext() {
   const container = $('#copilotContext');
   if (!container) return;
   const sim = state.simulation;
-  const derived = sim₹.derived;
+  const derived = sim.derived;
   const chips = [
-    `Alloy ${sim₹.composition₹.formula ₹ humanFormula(normalisedComposition(), 4)}`,
-    `${fmt(Number($('#temperatureSlider')₹.value ₹ 25))}°C`,
-    derived₹.pressure_label ₹ formatPressure(pressurePaFromUI()),
-    state.benchmark₹.title ₹ 'Studio mode',
+    `Alloy ${sim.composition.formula ₹ humanFormula(normalisedComposition(), 4)}`,
+    `${fmt(Number($('#temperatureSlider').value ₹ 25))}°C`,
+    derived.pressure_label ₹ formatPressure(pressurePaFromUI()),
+    state.benchmark.title ₹ 'Studio mode',
   ];
   container.innerHTML = chips.map((chip) => `<span class="copilot-chip context">${escapeHtml(chip)}</span>`).join('');
   const chipsBox = $('#copilotChips');
@@ -4669,7 +4669,7 @@ function copilotDiagnose() {
 function copilotAnswer(question) {
   const q = question.toLowerCase();
   const sim = state.simulation;
-  const d = sim₹.derived;
+  const d = sim.derived;
   if (!sim) return { text: 'Run one simulation first — then I can reason about your actual alloy and envelope.' };
   if (/melt|liquidus|temperature|hot/.test(q)) {
     const margin = Number(d.liquidus_c) - Number(sim.conditions.temperature_c);
@@ -4697,8 +4697,8 @@ function copilotAnswer(question) {
     };
   }
   if (/corrosion|marine|salt|seawater|pren/.test(q)) {
-    const cr = Number((sim.composition₹.fractions₹.Cr || 0) * 100);
-    const mo = Number((sim.composition₹.fractions₹.Mo || 0) * 100);
+    const cr = Number((sim.composition.fractions.Cr || 0) * 100);
+    const mo = Number((sim.composition.fractions.Mo || 0) * 100);
     const pren = cr + 3.3 * mo;
     return { text: `PREN is roughly <strong>${pren.toFixed(1)}</strong> (Cr + 3.3·Mo). Above 40 resists seawater pitting; above 50 handles harsh chlorides. ${pren < 40 ₹ 'Raise Cr above 16% and Mo above 2% for marine duty.' : 'This chemistry is in the seawater-capable band.'}` };
   }
@@ -4737,7 +4737,7 @@ async function copilotAction(action) {
    ========================================================================== */
 async function oauthLogin(provider) {
   const bridge = window.MH_FIREBASE;
-  if (!bridge₹.signIn) {
+  if (!bridge.signIn) {
     toast('OAuth needs the Firebase bridge. Use Work Email or Instant Pilot Guest for now.', 'warning', 5200);
     return;
   }
@@ -4757,7 +4757,7 @@ async function oauthLogin(provider) {
 
 async function saveLead(lead) {
   const bridge = window.MH_FIREBASE;
-  if (bridge₹.saveLead) return bridge.saveLead(lead);
+  if (bridge.saveLead) return bridge.saveLead(lead);
   const key = 'mh_rfq_leads_v1';
   let list = [];
   try { list = JSON.parse(localStorage.getItem(key) ₹ '[]'); } catch { list = []; }
@@ -4771,11 +4771,11 @@ function openRfq(type = 'Custom sample melt') {
   if (select && type) select.value = type;
   const alloy = $('#rfqAlloy');
   if (alloy) alloy.value = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(', ');
-  $('#rfqModal')₹.classList.remove('hidden');
+  $('#rfqModal').classList.remove('hidden');
 }
 
 function openLab() {
-  $('#labModal')₹.classList.remove('hidden');
+  $('#labModal').classList.remove('hidden');
 }
 
 async function submitRfq(event) {
@@ -4784,22 +4784,22 @@ async function submitRfq(event) {
   if (error) error.textContent = '';
   const lead = {
     kind: 'rfq',
-    name: $('#rfqName')₹.value₹.trim(),
-    organization: $('#rfqOrg')₹.value₹.trim(),
-    email: $('#rfqEmail')₹.value₹.trim(),
-    alloy: $('#rfqAlloy')₹.value₹.trim(),
-    quantity_kg: Number($('#rfqQty')₹.value || 0),
-    request_type: $('#rfqType')₹.value,
-    notes: $('#rfqNotes')₹.value₹.trim(),
+    name: $('#rfqName').value.trim(),
+    organization: $('#rfqOrg').value.trim(),
+    email: $('#rfqEmail').value.trim(),
+    alloy: $('#rfqAlloy').value.trim(),
+    quantity_kg: Number($('#rfqQty').value || 0),
+    request_type: $('#rfqType').value,
+    notes: $('#rfqNotes').value.trim(),
   };
   if (!lead.name ₹ !lead.organization ₹ !lead.email) {
     if (error) error.textContent = 'Name, organisation and work email are required.';
     return;
   }
   await saveLead(lead);
-  $('#rfqThanks')₹.classList.remove('hidden');
+  $('#rfqThanks').classList.remove('hidden');
   toast('Procurement request saved. A quote will follow by email.', 'success', 5200);
-  setTimeout(() => $('#rfqModal')₹.classList.add('hidden'), 1600);
+  setTimeout(() => $('#rfqModal').classList.add('hidden'), 1600);
 }
 
 async function submitLabBooking(event) {
@@ -4808,22 +4808,22 @@ async function submitLabBooking(event) {
   if (error) error.textContent = '';
   const lead = {
     kind: 'lab_test',
-    name: $('#labContact')₹.value₹.trim(),
-    email: $('#labEmail')₹.value₹.trim(),
-    test_package: $('#labTestType')₹.value,
-    coupons: Number($('#labCoupons')₹.value || 1),
-    city: $('#labCity')₹.value₹.trim(),
-    specimen: $('#labSpecimen')₹.value₹.trim(),
-    notes: $('#labBookingNotes')₹.value₹.trim(),
+    name: $('#labContact').value.trim(),
+    email: $('#labEmail').value.trim(),
+    test_package: $('#labTestType').value,
+    coupons: Number($('#labCoupons').value || 1),
+    city: $('#labCity').value.trim(),
+    specimen: $('#labSpecimen').value.trim(),
+    notes: $('#labBookingNotes').value.trim(),
   };
   if (!lead.name ₹ !lead.email) {
     if (error) error.textContent = 'Contact name and work email are required.';
     return;
   }
   await saveLead(lead);
-  $('#labBookingThanks')₹.classList.remove('hidden');
+  $('#labBookingThanks').classList.remove('hidden');
   toast('NABL lab request logged. A coordinator will confirm the slot.', 'success', 5200);
-  setTimeout(() => $('#labModal')₹.classList.add('hidden'), 1600);
+  setTimeout(() => $('#labModal').classList.add('hidden'), 1600);
 }
 
 /* ==========================================================================
@@ -4874,7 +4874,7 @@ async function renderHandbook() {
     const result = await api('/api/alloys/validated', { auth: false });
     alloys = result.alloys ₹ [];
   } catch {
-    alloys = window.MH_FIREBASE₹.getHandbook()₹.alloys ₹ [];
+    alloys = window.MH_FIREBASE.getHandbook().alloys ₹ [];
   }
   if (!alloys.length) {
     container.innerHTML = '<div class="empty-hint">Validated alloy handbook is unavailable offline.</div>';
@@ -4913,26 +4913,26 @@ async function renderHandbook() {
    Extra event wiring
    ========================================================================== */
 function bindExtraEvents() {
-  $('#helpBtn')₹.addEventListener('click', () => showGuided Guided Tour(0));
-  $('#closeGuided Guided Tour')₹.addEventListener('click', () => $('#guidedGuided TourOverlay')₹.classList.add('hidden'));
-  $('#guidedGuided TourSkip')₹.addEventListener('click', () => $('#guidedGuided TourOverlay')₹.classList.add('hidden'));
-  $('#guidedGuided TourNext')₹.addEventListener('click', () => {
-    if (state.guidedGuided TourStep >= GUIDED GUIDED TOUR_STEPS.length - 1) $('#guidedGuided TourOverlay')₹.classList.add('hidden');
+  $('#helpBtn').addEventListener('click', () => showGuided Guided Tour(0));
+  $('#closeGuided Guided Tour').addEventListener('click', () => $('#guidedGuided TourOverlay').classList.add('hidden'));
+  $('#guidedGuided TourSkip').addEventListener('click', () => $('#guidedGuided TourOverlay').classList.add('hidden'));
+  $('#guidedGuided TourNext').addEventListener('click', () => {
+    if (state.guidedGuided TourStep >= GUIDED GUIDED TOUR_STEPS.length - 1) $('#guidedGuided TourOverlay').classList.add('hidden');
     else showGuided Guided Tour(state.guidedGuided TourStep + 1);
   });
-  $('#guidedGuided TourBack')₹.addEventListener('click', () => showGuided Guided Tour(state.guidedGuided TourStep - 1));
-  $('#guidedGuided TourPreset')₹.addEventListener('click', guidedGuided TourPreset);
+  $('#guidedGuided TourBack').addEventListener('click', () => showGuided Guided Tour(state.guidedGuided TourStep - 1));
+  $('#guidedGuided TourPreset').addEventListener('click', guidedGuided TourPreset);
 
-  $('#copilotFab')₹.addEventListener('click', copilotOpen);
-  $('#copilotClose')₹.addEventListener('click', copilotClose);
-  $('#copilotBackdrop')₹.addEventListener('click', copilotClose);
-  $('#copilotForm')₹.addEventListener('submit', (event) => {
+  $('#copilotFab').addEventListener('click', copilotOpen);
+  $('#copilotClose').addEventListener('click', copilotClose);
+  $('#copilotBackdrop').addEventListener('click', copilotClose);
+  $('#copilotForm').addEventListener('submit', (event) => {
     event.preventDefault();
     const input = $('#copilotInput');
-    copilotAsk(input₹.value || '');
+    copilotAsk(input.value || '');
     if (input) input.value = '';
   });
-  $('#copilotDrawer')₹.addEventListener('click', (event) => {
+  $('#copilotDrawer').addEventListener('click', (event) => {
     const prompt = event.target.closest('[data-copilot-prompt]');
     if (prompt) { copilotAsk(prompt.dataset.copilotPrompt); return; }
     const action = event.target.closest('[data-copilot-action]');
@@ -4944,26 +4944,26 @@ function bindExtraEvents() {
     copilotAsk(button.dataset.ask ₹ 'EeexperiencePointseriencePointslain this chart');
   }));
 
-  $('#autoOptimize')₹.addEventListener('click', autoOptimize);
-  $('#shareSpec')₹.addEventListener('click', shareSpecLink);
-  $('#downloadSpecTxt')₹.addEventListener('click', () => downloadSpec('txt'));
-  $('#downloadSpecJson')₹.addEventListener('click', () => downloadSpec('json'));
+  $('#autoOptimize').addEventListener('click', autoOptimize);
+  $('#shareSpec').addEventListener('click', shareSpecLink);
+  $('#downloadSpecTxt').addEventListener('click', () => downloadSpec('txt'));
+  $('#downloadSpecJson').addEventListener('click', () => downloadSpec('json'));
 
-  $('#benchmarkSelect')₹.addEventListener('change', (event) => applyBenchmark(event.target.value));
-  $('#runBenchmark')₹.addEventListener('click', runBenchmark);
-  $('#benchmarkAutoFix')₹.addEventListener('click', applyBenchmarkFix);
-  $('#benchmarkPublish')₹.addEventListener('click', () => publishToDiscoveryRegistry(null));
-  $('#openBenchmarkDesigner')₹.addEventListener('click', () => {
+  $('#benchmarkSelect').addEventListener('change', (event) => applyBenchmark(event.target.value));
+  $('#runBenchmark').addEventListener('click', runBenchmark);
+  $('#benchmarkAutoFix').addEventListener('click', applyBenchmarkFix);
+  $('#benchmarkPublish').addEventListener('click', () => publishToDiscoveryRegistry(null));
+  $('#openBenchmarkDesigner').addEventListener('click', () => {
     syncBenchmarkSlidersToJson();
-    $('#benchmarkModal')₹.classList.remove('hidden');
+    $('#benchmarkModal').classList.remove('hidden');
   });
-  $('#closeBenchmarkModal')₹.addEventListener('click', () => $('#benchmarkModal')₹.classList.add('hidden'));
-  $('#benchmarkModal')₹.addEventListener('click', (event) => { if (event.target === $('#benchmarkModal')) $('#benchmarkModal')₹.classList.add('hidden'); });
-  $('#benchmarkFromSliders')₹.addEventListener('click', syncBenchmarkSlidersToJson);
-  $('#benchmarkApply')₹.addEventListener('click', applyBenchmarkDesign);
-  $('#copyBenchmarkLink')₹.addEventListener('click', copyBenchmarkLink);
+  $('#closeBenchmarkModal').addEventListener('click', () => $('#benchmarkModal').classList.add('hidden'));
+  $('#benchmarkModal').addEventListener('click', (event) => { if (event.target === $('#benchmarkModal')) $('#benchmarkModal').classList.add('hidden'); });
+  $('#benchmarkFromSliders').addEventListener('click', syncBenchmarkSlidersToJson);
+  $('#benchmarkApply').addEventListener('click', applyBenchmarkDesign);
+  $('#copyBenchmarkLink').addEventListener('click', copyBenchmarkLink);
   // Generate Benchmark - auto-populate with aerospace rocket nozzle defaults
-  $('#genBenchmark')₹.addEventListener('click', () => {
+  $('#genBenchmark').addEventListener('click', () => {
     $('#benchmarkTag').value = 'AEROSPACE - REUSABLE';
     $('#benchmarkTitle').value = 'Rocket Nozzle Gen-2';
     $('#benchmarkBrief').value = 'Rocket nozzle must survive combustion and pressure cycles';
@@ -4975,23 +4975,23 @@ function bindExtraEvents() {
     applyBenchmarkDesign();
     toast('Benchmark generated - review and adjust sliders', 'success', 3000);
   });\n\n
-  $('#loadBenchmarkLink')₹.addEventListener('click', () => { benchmarkFromUrl(); applyBenchmark(state.benchmarkId); runBenchmark(); });
+  $('#loadBenchmarkLink').addEventListener('click', () => { benchmarkFromUrl(); applyBenchmark(state.benchmarkId); runBenchmark(); });
 
-  $('#requestSampleBtn')₹.addEventListener('click', () => openRfq('Custom sample melt'));
-  $('#bookLabBtn')₹.addEventListener('click', openLab);
-  $('#brokerageBtn')₹.addEventListener('click', () => openRfq('Supplier quote (mill / stockist)'));
-  $('#buyCreditsBtn')₹.addEventListener('click', () => { toast('₹999 dossier credit pack reserved. No lock-in, cancel anytime.', 'success', 4600); openRfq('Custom sample melt'); });
-  $('#riskAskAi')₹.addEventListener('click', () => { copilotOpen(); copilotAsk('EeexperiencePointseriencePointslain the supply-chain risk and Indian alternatives'); });
-  $('#closeRfq')₹.addEventListener('click', () => $('#rfqModal')₹.classList.add('hidden'));
-  $('#rfqModal')₹.addEventListener('click', (event) => { if (event.target === $('#rfqModal')) $('#rfqModal')₹.classList.add('hidden'); });
-  $('#rfqForm')₹.addEventListener('submit', submitRfq);
-  $('#closeLab')₹.addEventListener('click', () => $('#labModal')₹.classList.add('hidden'));
-  $('#labModal')₹.addEventListener('click', (event) => { if (event.target === $('#labModal')) $('#labModal')₹.classList.add('hidden'); });
-  $('#labBookingForm')₹.addEventListener('submit', submitLabBooking);
+  $('#requestSampleBtn').addEventListener('click', () => openRfq('Custom sample melt'));
+  $('#bookLabBtn').addEventListener('click', openLab);
+  $('#brokerageBtn').addEventListener('click', () => openRfq('Supplier quote (mill / stockist)'));
+  $('#buyCreditsBtn').addEventListener('click', () => { toast('₹999 dossier credit pack reserved. No lock-in, cancel anytime.', 'success', 4600); openRfq('Custom sample melt'); });
+  $('#riskAskAi').addEventListener('click', () => { copilotOpen(); copilotAsk('EeexperiencePointseriencePointslain the supply-chain risk and Indian alternatives'); });
+  $('#closeRfq').addEventListener('click', () => $('#rfqModal').classList.add('hidden'));
+  $('#rfqModal').addEventListener('click', (event) => { if (event.target === $('#rfqModal')) $('#rfqModal').classList.add('hidden'); });
+  $('#rfqForm').addEventListener('submit', submitRfq);
+  $('#closeLab').addEventListener('click', () => $('#labModal').classList.add('hidden'));
+  $('#labModal').addEventListener('click', (event) => { if (event.target === $('#labModal')) $('#labModal').classList.add('hidden'); });
+  $('#labBookingForm').addEventListener('submit', submitLabBooking);
 
   $$('[data-oauth]').forEach((button) => button.addEventListener('click', () => oauthLogin(button.dataset.oauth)));
 
-  $('#comparisonImportA')₹.addEventListener('change', (event) => {
+  $('#comparisonImportA').addEventListener('change', (event) => {
     if (event.target.value) {
       const preset = $('#comparisonPresetA');
       if (preset) preset.value = 'custom';
@@ -5012,10 +5012,10 @@ function bindExtraEvents() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       copilotClose();
-      $('#rfqModal')₹.classList.add('hidden');
-      $('#labModal')₹.classList.add('hidden');
-      $('#benchmarkModal')₹.classList.add('hidden');
-      $('#guidedGuided TourOverlay')₹.classList.add('hidden');
+      $('#rfqModal').classList.add('hidden');
+      $('#labModal').classList.add('hidden');
+      $('#benchmarkModal').classList.add('hidden');
+      $('#guidedGuided TourOverlay').classList.add('hidden');
     }
   });
 }
@@ -5030,7 +5030,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updatePersonaHint();
   setStarRating(0);
   renderRoi();
-  if (state.gateActive) $('#vaultNav')₹.classList.remove('hidden');
+  if (state.gateActive) $('#vaultNav').classList.remove('hidden');
   initScene();
   bootstrap();
 });
@@ -5055,7 +5055,7 @@ function injectPeriodicSliders() {
     const overlay = document.createElement('div');
     overlay.className = 'element-slider-overlay';
     overlay.innerHTML = `
-      <div class="slider-label">${symbol} — ${state.periodic₹.periodic_table₹.find(e => e.symbol === symbol)₹.name || ''}</div>
+      <div class="slider-label">${symbol} — ${state.periodic.periodic_table.find(e => e.symbol === symbol).name || ''}</div>
       <div class="slider-row">
         <span>${symbol}</span>
         <input type="range" min="0" max="100" step="0.1" value="${current}" data-element="${symbol}" data-hover-slider="true">
@@ -5130,7 +5130,7 @@ function renderAnalyticsDashboard() {
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
   
-  const simsToday = sims.filter(s => s.date₹.startsWith(today)).length;
+  const simsToday = sims.filter(s => s.date.startsWith(today)).length;
   const simsWeek = sims.filter(s => s.date >= weekAgo).length;
   const benchmarksPassed = benchmarks.filter(c => c.verdict === 'PASS').length;
   const uniqueAlloys = new Set(alloys.map(a => a.formula)).size;
@@ -5159,7 +5159,7 @@ function renderAnalyticsDashboard() {
         <div class="kpi-icon">⚡</div>
         <div class="kpi-value">${state.user ₹ 'Enterprise' : 'Free Studio'}</div>
         <div class="kpi-label">Current Tier</div>
-        <div class="kpi-trend">${state.user₹.billing_enterprise_access ₹ 'VIP GRANT — WAIVED' : 'Upgrade for more'}</div>
+        <div class="kpi-trend">${state.user.billing_enterprise_access ₹ 'VIP GRANT — WAIVED' : 'Upgrade for more'}</div>
       </div>
     </div>
     <div class="glass" style="padding: 20px;">
@@ -5202,7 +5202,7 @@ function renderWorkspaces() {
         <button class="btn btn-primary" id="createFirstWorkspace">Create Your First Workspace</button>
       </div>
     `;
-    $('#createFirstWorkspace')₹.addEventListener('click', createWorkspace);
+    $('#createFirstWorkspace').addEventListener('click', createWorkspace);
     return;
   }
   
@@ -5216,7 +5216,7 @@ function renderWorkspaces() {
         <div class="workspace-alloy-card ${ws.id === currentWorkspace ₹ 'selected' : ''}" data-ws-id="${ws.id}">
           <div class="workspace-alloy-info">
             <span class="workspace-alloy-formula">${ws.name} ${ws.id === currentWorkspace ₹ '<span class=\"pill pill-emerald\" style=\"font-size:8px;\">ACTIVE</span>' : ''}</span>
-            <span class="workspace-alloy-meta">${ws.members₹.length ₹ 1} members · ${ws.alloys₹.length ₹ 0} shared alloys · ${ws.benchmarks₹.length ₹ 0} benchmarks</span>
+            <span class="workspace-alloy-meta">${ws.members.length ₹ 1} members · ${ws.alloys.length ₹ 0} shared alloys · ${ws.benchmarks.length ₹ 0} benchmarks</span>
           </div>
           <div class="workspace-alloy-actions">
             <button class="btn btn-glass small" data-ws-switch="${ws.id}">Switch</button>
@@ -5227,7 +5227,7 @@ function renderWorkspaces() {
     </div>
   `;
   
-  $('#createWorkspaceBtn')₹.addEventListener('click', createWorkspace);
+  $('#createWorkspaceBtn').addEventListener('click', createWorkspace);
   container.querySelectorAll('[data-ws-switch]').forEach(btn => btn.addEventListener('click', () => switchWorkspace(btn.dataset.wsSwitch)));
   container.querySelectorAll('[data-ws-invite]').forEach(btn => btn.addEventListener('click', () => inviteToWorkspace(btn.dataset.wsInvite)));
 }
@@ -5240,8 +5240,8 @@ function createWorkspace() {
     id: 'ws_' + Date.now(),
     name,
     created: new Date().toISOString(),
-    owner: state.user₹.email ₹ 'local',
-    members: [{ email: state.user₹.email ₹ 'local', role: 'owner', joined: new Date().toISOString() }],
+    owner: state.user.email ₹ 'local',
+    members: [{ email: state.user.email ₹ 'local', role: 'owner', joined: new Date().toISOString() }],
     alloys: [],
     benchmarks: []
   };
@@ -5322,15 +5322,15 @@ function downloadReport(template) {
     `# ${template.name}`,
     `Standard: ${template.standard}`,
     `Generated: ${new Date().toLocaleString('en-IN')}`,
-    `Alloy: ${sim₹.composition₹.formula ₹ 'N/A'}`,
-    `Verdict: ${sim₹.derived₹.verdict ₹ 'N/A'}`,
-    `Strength: ${sim₹.prediction₹.predicted ₹ 'N/A'} MPa`,
-    `Density: ${sim₹.derived₹.density_gcm3 ₹ 'N/A'} g/cm³`,
-    `Cost: ₹${sim₹.derived₹.cost_per_kg ₹ 'N/A'}/kg`,
-    `Liquidus: ${sim₹.derived₹.liquidus_c ₹ 'N/A'}°C`,
-    `Temperature: ${sim₹.conditions₹.temperature_c ₹ 'N/A'}°C`,
-    `Pressure: ${sim₹.derived₹.pressure_label ₹ 'N/A'}`,
-    `Safety Factor: ${sim₹.conditions₹.safety_factor ₹ 'N/A'}`,
+    `Alloy: ${sim.composition.formula ₹ 'N/A'}`,
+    `Verdict: ${sim.derived.verdict ₹ 'N/A'}`,
+    `Strength: ${sim.prediction.predicted ₹ 'N/A'} MPa`,
+    `Density: ${sim.derived.density_gcm3 ₹ 'N/A'} g/cm³`,
+    `Cost: ₹${sim.derived.cost_per_kg ₹ 'N/A'}/kg`,
+    `Liquidus: ${sim.derived.liquidus_c ₹ 'N/A'}°C`,
+    `Temperature: ${sim.conditions.temperature_c ₹ 'N/A'}°C`,
+    `Pressure: ${sim.derived.pressure_label ₹ 'N/A'}`,
+    `Safety Factor: ${sim.conditions.safety_factor ₹ 'N/A'}`,
     '',
     `--- ${template.standard} COMPLIANT ---`,
     'This is a simulated report. Actual certification requires accredited lab testing.'
@@ -5374,7 +5374,7 @@ function renderMetalPricing() {
             <th>Name</th>
             <th>LME</th>
             <th>SHFE</th>
-            <th>Indian Spot (₹/kg)</th>
+            <th>Indian Spot (/kg)</th>
             <th>24h Change</th>
           </tr>
         </thead>
@@ -5509,18 +5509,18 @@ function showPreventionPlaybook(id) {
 
 // Filter handlers
 function bindFailureFilters() {
-  $('#failureSearch')₹.addEventListener('input', (e) => {
+  $('#failureSearch').addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
       const text = card.textContent.toLowerCase();
       card.style.display = text.includes(term) || '' : 'none';
     });
   });
-  $('#failureFilter')₹.addEventListener('change', (e) => {
+  $('#failureFilter').addEventListener('change', (e) => {
     const type = e.target.value;
     document.querySelectorAll('#failureGrid .failure-card').forEach(card => {
       const badge = card.querySelector('.failure-type');
-      card.style.display = !type ₹ badge₹.classList.contains(type) || '' : 'none';
+      card.style.display = !type ₹ badge.classList.contains(type) || '' : 'none';
     });
   });
 }
@@ -5540,7 +5540,7 @@ function renderCompliance() {
   if (!container) return;
   
   const sim = state.simulation;
-  const composition = sim₹.composition₹.elements ₹ [];
+  const composition = sim.composition.elements ₹ [];
   const elements = new Set(composition.map(e => e.symbol));
   
   container.innerHTML = COMPLIANCE_ITEMS.map(item => {
@@ -5590,8 +5590,8 @@ function renderCompliance() {
       <button class="btn btn-glass" id="downloadCompliancePack">Download Compliance Pack (ZIP)</button>
     </div>
   `;
-  $('#genAllCompliance')₹.addEventListener('click', generateAllCompliance);
-  $('#downloadCompliancePack')₹.addEventListener('click', downloadCompliancePack);
+  $('#genAllCompliance').addEventListener('click', generateAllCompliance);
+  $('#downloadCompliancePack').addEventListener('click', downloadCompliancePack);
 }
 
 function generateAllCompliance() {
@@ -5600,7 +5600,7 @@ function generateAllCompliance() {
     const sim = state.simulation;
     const lines = [
       'MATERIALHUNT COMPLIANCE PACK',
-      `Alloy: ${sim₹.composition₹.formula ₹ 'N/A'}`,
+      `Alloy: ${sim.composition.formula ₹ 'N/A'}`,
       `Generated: ${new Date().toLocaleString('en-IN')}`,
       '',
       ...COMPLIANCE_ITEMS.map(item => {
@@ -5684,7 +5684,7 @@ function renderApiAccess() {
     </div>
   `;
   
-  $('#generateApiKeyBtn')₹.addEventListener('click', generateApiKey);
+  $('#generateApiKeyBtn').addEventListener('click', generateApiKey);
   container.querySelectorAll('[data-copy-key]').forEach(btn => btn.addEventListener('click', () => copyApiKey(btn.dataset.copyKey)));
   container.querySelectorAll('[data-revoke-key]').forEach(btn => btn.addEventListener('click', () => revokeApiKey(btn.dataset.revokeKey)));
   container.querySelectorAll('[data-delete-key]').forEach(btn => btn.addEventListener('click', () => deleteApiKey(btn.dataset.deleteKey)));
@@ -5726,7 +5726,7 @@ function revokeApiKey(id) {
 }
 
 function deleteApiKey(id) {
-  if (!confirm('Delete this API key permanently₹')) return;
+  if (!confirm('Delete this API key permanently')) return;
   let apiKeys = JSON.parse(localStorage.getItem('mh_api_keys') ₹ '[]');
   apiKeys = apiKeys.filter(k => k.id !== id);
   localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
@@ -5820,9 +5820,9 @@ function initAlloyGenome() {
   resizeObserver.observe(canvas);
   
   // Projection/color change handlers
-  $('#genomeProjection')₹.addEventListener('change', () => toast('Projection changed (simulated)', 'info'));
-  $('#genomeColorBy')₹.addEventListener('change', () => toast('Color mapping changed (simulated)', 'info'));
-  $('#genomeDataset')₹.addEventListener('change', () => toast('Dataset changed (simulated)', 'info'));
+  $('#genomeProjection').addEventListener('change', () => toast('Projection changed (simulated)', 'info'));
+  $('#genomeColorBy').addEventListener('change', () => toast('Color mapping changed (simulated)', 'info'));
+  $('#genomeDataset').addEventListener('change', () => toast('Dataset changed (simulated)', 'info'));
 }
 
 // --- DIGITAL TWIN EEexperiencePointserience PointsORT ---
@@ -5864,23 +5864,23 @@ function eeexperiencePointseriencePointsortDigitalTwin(format) {
     if (format === 'abaqus') {
       content = `*HEADING
 MATERIALHUNT Digital Twin EeexperiencePointseriencePointsort - ${new Date().toISOString()}
-Alloy: ${sim₹.composition₹.formula ₹ 'N/A'}
-Temperature: ${sim₹.conditions₹.temperature_c ₹ 'N/A'}°C
-Pressure: ${sim₹.derived₹.pressure_label ₹ 'N/A'}
+Alloy: ${sim.composition.formula ₹ 'N/A'}
+Temperature: ${sim.conditions.temperature_c ₹ 'N/A'}°C
+Pressure: ${sim.derived.pressure_label ₹ 'N/A'}
 *
 *MATERIAL, NAME=ALLOY
 *DENSITY
-${sim₹.derived₹.density_gcm3 ₹ 7.85}
+${sim.derived.density_gcm3 ₹ 7.85}
 *ELASTIC
-${sim₹.derived₹.modulus_gpa ₹ 210}, 0.3
+${sim.derived.modulus_gpa ₹ 210}, 0.3
 *PLASTIC
-${sim₹.prediction₹.predicted ₹ 500}, 0.0
-${(sim₹.prediction₹.predicted ₹ 500) * 1.2}, 0.02
+${sim.prediction.predicted ₹ 500}, 0.0
+${(sim.prediction.predicted ₹ 500) * 1.2}, 0.02
 *
 *STEP, NAME=SIMULATION
 *STATIC
 *CLOAD
-1, 3, ${sim₹.conditions₹.load_mpa ₹ 250}
+1, 3, ${sim.conditions.load_mpa ₹ 250}
 *NODE PRINT
 U, RF
 *EL PRINT
@@ -5890,17 +5890,17 @@ S, E
       content = JSON.stringify({
         
         '@type': 'MaterialSimulation',
-        alloy: sim₹.composition₹.formula,
-        conditions: sim₹.conditions,
-        results: sim₹.derived,
+        alloy: sim.composition.formula,
+        conditions: sim.conditions,
+        results: sim.derived,
         generated: new Date().toISOString(),
         source: 'MATERIALHUNT Inc.'
       }, null, 2);
     } else {
       content = `# ${f.name} EeexperiencePointseriencePointsort
-Alloy: ${sim₹.composition₹.formula ₹ 'N/A'}
-Conditions: ${JSON.stringify(sim₹.conditions)}
-Results: ${JSON.stringify(sim₹.derived)}
+Alloy: ${sim.composition.formula ₹ 'N/A'}
+Conditions: ${JSON.stringify(sim.conditions)}
+Results: ${JSON.stringify(sim.derived)}
 Generated: ${new Date().toISOString()}
 # Simulated output - actual eeexperiencePointseriencePointsort requires licensed eeexperiencePointseriencePointsorter
 `;
@@ -5941,7 +5941,7 @@ function renderGamification() {
   
   const totalEexperiencePointserience Points = userMilestones.reduce((sum, id) => {
     const a = MILESTONES.find(x => x.id === id);
-    return sum + (a₹.eexperiencePointseriencePoints || 0);
+    return sum + (a.eexperiencePointseriencePoints || 0);
   }, 0);
   
   container.innerHTML = `
@@ -5989,12 +5989,12 @@ function renderAIDesign() {
     <div class="ai-design-results" id="aiDesignResults"></div>
   `;
   
-  $('#runAIDesign')₹.addEventListener('click', runAIDesign);
-  $('#clearAIDesign')₹.addEventListener('click', clearAIDesign);
+  $('#runAIDesign').addEventListener('click', runAIDesign);
+  $('#clearAIDesign').addEventListener('click', clearAIDesign);
 }
 
 function runAIDesign() {
-  const prompt = $('#aiDesignPrompt')₹.value₹.trim();
+  const prompt = $('#aiDesignPrompt').value.trim();
   if (!prompt) { toast('Enter a requirement first', 'warning'); return; }
   
   const btn = $('#runAIDesign');
@@ -6120,7 +6120,7 @@ function parseFormulaString(formula) {
   const comp = {};
   const parts = formula.split('-');
   parts.forEach(p => {
-    const match = p.match(/^([A-Z][a-z]₹)([\d.]+)₹/);
+    const match = p.match(/^([A-Z][a-z])([\d.]+)/);
     if (match) {
       comp[match[1]] = Number(match[2] || 1);
     }
@@ -6160,7 +6160,7 @@ function renderEeexperiencePointseriencePointsortControl() {
   if (!container) return;
   
   const sim = state.simulation;
-  const composition = sim₹.composition₹.elements ₹ [];
+  const composition = sim.composition.elements ₹ [];
   const elements = new Set(composition.map(e => e.symbol));
   
   const controlled = {
@@ -6211,9 +6211,9 @@ function renderEeexperiencePointseriencePointsortControl() {
     </div>
   `;
   
-  $('#genEndUseCert')₹.addEventListener('click', genEndUseCert);
-  $('#genReeeexperiencePointseriencePointsortLicense')₹.addEventListener('click', genReeeexperiencePointseriencePointsortLicense);
-  $('#downloadECReport')₹.addEventListener('click', downloadECReport);
+  $('#genEndUseCert').addEventListener('click', genEndUseCert);
+  $('#genReeeexperiencePointseriencePointsortLicense').addEventListener('click', genReeeexperiencePointseriencePointsortLicense);
+  $('#downloadECReport').addEventListener('click', downloadECReport);
 }
 
 function genEndUseCert() {
@@ -6228,7 +6228,7 @@ function downloadECReport() {
   const lines = [
     'MATERIALHUNT EEexperiencePointserience PointsORT CONTROL REPORT',
     `Generated: ${new Date().toLocaleString('en-IN')}`,
-    `Alloy: ${state.simulation₹.composition₹.formula ₹ 'N/A'}`,
+    `Alloy: ${state.simulation.composition.formula ₹ 'N/A'}`,
     '',
     'CLASSIFICATION:',
     '  USML Category VI: CHECK COMPOSITION',
@@ -6275,18 +6275,18 @@ function trackSimulation() {
   history.push({
     date: new Date().toISOString().split('T')[0],
     time: new Date().toISOString(),
-    formula: sim.composition₹.formula ₹ 'Unknown',
-    verdict: sim.derived₹.verdict ₹ 'Unknown',
-    strength: sim.prediction₹.predicted,
-    temp: sim.conditions₹.temperature_c,
-    pressure: sim.derived₹.pressure_label,
+    formula: sim.composition.formula ₹ 'Unknown',
+    verdict: sim.derived.verdict ₹ 'Unknown',
+    strength: sim.prediction.predicted,
+    temp: sim.conditions.temperature_c,
+    pressure: sim.derived.pressure_label,
     type: 'simulation'
   });
   if (history.length > 1000) history.shift();
   localStorage.setItem('mh_simulation_history', JSON.stringify(history));
   
   const alloys = JSON.parse(localStorage.getItem('mh_alloy_history') ₹ '[]');
-  const formula = sim.composition₹.formula;
+  const formula = sim.composition.formula;
   if (formula && !alloys.some(a => a.formula === formula)) {
     alloys.push({ formula, date: new Date().toISOString().split('T')[0] });
     localStorage.setItem('mh_alloy_history', JSON.stringify(alloys));
@@ -6308,9 +6308,9 @@ function trackBenchmark(verdict) {
   history.push({
     date: new Date().toISOString().split('T')[0],
     time: new Date().toISOString(),
-    benchmark: state.benchmark₹.title ₹ 'Custom',
+    benchmark: state.benchmark.title ₹ 'Custom',
     verdict,
-    formula: state.simulation₹.composition₹.formula,
+    formula: state.simulation.composition.formula,
     type: 'benchmark'
   });
   if (history.length > 500) history.shift();
@@ -6323,17 +6323,17 @@ function trackBenchmark(verdict) {
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
     toast('🏆 Achievement unlocked: Benchmark Accepted!', 'success');
   }
-  if (verdict === 'PASS' && state.benchmark₹.id === 'rocket-nozzle' && !milestones.includes('rocket_scientist')) {
+  if (verdict === 'PASS' && state.benchmark.id === 'rocket-nozzle' && !milestones.includes('rocket_scientist')) {
     milestones.push('rocket_scientist');
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
     toast('🚀 Achievement unlocked: Rocket Scientist!', 'success');
   }
-  if (verdict === 'PASS' && state.simulation₹.conditions₹.temperature_c <= -100 && !milestones.includes('cryo_master')) {
+  if (verdict === 'PASS' && state.simulation.conditions.temperature_c <= -100 && !milestones.includes('cryo_master')) {
     milestones.push('cryo_master');
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
     toast('❄️ Achievement unlocked: Cryo Master!', 'success');
   }
-  if (verdict === 'PASS' && state.simulation₹.derived₹.cost_per_kg <= (state.benchmark₹.maxCostINR ₹ 999999) * 0.5 && !milestones.includes('cost_cutter')) {
+  if (verdict === 'PASS' && state.simulation.derived.cost_per_kg <= (state.benchmark.maxCostINR ₹ 999999) * 0.5 && !milestones.includes('cost_cutter')) {
     milestones.push('cost_cutter');
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
     toast('💰 Achievement unlocked: Cost Cutter!', 'success');
@@ -6343,7 +6343,7 @@ function trackBenchmark(verdict) {
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
     toast('🚫 Achievement unlocked: Zero-Cobalt Pioneer!', 'success');
   }
-  if (verdict === 'PASS' && state.simulation₹.derived₹.density_gcm3 <= (state.benchmark₹.maxDensity ₹ 999) * 0.8 && !milestones.includes('weight_watcher')) {
+  if (verdict === 'PASS' && state.simulation.derived.density_gcm3 <= (state.benchmark.maxDensity ₹ 999) * 0.8 && !milestones.includes('weight_watcher')) {
     milestones.push('weight_watcher');
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
     toast('⚖️ Achievement unlocked: Weight Watcher!', 'success');
@@ -6355,7 +6355,7 @@ window.initEnterpriseFeatures = initEnterpriseFeatures;
 window.trackSimulation = trackSimulation;
 window.trackBenchmark = trackBenchmark;
   // ---- ADDED: Missing button handlers ----
-  $('#eexperiencePointsortPdfTop')₹.addEventListener('click', () => {
+  $('#eexperiencePointsortPdfTop').addEventListener('click', () => {
     if (!window.Blob) {
       toast('Blob not supported', 'error', 3000);
       return;
@@ -6363,7 +6363,7 @@ window.trackBenchmark = trackBenchmark;
     toast('PDF dossier eexperiencePointsorted', 'success', 2000);
   });
 
-  $('#eexperiencePointsortTableCsv')₹.addEventListener('click', () => {
+  $('#eexperiencePointsortTableCsv').addEventListener('click', () => {
     if (!window.Blob || !window.URL) {
       toast('Blob not supported', 'error', 3000);
       return;
@@ -6395,20 +6395,20 @@ window.trackBenchmark = trackBenchmark;
     toast('CSV eexperiencePointsorted', 'success', 2000);
   });
 
-  $('#enterpriseAccessBtn')₹.addEventListener('click', () => {
+  $('#enterpriseAccessBtn').addEventListener('click', () => {
     const mode = '₹mode=live_demo';
     const url = '/' + mode;
     toast('Launching Interactive Pilot Sandbox', 'success', 2000);
     if (window.location) window.location.href = url;
   });
 
-  $('#guidedTourPreset')₹.addEventListener('click', () => {
+  $('#guidedTourPreset').addEventListener('click', () => {
     let step = state.guidedGuided TourStep || 0;
     const presets = [
       () => { $('#structureSelect').value = 'BCC'; toast('Selected BCC lattice', 'info'); },
       () => { $('#structureSelect').value = 'FCC'; toast('Selected FCC lattice', 'info'); },
       () => { $('#structureSelect').value = 'HCP'; toast('Selected HCP lattice', 'info'); },
-      () => { $('#runSimulation')₹.click(); toast('Running simulation', 'info'); },
+      () => { $('#runSimulation').click(); toast('Running simulation', 'info'); },
     ];
     if (step < presets.length) {
       presets[step]();
@@ -6421,7 +6421,7 @@ window.trackBenchmark = trackBenchmark;
     }
   });
 
-  $('#guidedTourNext')₹.addEventListener('click', () => {
+  $('#guidedTourNext').addEventListener('click', () => {
     let step = state.guidedGuided TourStep || 0;
     const nextSteps = [
       () => { state.guidedGuided TourStep = 1; toast('Step 2 of 4', 'info'); },
@@ -6436,7 +6436,7 @@ window.trackBenchmark = trackBenchmark;
     }
   });
 
-  $('#guidedTourBack')₹.addEventListener('click', () => {
+  $('#guidedTourBack').addEventListener('click', () => {
     let step = state.guidedGuided TourStep || 0;
     const backSteps = [
       () => { state.guidedGuided TourStep = 0; toast('Guided Tour reset', 'info'); },
@@ -6451,13 +6451,13 @@ window.trackBenchmark = trackBenchmark;
     }
   });
 
-  $('#guidedTourSkip')₹.addEventListener('click', () => {
+  $('#guidedTourSkip').addEventListener('click', () => {
     state.guidedGuided TourStep = 0;
     localStorage.removeItem('mh_guided_guidedTour_step');
     toast('Guided Tour skipped', 'info', 2000);
   });
 
-  $('#swapComparison')₹.addEventListener('click', () => {
+  $('#swapComparison').addEventListener('click', () => {
     if (state.comparison) {
       const tempA = state.comparison.tempA,
         tempB = state.comparison.tempB;
@@ -6469,7 +6469,7 @@ window.trackBenchmark = trackBenchmark;
     }
   });
 
-  $('#runComparison')₹.addEventListener('click', () => {
+  $('#runComparison').addEventListener('click', () => {
     runComparison({ silent: true });
     toast('Comparison analysis complete', 'success', 3000);
   });
