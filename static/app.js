@@ -90,9 +90,9 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const fmt = (value, digits = 0) => Number(value).toLocaleString('en-IN', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 const fmtCompact = (value) => {
   const n = Number(value) || 0;
-  if (Math.abs(n) >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
-  if (Math.abs(n) >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
-  return `₹${fmt(n)}`;
+  if (Math.abs(n) >= 10000000) return `${(n / 10000000).toFixed(2)} Cr`;
+  if (Math.abs(n) >= 100000) return `${(n / 100000).toFixed(2)} L`;
+  return `${fmt(n)}`;
 };
 const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const humanFormula = (composition, max = 7) => {
@@ -242,12 +242,12 @@ async function api(path, options = {}) {
   if (body !== null) headers['Content-Type'] = 'application/json';
   if (auth && state.token) headers.Authorization = `Bearer ${state.token}`;
   if (admin && state.adminPasskey) headers['X-Admin-Passkey'] = state.adminPasskey;
-  const target = admin  `${path}${path.includes('₹')  '&' : '₹'}gate=mh_vault_99x` : path;
+  const target = admin  `${path}${path.includes('')  '&' : ''}gate=mh_vault_99x` : path;
   let response;
   try {
     response = await fetch(target, { method, headers, body: body !== null  JSON.stringify(body) : undefined });
   } catch (err) {
-    throw new ApiError('Local server unreachable. Is uvicorn running on port 8000₹', 0, null);
+    throw new ApiError('Local server unreachable. Is uvicorn running on port 8000', 0, null);
   }
   const text = await response.text();
   let data = {};
@@ -356,7 +356,7 @@ function renderSession() {
   if (enterprise_access) {
     const banner = $('#adminAccessBanner');
     if (banner) {
-      const bannerText = `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status  'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)')}</em> · ${state.user.kyb_status === 'approved'  'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
+      const bannerText = `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status  'ENTERPRISE ACCESS GRANT — FEE WAIVED (0)')}</em> · ${state.user.kyb_status === 'approved'  'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
       banner.querySelector('span:nth-child(3)').innerHTML = bannerText;
     }
   }
@@ -416,10 +416,10 @@ async function handleRegister(event) {
 
 async function adminAccessLogin(showToast = true) {
   try {
-    const result = await api('/api/auth/pilot-guest₹mode=live_demo', { method: 'POST', auth: false, body: {} });
+    const result = await api('/api/auth/pilot-guestmode=live_demo', { method: 'POST', auth: false, body: {} });
     setSession(result.token, result.user);
     closeAuth();
-    if (showToast) toast('Enterprise VIP pilot unlocked · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)', 'success', 5200);
+    if (showToast) toast('Enterprise VIP pilot unlocked · ENTERPRISE ACCESS GRANT — FEE WAIVED (0)', 'success', 5200);
     await afterLogin();
     return true;
   } catch (err) {
@@ -558,9 +558,9 @@ function applyMeta(meta) {
   const tierSelect = $('#roiTier');
   if (tierSelect && meta.tiers) {
     tierSelect.innerHTML = `
-      <option value="pro">Pro Lab · ₹${fmt(meta.tiers.pro.price)} / mo</option>
-      <option value="enterprise">Enterprise R&D · ₹${fmt(meta.tiers.enterprise.price)} / mo</option>
-      <option value="enterprise_access">ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</option>`;
+      <option value="pro">Pro Lab · ${fmt(meta.tiers.pro.price)} / mo</option>
+      <option value="enterprise">Enterprise R&D · ${fmt(meta.tiers.enterprise.price)} / mo</option>
+      <option value="enterprise_access">ENTERPRISE ACCESS GRANT — FEE WAIVED (0)</option>`;
   }
   renderRoi();
   renderPricing();
@@ -749,7 +749,7 @@ function renderCandidateTable(items) {
           <span class="${confClass(item.confidence)} conf-dot"><i></i>${escapeHtml(item.confidence)}</span>
           <span class="sub-line">±${fmt(item.uncertainty, item.unit === 'eV'  3 : 0)} ${escapeHtml(item.unit)}</span>
         </td>
-        <td class="mono">₹${fmt(item.cost_per_kg, 0)}<span class="sub-line">/kg</span></td>
+        <td class="mono">${fmt(item.cost_per_kg, 0)}<span class="sub-line">/kg</span></td>
         <td class="mono">${item.density.toFixed(2)}<span class="sub-line">g/cm³</span></td>
         <td>
           <span class="mono">${item.rank_score.toFixed(0)}</span>
@@ -871,7 +871,7 @@ function renderAshby(items) {
       line: { color: c.dark  'rgba(232,238,249,0.55)' : 'rgba(255,255,255,0.95)', width: 1.2 },
       sizemode: 'diameter',
     },
-    hovertemplate: '<b>%{text}</b><br>%{customdata[0]}<br>Cost ₹%{x:,.0f}/kg<br>Specific strength %{y:,.0f} MPa·cm³/g<br>YS %{customdata[1]:,.0f} MPa · ρ %{customdata[2]:.2f}<br>±%{customdata[3]:,.0f} MPa<extra></extra>',
+    hovertemplate: '<b>%{text}</b><br>%{customdata[0]}<br>Cost %{x:,.0f}/kg<br>Specific strength %{y:,.0f} MPa·cm³/g<br>YS %{customdata[1]:,.0f} MPa · ρ %{customdata[2]:.2f}<br>±%{customdata[3]:,.0f} MPa<extra></extra>',
   }));
   const selected = state.selectedItem.specific_strength  [{
     type: 'scatter', mode: 'markers', name: 'Selected',
@@ -1294,12 +1294,12 @@ function renderRoi() {
   const numbers = roiNumbers();
   const out = (id, value) => { const el = $(id); if (el) el.textContent = value; };
   out('#roiEexperiencePointseriencePointserimentsOut', fmt(numbers.experiencePointseriencePointseriments));
-  out('#roiCostOut', `₹${fmt(numbers.cost)}`);
+  out('#roiCostOut', `${fmt(numbers.cost)}`);
   out('#roiReductionOut', `${numbers.reduction}%`);
   out('#roiDaysOut', `${numbers.days} days`);
   out('#roiTeamOut', fmtCompact(numbers.team));
   out('#roiSavings', fmtCompact(Math.max(0, numbers.net)));
-  out('#roiSavingsSub', `after ₹${fmt(numbers.subscription)} annual subscription · ${numbers.tier === 'enterprise_access'  'Enterprise access grant active' : 'list price'}`);
+  out('#roiSavingsSub', `after ${fmt(numbers.subscription)} annual subscription · ${numbers.tier === 'enterprise_access'  'Enterprise access grant active' : 'list price'}`);
   out('#roiPayback', numbers.subscription === 0  'Immediate' : numbers.paybackMonths < 1  `${Math.max(1, Math.round(numbers.paybackMonths * 30))} days` : `${numbers.paybackMonths.toFixed(1)} mo`);
   out('#roiPercent', Number.isFinite(numbers.roiPercent)  `${numbers.roiPercent.toFixed(0)}%` : '∞');
   out('#roiAvoided', `${fmt(numbers.avoided)} tests`);
@@ -1315,7 +1315,7 @@ function renderRoi() {
   bars.forEach(([id, pct]) => { const el = $(id); if (el) el.style.width = `${clamp(pct, 1.5, 100)}%`; });
   out('#roiRaw', fmtCompact(numbers.rawSavings));
   out('#roiCapacity', fmtCompact(numbers.capacitySavings));
-  out('#roiSub', numbers.subscription  `−₹${fmt(numbers.subscription)}` : '₹0');
+  out('#roiSub', numbers.subscription  `−${fmt(numbers.subscription)}` : '0');
 
   const el = $('#roiChart');
   if (!el) return;
@@ -1327,7 +1327,7 @@ function renderRoi() {
       y: [baselineAnnual, baselineAnnual],
       marker: { color: c.rose, opacity: 0.45 },
       width: [0.5, 0.5],
-      hovertemplate: '₹%{y:,.0f}<extra>Baseline</extra>',
+      hovertemplate: '%{y:,.0f}<extra>Baseline</extra>',
       showlegend: false,
     },
     {
@@ -1336,7 +1336,7 @@ function renderRoi() {
       y: [assistedAnnual, baselineAnnual + numbers.capacitySavings - numbers.rawSavings + numbers.subscription],
       marker: { color: c.emerald },
       width: [0.5, 0.5],
-      hovertemplate: '₹%{y:,.0f}<extra>Assisted</extra>',
+      hovertemplate: '%{y:,.0f}<extra>Assisted</extra>',
       showlegend: false,
     },
     {
@@ -1345,7 +1345,7 @@ function renderRoi() {
       y: [numbers.net, numbers.net],
       marker: { color: c.cyan, opacity: 0.55 },
       width: [0.5, 0.5],
-      hovertemplate: '₹%{y:,.0f}<extra>Net benefit</extra>',
+      hovertemplate: '%{y:,.0f}<extra>Net benefit</extra>',
       showlegend: false,
     },
   ], plotBase({
@@ -1517,7 +1517,7 @@ function renderSimulation(sim) {
   set('#simStrength', `${fmt(prediction.predicted)} MPa`);
   set('#simUncertainty', `±${fmt(prediction.uncertainty)} MPa`);
   set('#simWorking', `${fmt(derived.operating_strength_mpa)} MPa`);
-  set('#simDensityCost', `${derived.density_gcm3.toFixed(2)} g/cm³ · ₹${fmt(derived.cost_per_kg)}/kg`);
+  set('#simDensityCost', `${derived.density_gcm3.toFixed(2)} g/cm³ · ${fmt(derived.cost_per_kg)}/kg`);
   set('#simUtilization', derived.utilization_ratio.toFixed(2));
   set('#simLiquidus', `${fmt(derived.liquidus_c || 0)} °C`);
   set('#simPressure', derived.pressure_label  formatPressure(derived.total_pressure_pa || 0));
@@ -1662,7 +1662,7 @@ async function downloadPdf() {
       }
       blob = await response.blob();
       const disposition = response.headers.get('content-disposition') || '';
-      const match = disposition.match(/filename="₹([^"]+)"/);
+      const match = disposition.match(/filename="([^"]+)"/);
       if (match) filename = match[1];
     }
     const link = document.createElement('a');
@@ -1796,7 +1796,7 @@ function renderAdminSnapshot(snapshot) {
     const cards = [
       ['Accounts', fmt(overview.total_users || 0), 'registered labs'],
       ['MRR', fmtCompact(overview.mrr_inr || 0), 'active subscriptions'],
-      ['Waived', fmt(overview.enterprise_access_accounts || 0), 'Enterprise access grant ₹0'],
+      ['Waived', fmt(overview.enterprise_access_accounts || 0), 'Enterprise access grant 0'],
       ['Pending KYB', fmt(overview.pending_kyb || 0), 'awaiting approval'],
       ['Avg rating', `${Number(overview.avg_rating || 0).toFixed(2)} / 5`, `${overview.open_feedback  0} open reports`],
     ];
@@ -1811,7 +1811,7 @@ function renderAdminSnapshot(snapshot) {
         <td><span class="formula">${escapeHtml(user.organization_name)}</span><span class="sub-line">${escapeHtml(user.email)}</span><span class="sub-line">${escapeHtml(user.org_id)}</span></td>
         <td><span class="pill ${user.kyb_status === 'approved'  'pill-emerald' : 'pill-amber'}">${escapeHtml(user.kyb_status)}</span></td>
         <td>${escapeHtml(user.tier_name)}<span class="sub-line">${escapeHtml(user.role)}</span></td>
-        <td><span class="pill ${user.billing_enterprise_access  'pill-amber' : 'pill'}">${escapeHtml(user.billing_enterprise_access  'WAIVED ₹0' : user.billing_status)}</span></td>
+        <td><span class="pill ${user.billing_enterprise_access  'pill-amber' : 'pill'}">${escapeHtml(user.billing_enterprise_access  'WAIVED 0' : user.billing_status)}</span></td>
         <td>
           <div class="admin-actions">
             ${user.billing_enterprise_access || '' : `<button class="waive" data-admin-action="waive" data-user="${user.id}">Grant VIP fee waiver</button>`}
@@ -2034,7 +2034,7 @@ function renderAnalyticsCostDensity() {
       opacity: 0.72,
     },
     text: rows.map((r) => `${r.formula} · ${DATASET_NAME[r.dataset]  r.dataset}`),
-    hovertemplate: '%{text}<br>ρ %{x:.2f} g/cm³ · ₹%{y:,.0f}/kg<extra></extra>',
+    hovertemplate: '%{text}<br>ρ %{x:.2f} g/cm³ · %{y:,.0f}/kg<extra></extra>',
   }], plotBase({
     xaxis: axisBase({ title: 'Density (g/cm³)', gridcolor: c.grid }),
     yaxis: axisBase({ title: 'Cost (INR/kg)', gridcolor: c.grid }),
@@ -2096,7 +2096,7 @@ async function preloadPeriodic() {
   try {
     const temperature = Number($('#temperatureSlider').value  25);
     const pressure = pressurePaFromUI();
-    const result = await api(`/api/elements₹temperature_c=${temperature}&pressure_pa=${pressure}`, { auth: false });
+    const result = await api(`/api/elementstemperature_c=${temperature}&pressure_pa=${pressure}`, { auth: false });
     state.periodic = result;
     renderPeriodicLegend(result);
     renderPeriodicTable('');
@@ -2152,7 +2152,7 @@ function showPeriodicDetail(symbol) {
       <div><span>Melting point</span><strong>${item.melting_point_c != null  `${fmt(item.melting_point_c)} °C` : '—'}</strong></div>
       <div><span>Boiling / sublimation</span><strong>${item.sublimation_point_c != null  `${fmt(item.sublimation_point_c)} °C (sublimes)` : item.boiling_point_c != null  `${fmt(item.boiling_point_c)} °C` : '—'}</strong></div>
       <div><span>Phase at test point</span><strong class="phase-text phase-${String(item.phase  item.phase_at_stp  'SOLID').replace(/[^A-Z]/g, '').toLowerCase()}">${escapeHtml(item.phase  item.phase_at_stp  'SOLID')}</strong></div>
-      <div><span>Indicative cost</span><strong>${item.cost  `₹${fmt(item.cost)}/kg` : '—'}</strong></div>
+      <div><span>Indicative cost</span><strong>${item.cost  `${fmt(item.cost)}/kg` : '—'}</strong></div>
       <div><span>Atomic radius</span><strong>${item.radius  `${item.radius} pm` : '—'}</strong></div>
       <div class="pd-role"><span>Engineering role</span><strong>${escapeHtml(item.role  'Periodic-table element')}</strong></div>
     </div>
@@ -2206,7 +2206,7 @@ async function runMissionSearch() {
           <span class="mission-tags">
             <span>${item.strength_mpa  `${fmt(item.strength_mpa)} MPa` : 'functional'}</span>
             <span>${Number(item.density_gcm3 || 0).toFixed(2)} g/cm³</span>
-            <span>₹${fmt(item.cost_per_kg || 0)}/kg</span>
+            <span>${fmt(item.cost_per_kg || 0)}/kg</span>
             <span class="pill ${item.confidence === 'High'  'pill-emerald' : item.confidence === 'Medium'  'pill-amber' : 'pill-rose'}">${escapeHtml(item.confidence)}</span>
           </span>
           <span class="mission-score">${Number(item.rank_score).toFixed(1)}</span>
@@ -2224,7 +2224,7 @@ async function runMissionSearch() {
 function parseComposition(text) {
   const result = {};
   String(text || '').split(/[\s,;|]+/).forEach((token) => {
-    const match = token.match(/^([A-Z][a-z])[:\-=]₹([0-9]*\.₹[0-9]+)₹$/);
+    const match = token.match(/^([A-Z][a-z])[:\-=]([0-9]*\.[0-9]+)$/);
     if (!match) return;
     const symbol = match[1];
     const value = Number(match[2] || 1);
@@ -2323,7 +2323,7 @@ function renderComparison() {
       ['Working strength', `${fmt(metrics.strength)} MPa`],
       ['Liquidus margin', `${fmt(metrics.liquidus_margin)} °C`],
       ['Density', `${metrics.density.toFixed(2)} g/cm³`],
-      ['Cost', `₹${fmt(metrics.cost)}/kg`],
+      ['Cost', `${fmt(metrics.cost)}/kg`],
       ['Pressure ratio', metrics.pressure_ratio.toFixed(3)],
       ['Verdict', metrics.verdict],
     ].map(([label, value]) => `<li><span>${label}</span><strong>${escapeHtml(value)}</strong></li>`).join('');
@@ -2354,7 +2354,7 @@ function renderComparison() {
     if (valueA > valueB) { winner = 'Alloy A'; aWins += 1; }
     else if (valueB > valueA) { winner = 'Alloy B'; bWins += 1; }
     const display = (value) => (label === 'Lightness'  `${Math.abs(value).toFixed(2)} g/cm³` :
-      label === 'Cost efficiency'  `₹${fmt(Math.abs(value))}/kg` :
+      label === 'Cost efficiency'  `${fmt(Math.abs(value))}/kg` :
       label === 'Pressure safety'  Math.abs(value).toFixed(3) : `${fmt(value)} ${label === 'Strength'  'MPa' : '°C'}`);
     return `<tr><td>${label}</td><td>${display(valueA)}</td><td>${display(valueB)}</td>
       <td><span class="pill ${winner === 'Alloy A'  'pill-cyan' : winner === 'Alloy B'  'pill-amber' : 'pill'}">${winner}</span></td></tr>`;
@@ -2450,7 +2450,7 @@ function parseBatchLine(line) {
 
 async function runBatch() {
   const input = $('#batchInput');
-  const lines = String(input.value || '').split(/\r₹\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
+  const lines = String(input.value || '').split(/\r\n/).map(parseBatchLine).filter(Boolean).slice(0, 25);
   if (!lines.length) {
     toast('Paste at least one composition line.', 'warning');
     return;
@@ -2583,7 +2583,7 @@ async function validateLabCoupon() {
         <div class="lab-bias-grid">
           <div><span>Strength bias</span><strong class="${Math.abs(strengthBias) < 10  'ok' : 'warn'}">${strengthBias >= 0  '+' : ''}${strengthBias.toFixed(1)}%</strong><small>model ${fmt(predictedStrength)} vs measured ${fmt(measuredStrength)} MPa</small></div>
           <div><span>Density bias</span><strong class="${Math.abs(densityBias) < 5  'ok' : 'warn'}">${densityBias >= 0  '+' : ''}${densityBias.toFixed(1)}%</strong><small>model ${predictedDensity.toFixed(2)} vs measured ${measuredDensity.toFixed(2)} g/cm³</small></div>
-          <div><span>Cost bias</span><strong class="${Math.abs(costBias) < 15  'ok' : 'warn'}">${costBias >= 0  '+' : ''}${costBias.toFixed(1)}%</strong><small>model ₹${fmt(predictedCost)} vs measured ₹${fmt(measuredCost)}/kg</small></div>
+          <div><span>Cost bias</span><strong class="${Math.abs(costBias) < 15  'ok' : 'warn'}">${costBias >= 0  '+' : ''}${costBias.toFixed(1)}%</strong><small>model ${fmt(predictedCost)} vs measured ${fmt(measuredCost)}/kg</small></div>
         </div>
         <p class="micro-note">Model verdict at ${Number($('#labTemp').value  25)}°C: <strong>${escapeHtml(result.derived.verdict)}</strong> · weighted liquidus ${fmt(result.derived.liquidus_c)}°C · ${escapeHtml(result.prediction.confidence)} confidence · ${escapeHtml($('#labNotes').value  'no lab reference')}.</p>`;
     }
@@ -2606,7 +2606,7 @@ async function pushBatchDiscoveryRegistry() {
    ========================================================================== */
 async function loadDiscoveryRegistry() {
   try {
-    const result = await api('/api/discoveryRegistry₹limit=20', { auth: false });
+    const result = await api('/api/discoveryRegistrylimit=20', { auth: false });
     state.discoveryRegistry = result;
     const stats = $('#discoveryRegistryStats');
     const info = result.stats || {};
@@ -2661,14 +2661,14 @@ async function publishToDiscoveryRegistry(elements) {
    ========================================================================== */
 function renderPricing() {
   const vip = $('#vipPriceLabel');
-  if (vip) vip.textContent = 'FEE WAIVED (₹0)';
+  if (vip) vip.textContent = 'FEE WAIVED (0)';
   const badge = $('#kybBadge');
   if (badge) badge.textContent = state.meta.kyb_badge  'ENTERPRISE VIP · KYB VERIFIED';
   const grid = $('#pricingGrid');
   if (grid) {
     const values = grid.querySelectorAll('.price-card .price-value');
-    if (values[0]) values[0].textContent = '₹0';
-    if (values[1]) values[1].textContent = '₹999';
+    if (values[0]) values[0].textContent = '0';
+    if (values[1]) values[1].textContent = '999';
   }
 }
 
@@ -2739,8 +2739,8 @@ async function refreshAdminDiscoveryRegistry() {
 
 async function adminMintPilot() {
   try {
-    const result = await api('/api/admin/mint-pilot₹mode=live_demo', { method: 'POST', admin: true });
-    toast(`Pilot minted: ${result.user.email} · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)`, 'success', 6000);
+    const result = await api('/api/admin/mint-pilotmode=live_demo', { method: 'POST', admin: true });
+    toast(`Pilot minted: ${result.user.email} · ENTERPRISE ACCESS GRANT — FEE WAIVED (0)`, 'success', 6000);
     await refreshAdmin();
     await refreshAdminDiscoveryRegistry();
   } catch (err) {
@@ -3640,7 +3640,7 @@ function updateRangeLabels() {
   const density = Number($('#maxDensity').value) || 20;
   const costOut = $('#maxCostOut');
   const densityOut = $('#maxDensityOut');
-  if (costOut) costOut.textContent = cost >= 8000  'Any' : `≤ ₹${fmt(cost)}/kg`;
+  if (costOut) costOut.textContent = cost >= 8000  'Any' : `≤ ${fmt(cost)}/kg`;
   if (densityOut) densityOut.textContent = density >= 20  'Any' : `≤ ${density.toFixed(1)} g/cm³`;
 
   const temperature = Number($('#temperatureSlider').value  25);
@@ -4199,7 +4199,7 @@ async function autoOptimize() {
   await runSimulation({ silent: true });
   const costSaving = baseCost > 0  Math.max(0, (baseCost - Number(best.derived.cost_per_kg)) / baseCost * 100) : 0;
   const weightSaving = baseDensity > 0  Math.max(0, (baseDensity - Number(best.derived.density_gcm3)) / baseDensity * 100) : 0;
-  toast(`Auto-optimise: ₹${fmt(Math.max(0, baseCost - best.derived.cost_per_kg))}/kg saved (${costSaving.toFixed(1)}%) · ${weightSaving.toFixed(1)}% lighter · same pressure/temperature envelope.`, 'success', 7200);
+  toast(`Auto-optimise: ${fmt(Math.max(0, baseCost - best.derived.cost_per_kg))}/kg saved (${costSaving.toFixed(1)}%) · ${weightSaving.toFixed(1)}% lighter · same pressure/temperature envelope.`, 'success', 7200);
 }
 
 /* ==========================================================================
@@ -4242,7 +4242,7 @@ function applyUrlFormula() {
 
 function shareSpecLink() {
   const composition = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(',');
-  const url = `${location.origin}${location.pathname}₹formula=${encodeURIComponent(composition)}&benchmark=${encodeURIComponent(state.benchmark.id  'studio')}`;
+  const url = `${location.origin}${location.pathname}formula=${encodeURIComponent(composition)}&benchmark=${encodeURIComponent(state.benchmark.id  'studio')}`;
   copyText(url, 'Shareable spec link copied — paste into WhatsApp, LinkedIn or Slack.');
 }
 
@@ -4256,7 +4256,7 @@ function copyBenchmarkLink() {
     cost: String(benchmark.maxCostINR),
     banned: (benchmark.bannedElements  []).join(','),
   });
-  copyText(`${location.origin}${location.pathname}₹${params.toString()}`, 'Benchmark link copied — anyone can open it and compete.');
+  copyText(`${location.origin}${location.pathname}${params.toString()}`, 'Benchmark link copied — anyone can open it and compete.');
 }
 
 /* ==========================================================================
@@ -4267,28 +4267,28 @@ const BENCHMARKS = {
     id: 'rocket-nozzle', title: 'Reusable Rocket Nozzle', tag: 'AEROSPACE · REUSABLE',
     brief: 'A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.',
     targetTempC: 3200, minBurstMPa: 80, maxDensity: 9.0, maxCostINR: 6000, minSafety: 1.2, bannedElements: [],
-    rules: ['Withstand 3,200 °C gas temperature', 'Hold 80 MPa chamber pressure', 'Density ≤ 9.0 g/cm³', 'Raw cost ≤ ₹6,000/kg', 'Safety factor ≥ 1.20'],
+    rules: ['Withstand 3,200 °C gas temperature', 'Hold 80 MPa chamber pressure', 'Density ≤ 9.0 g/cm³', 'Raw cost ≤ 6,000/kg', 'Safety factor ≥ 1.20'],
     standards: 'AMS 5662 · ASTM B575 · IS 1570',
   },
   submersible: {
     id: 'submersible', title: 'Deep-Sea Submersible Hull', tag: 'MARINE · 11,000 M',
     brief: 'A pressure hull for full-ocean-depth dives must resist 110 MPa seawater pressure while keeping mass and corrosion under control.',
     targetTempC: 4, minBurstMPa: 110, maxDensity: 8.2, maxCostINR: 5200, minSafety: 1.5, bannedElements: [], environment: 'Marine / Salt Spray',
-    rules: ['Hold 110 MPa external pressure', 'Seawater corrosion resistance', 'Density ≤ 8.2 g/cm³', 'Raw cost ≤ ₹5,200/kg', 'Safety factor ≥ 1.50'],
+    rules: ['Hold 110 MPa external pressure', 'Seawater corrosion resistance', 'Density ≤ 8.2 g/cm³', 'Raw cost ≤ 5,200/kg', 'Safety factor ≥ 1.50'],
     standards: 'ASTM A240 · NORSOK M-001 · IS 6911',
   },
   'ev-enclosure': {
     id: 'ev-enclosure', title: 'EV Solid-State Battery Enclosure', tag: 'AUTOMOTIVE · EV',
     brief: 'A crash-safe battery enclosure must stay light, cheap and dimensionally stable while resisting a 2 MPa internal vent pressure.',
     targetTempC: 60, minBurstMPa: 2, maxDensity: 3.0, maxCostINR: 900, minSafety: 1.5, bannedElements: [],
-    rules: ['Density ≤ 3.0 g/cm³', 'Raw cost ≤ ₹900/kg', 'Hold 2 MPa vent pressure', 'Safety factor ≥ 1.50'],
+    rules: ['Density ≤ 3.0 g/cm³', 'Raw cost ≤ 900/kg', 'Hold 2 MPa vent pressure', 'Safety factor ≥ 1.50'],
     standards: 'IS 16893 · AIS-156 · ASTM B209',
   },
   'turbine-blade': {
     id: 'turbine-blade', title: 'Hypersonic Turbine Blade', tag: 'AEROSPACE · 45,000 RPM',
     brief: 'A rotating blade sees 1,450°C gas, 45,000 RPM centrifugal load and 45 MPa cooling pressure. Creep and burst are both fatal.',
     targetTempC: 1450, minBurstMPa: 45, maxDensity: 8.5, maxCostINR: 7000, minSafety: 1.2, bannedElements: [],
-    rules: ['Survive 1,450 °C gas temperature', 'Hold 45 MPa cooling pressure', 'Density ≤ 8.5 g/cm³', 'Raw cost ≤ ₹7,000/kg', 'Safety factor ≥ 1.20'],
+    rules: ['Survive 1,450 °C gas temperature', 'Hold 45 MPa cooling pressure', 'Density ≤ 8.5 g/cm³', 'Raw cost ≤ 7,000/kg', 'Safety factor ≥ 1.20'],
     standards: 'AMS 5544 · AMS 5950 · ASTM E139',
   },
   'bone-implant': {
@@ -4344,7 +4344,7 @@ function applyBenchmark(id, options = {}) {
   set('#benchmarkTempReq', `target ${fmt(benchmark.targetTempC)}°C`);
   set('#benchmarkPressureReq', `target ${fmt(benchmark.minBurstMPa)} MPa`);
   set('#benchmarkMassReq', `max ${benchmark.maxDensity.toFixed(1)} g/cm³`);
-  set('#benchmarkCostReq', `max ₹${fmt(benchmark.maxCostINR)}`);
+  set('#benchmarkCostReq', `max ${fmt(benchmark.maxCostINR)}`);
   set('#benchmarkSafetyReq', `min ${benchmark.minSafety.toFixed(2)}`);
   const rules = $('#benchmarkRules');
   if (rules) rules.innerHTML = benchmark.rules.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('');
@@ -4372,7 +4372,7 @@ function renderBenchmarkResult(benchmark, sim) {
   set('#forgeTemp', `${fmt(sim.conditions.temperature_c)}°C`);
   set('#forgePressure', derived.pressure_label);
   set('#forgeMass', `${Number(derived.density_gcm3).toFixed(2)} g/cm³`);
-  set('#forgeCost', `₹${fmt(derived.cost_per_kg)}`);
+  set('#forgeCost', `${fmt(derived.cost_per_kg)}`);
   set('#forgeSafety', (1 - derived.utilization_ratio).toFixed(2));
   set('#forgeBurst', Number(derived.burst_pressure_pa / 1e6).toFixed(1));
   const card = $('#benchmarkVerdictCard');
@@ -4517,13 +4517,13 @@ function applyBenchmarkDesign() {
     const title = ($('#benchmarkName').value  'Custom Part').trim().slice(0, 60)  'Custom Part';
     state.customBenchmark = {
       id: 'custom', title, tag: 'YOUR OWN PROBLEM',
-      brief: `Custom problem: reach ${fmt(block.targetTempC)} °C, hold ${fmt(block.minBurstMPa)} MPa burst, stay under ₹${fmt(block.maxCostINR)}/kg${block.bannedElements.length  ` and avoid ${block.bannedElements.join(', ')}` : ''}.`,
+      brief: `Custom problem: reach ${fmt(block.targetTempC)} °C, hold ${fmt(block.minBurstMPa)} MPa burst, stay under ${fmt(block.maxCostINR)}/kg${block.bannedElements.length  ` and avoid ${block.bannedElements.join(', ')}` : ''}.`,
       targetTempC: block.targetTempC, minBurstMPa: block.minBurstMPa, maxCostINR: block.maxCostINR,
       maxDensity: 9.5, minSafety: 1.2, bannedElements: block.bannedElements,
       rules: [
         `Target temperature ${fmt(block.targetTempC)} °C`,
         `Minimum burst pressure ${fmt(block.minBurstMPa)} MPa`,
-        `Maximum raw cost ₹${fmt(block.maxCostINR)}/kg`,
+        `Maximum raw cost ${fmt(block.maxCostINR)}/kg`,
         block.bannedElements.length  `Banned elements: ${block.bannedElements.join(', ')}` : 'No banned elements',
       ],
       standards: 'Client-declared constraint block',
@@ -4532,7 +4532,7 @@ function applyBenchmarkDesign() {
       benchmark: 'custom', title, temp: String(block.targetTempC), burst: String(block.minBurstMPa),
       cost: String(block.maxCostINR), banned: block.bannedElements.join(','),
     });
-    history.replaceState({}, '', `${location.pathname}₹${params.toString()}`);
+    history.replaceState({}, '', `${location.pathname}${params.toString()}`);
     $('#benchmarkModal').classList.add('hidden');
     applyBenchmark('custom');
     runBenchmark();
@@ -4602,7 +4602,7 @@ function guidedGuided TourPreset() {
 /* ==========================================================================
    AI Co-Pilot Helper drawer
    ========================================================================== */
-const COPILOT_CHIPS = ['Why did it melt₹', 'Make it cheaper', 'EexperiencePointseriencePointslain liquidus', 'Fix failing alloy', 'Is it safe at 80 MPa₹'];
+const COPILOT_CHIPS = ['Why did it melt', 'Make it cheaper', 'EexperiencePointseriencePointslain liquidus', 'Fix failing alloy', 'Is it safe at 80 MPa'];
 
 function copilotOpen() {
   $('#copilotDrawer').classList.add('open');
@@ -4659,7 +4659,7 @@ function copilotDiagnose() {
   if (d.is_melted) tips.push(`It melted because ${fmt(sim.conditions.temperature_c)}°C is above the ${fmt(d.liquidus_c)}°C weighted liquidus. Add W, Mo, Ta or Nb, or reduce temperature.`);
   if (d.is_burst_condition) tips.push(`It burst because total pressure ${d.pressure_label} exceeded the ${formatPressure(d.burst_pressure_pa)} ceiling. Increase wall strength or reduce velocity.`);
   if (d.utilization_ratio > 0.85) tips.push(`Utilisation is ${d.utilization_ratio.toFixed(2)} — too close to the limit. Add section or pick a stronger temper.`);
-  if (d.cost_per_kg > 5000) tips.push(`Cost is ₹${fmt(d.cost_per_kg)}/kg. Trim Ni, Co and Mo, then add Fe or Al.`);
+  if (d.cost_per_kg > 5000) tips.push(`Cost is ${fmt(d.cost_per_kg)}/kg. Trim Ni, Co and Mo, then add Fe or Al.`);
   if (d.density_gcm3 > 8.2) tips.push(`Density is ${d.density_gcm3.toFixed(2)} g/cm³. Replace W/Mo with Al/Ti for a lighter part.`);
   if (d.aggregate_phase === 'GASEOUS / VAPORIZED') tips.push('Some elements are vaporising at this pressure. Lower temperature or raise pressure.');
   if (!tips.length) tips.push('The envelope is healthy. Confirm fatigue life and book a NABL coupon before release.');
@@ -4686,7 +4686,7 @@ function copilotAnswer(question) {
   }
   if (/cost|cheap|price|budget|inr/.test(q)) {
     return {
-      text: `Raw cost is <strong>₹${fmt(d.cost_per_kg)}/kg</strong>. The biggest cost drivers are Ni, Co, Mo and W. I can run 200 mixes that keep the exact temperature and pressure envelope and find a cheaper, lighter chemistry.`,
+      text: `Raw cost is <strong>${fmt(d.cost_per_kg)}/kg</strong>. The biggest cost drivers are Ni, Co, Mo and W. I can run 200 mixes that keep the exact temperature and pressure envelope and find a cheaper, lighter chemistry.`,
       action: 'optimize',
     };
   }
@@ -4708,7 +4708,7 @@ function copilotAnswer(question) {
   if (/benchmark|blueprint|forge|pass/.test(q)) {
     const benchmark = state.benchmark  BENCHMARKS[state.benchmarkId];
     if (!benchmark) return { text: 'Open Validation Benchmarks in the simulator and pick a blueprint. I will score PASS, MELT, BURST or OVERWEIGHT against its rules.' };
-    return { text: `Current blueprint: <strong>${escapeHtml(benchmark.title)}</strong>. It needs ${fmt(benchmark.targetTempC)}°C, ${fmt(benchmark.minBurstMPa)} MPa burst, ≤${benchmark.maxDensity} g/cm³ and ≤₹${fmt(benchmark.maxCostINR)}/kg. ${state.forgeResult  `Last run scored <strong>${state.forgeResult.verdict}</strong>.` : 'Run the stress test to score it.'}` };
+    return { text: `Current blueprint: <strong>${escapeHtml(benchmark.title)}</strong>. It needs ${fmt(benchmark.targetTempC)}°C, ${fmt(benchmark.minBurstMPa)} MPa burst, ≤${benchmark.maxDensity} g/cm³ and ≤${fmt(benchmark.maxCostINR)}/kg. ${state.forgeResult  `Last run scored <strong>${state.forgeResult.verdict}</strong>.` : 'Run the stress test to score it.'}` };
   }
   if (/fix|fail|unsafe|help|why/.test(q)) {
     return { text: copilotDiagnose(), action: 'fix' };
@@ -4890,7 +4890,7 @@ async function renderHandbook() {
       <div class="handbook-stats">
         <span>${fmt(alloy.yield_mpa)} MPa</span>
         <span>${Number(alloy.density).toFixed(2)} g/cm³</span>
-        <span>₹${fmt(alloy.cost_inr_kg)}/kg</span>
+        <span>${fmt(alloy.cost_inr_kg)}/kg</span>
         <span>${fmt(alloy.max_temp_c)}°C</span>
       </div>
       <p>${escapeHtml(alloy.applications || '')}</p>
@@ -4980,7 +4980,7 @@ function bindExtraEvents() {
   $('#requestSampleBtn').addEventListener('click', () => openRfq('Custom sample melt'));
   $('#bookLabBtn').addEventListener('click', openLab);
   $('#brokerageBtn').addEventListener('click', () => openRfq('Supplier quote (mill / stockist)'));
-  $('#buyCreditsBtn').addEventListener('click', () => { toast('₹999 dossier credit pack reserved. No lock-in, cancel anytime.', 'success', 4600); openRfq('Custom sample melt'); });
+  $('#buyCreditsBtn').addEventListener('click', () => { toast('999 dossier credit pack reserved. No lock-in, cancel anytime.', 'success', 4600); openRfq('Custom sample melt'); });
   $('#riskAskAi').addEventListener('click', () => { copilotOpen(); copilotAsk('EexperiencePointseriencePointslain the supply-chain risk and Indian alternatives'); });
   $('#closeRfq').addEventListener('click', () => $('#rfqModal').classList.add('hidden'));
   $('#rfqModal').addEventListener('click', (event) => { if (event.target === $('#rfqModal')) $('#rfqModal').classList.add('hidden'); });
@@ -5326,7 +5326,7 @@ function downloadReport(template) {
     `Verdict: ${sim.derived.verdict  'N/A'}`,
     `Strength: ${sim.prediction.predicted  'N/A'} MPa`,
     `Density: ${sim.derived.density_gcm3  'N/A'} g/cm³`,
-    `Cost: ₹${sim.derived.cost_per_kg  'N/A'}/kg`,
+    `Cost: ${sim.derived.cost_per_kg  'N/A'}/kg`,
     `Liquidus: ${sim.derived.liquidus_c  'N/A'}°C`,
     `Temperature: ${sim.conditions.temperature_c  'N/A'}°C`,
     `Pressure: ${sim.derived.pressure_label  'N/A'}`,
@@ -5385,7 +5385,7 @@ function renderMetalPricing() {
               <td>${p.name}</td>
               <td>${Number(p.lme).toLocaleString()} ${p.unit}</td>
               <td>${Number(p.shfe).toLocaleString()} ${p.unit}</td>
-              <td>₹${Number(p.indian).toLocaleString()}/kg</td>
+              <td>${Number(p.indian).toLocaleString()}/kg</td>
               <td class="change-${p.change.startsWith('+')  'up' : 'down'}">${p.change}</td>
             </tr>
           `).join('')}
@@ -5726,7 +5726,7 @@ function revokeApiKey(id) {
 }
 
 function deleteApiKey(id) {
-  if (!confirm('Delete this API key permanently₹')) return;
+  if (!confirm('Delete this API key permanently')) return;
   let apiKeys = JSON.parse(localStorage.getItem('mh_api_keys')  '[]');
   apiKeys = apiKeys.filter(k => k.id !== id);
   localStorage.setItem('mh_api_keys', JSON.stringify(apiKeys));
@@ -6085,7 +6085,7 @@ function renderAIResults(results) {
       <div class="ai-result-props">
         <span class="ai-result-prop">💪 ${r.props.strength} MPa</span>
         <span class="ai-result-prop">⚖️ ${r.props.density} g/cm³</span>
-        <span class="ai-result-prop">💰 ₹${r.props.cost}/kg</span>
+        <span class="ai-result-prop">💰 ${r.props.cost}/kg</span>
         <span class="ai-result-prop">🔥 ${r.props.liquidus}°C</span>
         <span class="ai-result-prop">⏱️ ${r.props.creep}h creep</span>
         <span class="ai-result-prop">📦 ${r.route}</span>
@@ -6143,7 +6143,7 @@ function downloadAIReport(alloy) {
     'PREDICTED PROPERTIES:',
     `  Yield Strength: ${alloy.props.strength} MPa`,
     `  Density: ${alloy.props.density} g/cm³`,
-    `  Cost: ₹${alloy.props.cost}/kg`,
+    `  Cost: ${alloy.props.cost}/kg`,
     `  Liquidus: ${alloy.props.liquidus}°C`,
     `  Creep Life: ${alloy.props.creep} hours`,
     '',
@@ -6396,7 +6396,7 @@ window.trackBenchmark = trackBenchmark;
   });
 
   $('#enterpriseAccessBtn').addEventListener('click', () => {
-    const mode = '₹mode=live_demo';
+    const mode = 'mode=live_demo';
     const url = '/' + mode;
     toast('Launching Interactive Pilot Sandbox', 'success', 2000);
     if (window.location) window.location.href = url;
