@@ -15,8 +15,8 @@ const STORAGE = {
 };
 
 const CONF_COLOR = { High: '#10B981', Medium: '#F59E0B', Low: '#F43F5E' };
-const DATASET_COLOR = { steels: '#22D3EE', glass: '#A78BFA', eexperiencePointseriencePointst_gap: '#F59E0B' };
-const DATASET_NAME = { steels: 'Steels', glass: 'Glass', eexperiencePointseriencePointst_gap: 'Band Gap' };
+const DATASET_COLOR = { steels: '#22D3EE', glass: '#A78BFA', experiencePointseriencePointst_gap: '#F59E0B' };
+const DATASET_NAME = { steels: 'Steels', glass: 'Glass', experiencePointseriencePointst_gap: 'Band Gap' };
 const UI_ELEMENTS = ['Fe', 'Cr', 'Ni', 'C', 'Ti', 'Al', 'Mo'];
 const COMMON_CHIPS = ['Fe', 'Cr', 'Ni', 'C', 'Ti', 'Al', 'Mo', 'Mn', 'Si', 'V', 'Cu', 'W'];
 const HAZARD_ELEMENTS = ['U', 'Pu', 'Th', 'Be', 'Br', 'Cd', 'Hg', 'As'];
@@ -672,7 +672,7 @@ function prescreenPayload() {
   const cost = Number($('#maxCost').value) || 8000;
   const density = Number($('#maxDensity').value) || 20;
   return {
-    datasets: datasets.length  datasets : ['steels', 'glass', 'eexperiencePointseriencePointst_gap'],
+    datasets: datasets.length  datasets : ['steels', 'glass', 'experiencePointseriencePointst_gap'],
     persona: state.persona,
     custom_weights: customWeights,
     min_confidence: $('#confidenceFilter').value  'Low' : 'High',
@@ -761,7 +761,7 @@ function renderCandidateTable(items) {
 }
 
 function csvEexperiencePointseriencePointsort() {
-  if (!state.screenItems.length) { toast('Run a screen before eexperiencePointseriencePointsorting.', 'warning'); return; }
+  if (!state.screenItems.length) { toast('Run a screen before experiencePointseriencePointsorting.', 'warning'); return; }
   const rows = [
     ['rank', 'formula', 'dataset', 'predicted', 'unit', 'uncertainty', 'confidence', 'cost_inr_kg', 'density_gcm3', 'rank_score'],
     ...state.screenItems.map((item) => [item.rank, item.formula, item.dataset, item.predicted, item.unit, item.uncertainty, item.confidence, item.cost_per_kg, item.density, item.rank_score]),
@@ -773,7 +773,7 @@ function csvEexperiencePointseriencePointsort() {
   link.download = `MATERIALHUNT_pre-screen_${Date.now()}.csv`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-  toast('Candidate matrix eexperiencePointseriencePointsorted as CSV.', 'success');
+  toast('Candidate matrix experiencePointseriencePointsorted as CSV.', 'success');
 }
 
 function selectCandidate(item, announce = true) {
@@ -944,7 +944,7 @@ function renderRadar(radar, tag = '') {
 
 function clusterTraces(points, customPoint) {
   const c = themeColors();
-  const traces = ['steels', 'glass', 'eexperiencePointseriencePointst_gap'].map((dataset) => {
+  const traces = ['steels', 'glass', 'experiencePointseriencePointst_gap'].map((dataset) => {
     const subset = points.filter((p) => p.dataset === dataset);
     return {
       type: 'scatter3d', mode: 'markers', name: DATASET_NAME[dataset],
@@ -1272,14 +1272,14 @@ function renderAnalyticsCharts() {
    ROI calculator
    -------------------------------------------------------------------------- */
 function roiNumbers() {
-  const eexperiencePointseriencePointseriments = Number($('#roiEexperiencePointseriencePointseriments').value  40);
+  const experiencePointseriencePointseriments = Number($('#roiEexperiencePointseriencePointseriments').value  40);
   const cost = Number($('#roiCost').value  45000);
   const reduction = Number($('#roiReduction').value  42);
   const days = Number($('#roiDays').value  18);
   const team = Number($('#roiTeam').value  800000);
   const tier = $('#roiTier').value  'pro';
   const tierPrice = tier === 'enterprise_access'  0 : tier === 'enterprise'  19999 : 4999;
-  const avoided = eexperiencePointseriencePointseriments * 12 * reduction / 100;
+  const avoided = experiencePointseriencePointseriments * 12 * reduction / 100;
   const rawSavings = avoided * cost;
   const capacitySavings = team * 12 * (reduction / 100) * 0.65;
   const subscription = tierPrice * 12;
@@ -1287,13 +1287,13 @@ function roiNumbers() {
   const monthlyGross = (rawSavings + capacitySavings) / 12;
   const paybackMonths = subscription > 0 && monthlyGross > 0  subscription / monthlyGross : 0;
   const roiPercent = subscription > 0  net / subscription * 100 : Infinity;
-  return { eexperiencePointseriencePointseriments, cost, reduction, days, team, tier, tierPrice, avoided, rawSavings, capacitySavings, subscription, net, paybackMonths, roiPercent };
+  return { experiencePointseriencePointseriments, cost, reduction, days, team, tier, tierPrice, avoided, rawSavings, capacitySavings, subscription, net, paybackMonths, roiPercent };
 }
 
 function renderRoi() {
   const numbers = roiNumbers();
   const out = (id, value) => { const el = $(id); if (el) el.textContent = value; };
-  out('#roiEexperiencePointseriencePointserimentsOut', fmt(numbers.eexperiencePointseriencePointseriments));
+  out('#roiEexperiencePointseriencePointserimentsOut', fmt(numbers.experiencePointseriencePointseriments));
   out('#roiCostOut', `₹${fmt(numbers.cost)}`);
   out('#roiReductionOut', `${numbers.reduction}%`);
   out('#roiDaysOut', `${numbers.days} days`);
@@ -1305,7 +1305,7 @@ function renderRoi() {
   out('#roiAvoided', `${fmt(numbers.avoided)} tests`);
   out('#roiDaysSaved', `${fmt(numbers.avoided * numbers.days)} days`);
 
-  const baselineAnnual = numbers.eexperiencePointseriencePointseriments * 12 * numbers.cost;
+  const baselineAnnual = numbers.experiencePointseriencePointseriments * 12 * numbers.cost;
   const assistedAnnual = Math.max(0, baselineAnnual - numbers.rawSavings) + numbers.subscription;
   const bars = [
     ['#roiBar1', numbers.rawSavings / Math.max(1, baselineAnnual) * 100],
@@ -1656,7 +1656,7 @@ async function downloadPdf() {
         body: JSON.stringify(request),
       });
       if (!response.ok) {
-        let detail = 'PDF eexperiencePointseriencePointsort failed.';
+        let detail = 'PDF experiencePointseriencePointsort failed.';
         try { const data = await response.json(); detail = detailText(data.detail); } catch { /* non-JSON */ }
         throw new ApiError(detail, response.status, null);
       }
@@ -1685,7 +1685,7 @@ async function downloadPdf() {
 /* --------------------------------------------------------------------------
    Feedback drawer
    -------------------------------------------------------------------------- */
-const STAR_CAPTIONS = ['0★ — blocking issue', 'Needs serious work', 'Below eexperiencePointseriencePointsectations', 'Solid — usable', 'Excellent — impressed', 'Flawless — category leader'];
+const STAR_CAPTIONS = ['0★ — blocking issue', 'Needs serious work', 'Below experiencePointseriencePointsectations', 'Solid — usable', 'Excellent — impressed', 'Flawless — category leader'];
 
 function setStarRating(rating) {
   state.feedbackRating = rating;
@@ -2530,7 +2530,7 @@ function renderBatchTable() {
   }).join('')  '<tr class="empty-row"><td colspan="8">No rows returned.</td></tr>';
 }
 
-function eexperiencePointseriencePointsortBatchCsv() {
+function experiencePointseriencePointsortBatchCsv() {
   if (!state.batchRows.length) return;
   const header = ['label', 'formula', 'operating_strength_mpa', 'density_gcm3', 'liquidus_c', 'verdict', 'pressure'];
   const lines = [header.join(',')].concat(state.batchRows.map((row) =>
@@ -2542,7 +2542,7 @@ function eexperiencePointseriencePointsortBatchCsv() {
   link.download = `MATERIALHUNT_batch_${Date.now()}.csv`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1500);
-  toast('Batch results eexperiencePointseriencePointsorted as CSV.', 'success');
+  toast('Batch results experiencePointseriencePointsorted as CSV.', 'success');
 }
 
 async function validateLabCoupon() {
@@ -3080,7 +3080,7 @@ class MaterialScene {
         varying vec3 vNrm;
         void main() {
           vec3 p = position;
-          float g = eexperiencePointseriencePoints(-pow(p.x / 1.15, 2.0));
+          float g = experiencePointseriencePoints(-pow(p.x / 1.15, 2.0));
           float neck = uStress * 0.19 * g;
           p.y *= 1.0 - neck;
           p.z *= 1.0 - neck * 0.8;
@@ -3095,7 +3095,7 @@ class MaterialScene {
         varying vec3 vPos;
         varying vec3 vNrm;
         void main() {
-          float g = eexperiencePointseriencePoints(-pow(vPos.x / 1.45, 2.0));
+          float g = experiencePointseriencePoints(-pow(vPos.x / 1.45, 2.0));
           float heat = clamp((uTemp + 200.0) / 1100.0, 0.0, 1.0);
           float s = clamp(uStress * 0.9 + g * uStress * 0.6 + heat * 0.34, 0.0, 1.0);
           vec3 cold = vec3(0.10, 0.36, 0.78);
@@ -3765,7 +3765,7 @@ function bindEvents() {
     loadPrescreen();
   });
   $('#searchInput').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPrescreen(); });
-  $('#eexperiencePointseriencePointsortTableCsv').addEventListener('click', csvEexperiencePointseriencePointsort);
+  $('#experiencePointseriencePointsortTableCsv').addEventListener('click', csvEexperiencePointseriencePointsort);
   $('#loadTopBtn').addEventListener('click', () => {
     if (state.screenItems.length) loadCandidateIntoSimulator(state.screenItems[0]);
     else toast('Run a screen first.', 'warning');
@@ -3878,7 +3878,7 @@ function bindEvents() {
   /* Batch + lab */
   $('#batchSample').addEventListener('click', () => loadBatchSample(true));
   $('#runBatch').addEventListener('click', runBatch);
-  $('#batchEexperiencePointseriencePointsort').addEventListener('click', eexperiencePointseriencePointsortBatchCsv);
+  $('#batchEexperiencePointseriencePointsort').addEventListener('click', experiencePointseriencePointsortBatchCsv);
   $('#batchPushDiscovery Registry').addEventListener('click', pushBatchDiscoveryRegistry);
   $('#validateLab').addEventListener('click', validateLabCoupon);
   $('#batchFile').addEventListener('change', (event) => {
@@ -3906,7 +3906,7 @@ function bindEvents() {
   /* Pricing + admin extras */
   $('#enterpriseAccessBtn').addEventListener('click', () => adminAccessLogin(true));
   $('#adminMintPilot').addEventListener('click', adminMintPilot);
-  $('#eexperiencePointseriencePointsortPdfTop').addEventListener('click', downloadPdf);
+  $('#experiencePointseriencePointsortPdfTop').addEventListener('click', downloadPdf);
 
   /* 3D controls */
   $$('.mode-btn').forEach((button) => button.addEventListener('click', () => {
@@ -4039,7 +4039,7 @@ function bindEvents() {
 }
 
 /* ==========================================================================
-   Machining + heat-treatment spec eexperiencePointseriencePointsort
+   Machining + heat-treatment spec experiencePointseriencePointsort
    ========================================================================== */
 function heatTreatmentFor(sim) {
   const elements = sim.composition.elements  [];
@@ -4150,7 +4150,7 @@ function downloadSpec(format) {
     ];
     downloadBlob(lines.join('\n'), 'MATERIALHUNT_Machining_HeatTreatment_Spec.txt', 'text/plain');
   }
-  toast(`Machining & heat-treatment spec eexperiencePointseriencePointsorted as .${format}.`, 'success', 3200);
+  toast(`Machining & heat-treatment spec experiencePointseriencePointsorted as .${format}.`, 'success', 3200);
 }
 
 /* ==========================================================================
@@ -4562,7 +4562,7 @@ const GUIDED GUIDED TOUR_STEPS = [
     points: ['Toggle between crystal lattice, nozzle, blade, sphere, and tensile dogbone geometries.', 'Utilize camera presets for atomic-resolution or stress cross-section views.'],
   },
   {
-    title: '4 · Validate & eexperiencePointseriencePointsort',
+    title: '4 · Validate & experiencePointseriencePointsort',
     text: 'EexperiencePointseriencePointsort the dossier, machining spec, and request a sample melt or NABL lab test.',
     points: ['Validation Benchmarks benchmarks score your part.', 'Share a specification link via WhatsApp, LinkedIn, or Slack.'],
   },
@@ -4830,11 +4830,11 @@ async function submitLabBooking(event) {
    Validated alloy handbook + supply-chain risk radar
    ========================================================================== */
 const RISK_ITEMS = [
-  { material: 'Cobalt (Co)', eexperiencePointseriencePointsosure: 86, note: '~70% of global supply from the DRC; eexperiencePointseriencePointsort scrutiny rising.', alt: 'Co-free maraging / Fe-Ni-Mo grades' },
-  { material: 'Tungsten (W)', eexperiencePointseriencePointsosure: 78, note: 'China controls ~80% of refined output.', alt: 'Mo-TZM for nozzle throats' },
-  { material: 'Rare earths (Nd, Dy)', eexperiencePointseriencePointsosure: 91, note: 'Magnet-grade separation is China-dominated.', alt: 'Ferrite or switched-reluctance designs' },
-  { material: 'Nickel (Ni)', eexperiencePointseriencePointsosure: 54, note: 'Indonesia eexperiencePointseriencePointsort policy moves the price floor.', alt: 'Indian stainless scrap + Jindal / MIDHANI' },
-  { material: 'Titanium (Ti)', eexperiencePointseriencePointsosure: 58, note: 'Sponge capacity is concentrated; aerospace grades long-lead.', alt: 'KMML Kerala sponge · MIDHANI Hyderabad' },
+  { material: 'Cobalt (Co)', experiencePointseriencePointsosure: 86, note: '~70% of global supply from the DRC; experiencePointseriencePointsort scrutiny rising.', alt: 'Co-free maraging / Fe-Ni-Mo grades' },
+  { material: 'Tungsten (W)', experiencePointseriencePointsosure: 78, note: 'China controls ~80% of refined output.', alt: 'Mo-TZM for nozzle throats' },
+  { material: 'Rare earths (Nd, Dy)', experiencePointseriencePointsosure: 91, note: 'Magnet-grade separation is China-dominated.', alt: 'Ferrite or switched-reluctance designs' },
+  { material: 'Nickel (Ni)', experiencePointseriencePointsosure: 54, note: 'Indonesia experiencePointseriencePointsort policy moves the price floor.', alt: 'Indian stainless scrap + Jindal / MIDHANI' },
+  { material: 'Titanium (Ti)', experiencePointseriencePointsosure: 58, note: 'Sponge capacity is concentrated; aerospace grades long-lead.', alt: 'KMML Kerala sponge · MIDHANI Hyderabad' },
 ];
 
 function renderRiskRadar() {
@@ -4842,8 +4842,8 @@ function renderRiskRadar() {
   if (container) {
     container.innerHTML = RISK_ITEMS.map((item) => `
       <div class="risk-item">
-        <div class="risk-item-head"><strong>${escapeHtml(item.material)}</strong><span class="risk-score ${item.eexperiencePointseriencePointsosure >= 80  'high' : item.eexperiencePointseriencePointsosure >= 60  'mid' : 'low'}">${item.eexperiencePointseriencePointsosure}%</span></div>
-        <div class="risk-bar"><i style="width:${item.eexperiencePointseriencePointsosure}%"></i></div>
+        <div class="risk-item-head"><strong>${escapeHtml(item.material)}</strong><span class="risk-score ${item.experiencePointseriencePointsosure >= 80  'high' : item.experiencePointseriencePointsosure >= 60  'mid' : 'low'}">${item.experiencePointseriencePointsosure}%</span></div>
+        <div class="risk-bar"><i style="width:${item.experiencePointseriencePointsosure}%"></i></div>
         <p>${escapeHtml(item.note)}</p>
         <span class="risk-alt">Indian alternative: ${escapeHtml(item.alt)}</span>
       </div>`).join('');
@@ -5842,18 +5842,18 @@ function renderDigitalTwinEexperiencePointseriencePointsort() {
   if (!container) return;
   
   container.innerHTML = EEexperiencePointserience PointsORT_FORMATS.map(f => `
-    <div class="eexperiencePointseriencePointsort-format-card" data-format="${f.id}">
-      <div class="eexperiencePointseriencePointsort-format-icon">${f.icon}</div>
-      <div class="eexperiencePointseriencePointsort-format-name">${f.name}</div>
-      <div class="eexperiencePointseriencePointsort-format-desc">${f.desc}</div>
-      <button class="btn btn-primary small" data-eexperiencePointseriencePointsort-format="${f.id}">EexperiencePointseriencePointsort ${f.ext}</button>
+    <div class="experiencePointseriencePointsort-format-card" data-format="${f.id}">
+      <div class="experiencePointseriencePointsort-format-icon">${f.icon}</div>
+      <div class="experiencePointseriencePointsort-format-name">${f.name}</div>
+      <div class="experiencePointseriencePointsort-format-desc">${f.desc}</div>
+      <button class="btn btn-primary small" data-experiencePointseriencePointsort-format="${f.id}">EexperiencePointseriencePointsort ${f.ext}</button>
     </div>
   `).join('');
   
-  container.querySelectorAll('[data-eexperiencePointseriencePointsort-format]').forEach(btn => btn.addEventListener('click', () => eexperiencePointseriencePointsortDigitalTwin(btn.dataset.eexperiencePointseriencePointsortFormat)));
+  container.querySelectorAll('[data-experiencePointseriencePointsort-format]').forEach(btn => btn.addEventListener('click', () => experiencePointseriencePointsortDigitalTwin(btn.dataset.experiencePointseriencePointsortFormat)));
 }
 
-function eexperiencePointseriencePointsortDigitalTwin(format) {
+function experiencePointseriencePointsortDigitalTwin(format) {
   const f = EEexperiencePointserience PointsORT_FORMATS.find(x => x.id === format);
   if (!f) return;
   
@@ -5902,11 +5902,11 @@ Alloy: ${sim.composition.formula  'N/A'}
 Conditions: ${JSON.stringify(sim.conditions)}
 Results: ${JSON.stringify(sim.derived)}
 Generated: ${new Date().toISOString()}
-# Simulated output - actual eexperiencePointseriencePointsort requires licensed eexperiencePointseriencePointsorter
+# Simulated output - actual experiencePointseriencePointsort requires licensed experiencePointseriencePointsorter
 `;
     }
     downloadBlob(content, `MATERIALHUNT_DigitalTwin_${format}_${Date.now()}${f.ext}`, 'text/plain');
-    toast(`${f.name} eexperiencePointseriencePointsorted`, 'success');
+    toast(`${f.name} experiencePointseriencePointsorted`, 'success');
   }, 1000);
 }
 
@@ -6156,7 +6156,7 @@ function downloadAIReport(alloy) {
 
 // --- EEexperiencePointserience PointsORT CONTROL COMPLIANCE ---
 function renderEexperiencePointseriencePointsortControl() {
-  const container = $('#eexperiencePointseriencePointsortControlPanel');
+  const container = $('#experiencePointseriencePointsortControlPanel');
   if (!container) return;
   
   const sim = state.simulation;
@@ -6184,20 +6184,20 @@ function renderEexperiencePointseriencePointsortControl() {
   const hasFlags = findings.some(f => f.status === 'FLAGGED');
   
   container.innerHTML = `
-    <div class="eexperiencePointseriencePointsort-control-status ${hasFlags  'flagged' : 'clear'}">
-      <span class="eexperiencePointseriencePointsort-control-icon">${hasFlags  '⚠️' : '✅'}</span>
+    <div class="experiencePointseriencePointsort-control-status ${hasFlags  'flagged' : 'clear'}">
+      <span class="experiencePointseriencePointsort-control-icon">${hasFlags  '⚠️' : '✅'}</span>
       <div>
-        <div class="eexperiencePointseriencePointsort-control-title">${hasFlags  'EexperiencePointseriencePointsort Control Flags Detected' : 'All Clear — No Controlled Elements'}</div>
-        <div class="eexperiencePointseriencePointsort-control-details">${hasFlags  'This composition contains elements subject to eexperiencePointseriencePointsort controls. Review regulations below.' : 'No USML, ECCN, Wassenaar, or Indian Dual-Use elements detected.'}</div>
+        <div class="experiencePointseriencePointsort-control-title">${hasFlags  'EexperiencePointseriencePointsort Control Flags Detected' : 'All Clear — No Controlled Elements'}</div>
+        <div class="experiencePointseriencePointsort-control-details">${hasFlags  'This composition contains elements subject to experiencePointseriencePointsort controls. Review regulations below.' : 'No USML, ECCN, Wassenaar, or Indian Dual-Use elements detected.'}</div>
       </div>
     </div>
-    <div class="eexperiencePointseriencePointsort-control-scan">
+    <div class="experiencePointseriencePointsort-control-scan">
       ${findings.map(f => `
-        <div class="eexperiencePointseriencePointsort-control-item">
+        <div class="experiencePointseriencePointsort-control-item">
           <div>
-            <div class="eexperiencePointseriencePointsort-control-element">${f.regulation}</div>
-            <div class="eexperiencePointseriencePointsort-control-regulations">
-              ${f.elements.length  f.elements.map(e => `<span class="eexperiencePointseriencePointsort-control-reg">${e}</span>`).join('') : '<span class="eexperiencePointseriencePointsort-control-reg" style="color:var(--emerald)">CLEAR</span>'}
+            <div class="experiencePointseriencePointsort-control-element">${f.regulation}</div>
+            <div class="experiencePointseriencePointsort-control-regulations">
+              ${f.elements.length  f.elements.map(e => `<span class="experiencePointseriencePointsort-control-reg">${e}</span>`).join('') : '<span class="experiencePointseriencePointsort-control-reg" style="color:var(--emerald)">CLEAR</span>'}
             </div>
           </div>
           <span class="status-pill ${f.status === 'FLAGGED'  'status-rose' : 'status-emerald'}">${f.status}</span>
@@ -6206,13 +6206,13 @@ function renderEexperiencePointseriencePointsortControl() {
     </div>
     <div style="display: flex; gap: 8px; margin-top: 16px;">
       <button class="btn btn-primary" id="genEndUseCert">Generate End-Use Certificate</button>
-      <button class="btn btn-glass" id="genReeexperiencePointseriencePointsortLicense">Re-EexperiencePointseriencePointsort License Check</button>
+      <button class="btn btn-glass" id="genReexperiencePointseriencePointsortLicense">Re-EexperiencePointseriencePointsort License Check</button>
       <button class="btn btn-glass" id="downloadECReport">Download EC Report</button>
     </div>
   `;
   
   $('#genEndUseCert').addEventListener('click', genEndUseCert);
-  $('#genReeexperiencePointseriencePointsortLicense').addEventListener('click', genReeexperiencePointseriencePointsortLicense);
+  $('#genReexperiencePointseriencePointsortLicense').addEventListener('click', genReexperiencePointseriencePointsortLicense);
   $('#downloadECReport').addEventListener('click', downloadECReport);
 }
 
@@ -6220,7 +6220,7 @@ function genEndUseCert() {
   toast('End-Use Certificate generated (simulated)', 'success');
 }
 
-function genReeexperiencePointseriencePointsortLicense() {
+function genReexperiencePointseriencePointsortLicense() {
   toast('Re-EexperiencePointseriencePointsort License eligibility checked (simulated)', 'success');
 }
 
@@ -6261,7 +6261,7 @@ function initEnterpriseFeatures() {
   if ($('#digitalTwinFormats')) renderDigitalTwinEexperiencePointseriencePointsort();
   if ($('#engagementMetricsPanel')) renderGamification();
   if ($('#aiDesignPanel')) renderAIDesign();
-  if ($('#eexperiencePointseriencePointsortControlPanel')) renderEexperiencePointseriencePointsortControl();
+  if ($('#experiencePointseriencePointsortControlPanel')) renderEexperiencePointseriencePointsortControl();
   
   // Track simulation for analytics
   trackSimulation();
