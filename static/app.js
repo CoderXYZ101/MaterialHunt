@@ -99,7 +99,7 @@ const humanFormula = (composition, max = 7) => {
   const entries = Object.entries(composition).filter(([, v]) => Number(v) > 0).sort((a, b) => b[1] - a[1]).slice(0, max);
   return entries.map(([sym, pct]) => {
     const pctNum = Number(pct);
-    const suffix = pctNum >= 10  pctNum.toFixed(0) : pctNum.toFixed(1);
+    const suffix = pctNum >= 10 ? pctNum.toFixed(0) : pctNum.toFixed(1);
     return sym + suffix;
   }).join(' ') || '\u2014';
 };
