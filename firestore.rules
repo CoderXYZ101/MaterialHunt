@@ -1,62 +1,162 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // User profiles - users can read/write their own profile
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      // Admins can read all users
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // RFQ leads - users can create their own leads, admins can read all
-    match /rfq_leads/{leadId} {
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasAll(['kind', 'name', 'organization', 'email', 'created_at'])
-        && request.resource.data.name is string
-        && request.resource.data.organization is string
-        && request.resource.data.email is string
-        && request.resource.data.kind in ['rfq', 'lab_test']
-        && request.resource.data.created_at == request.time;
-      allow read: if request.auth != null
-        && (request.auth.uid == resource.data.user_id
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow update, delete: if false; // Immutable once created
-    }
-
-    // Feedback - users can create their own, admins can read all and update status
-    match /feedback/{feedbackId} {
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasAll(['rating', 'comment', 'created_at'])
-        && request.resource.data.rating in [1, 2, 3, 4, 5]
-        && request.resource.data.comment is string
-        && request.resource.data.created_at == request.time;
-      allow read: if request.auth != null
-        && (request.auth.uid == resource.data.user_id
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow update: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-        && request.resource.data.keys().hasOnly(['status', 'triaged_at'])
-        && request.resource.data.triaged_at == request.time;
-      allow delete: if false;
-    }
-
-    // Leaderboard entries - authenticated users can submit, everyone can read top 100
-    match /leaderboard/{entryId} {
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasAll(['user_id', 'formula', 'predicted_mpa', 'score', 'dataset', 'created_at'])
-        && request.resource.data.user_id == request.auth.uid
-        && request.resource.data.created_at == request.time;
-      allow read: if request.auth != null;
-      allow update, delete: if false;
-    }
-
-    // Admin-only collections
-    match /admin/{document=**} {
-      allow read, write: if request.auth != null
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Deny all other access
+    // User profiles. Users create their own profile as a plain free member and may edit
+    // harmless fields only. tier / role / kyb_status can only be changed by an admin
+    // (for example after a payment is confirmed) from the Firebase console or admin tooling.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.tier == 'free'
+        && request.resource.data.role == 'member'
+        && request.resource.data.kyb_status == 'pending';
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.tier == resource.data.tier
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.kyb_status == resource.data.kyb_status;
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // One public, non-personal record per account. Only used to count sign-ups.
+    match /signups/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['created_at', 'verified', 'provider', 'referred_by'])
+        && request.resource.data.created_at == request.time
+        && request.resource.data.verified == (request.auth.token.email_verified == true);
+      // verified may only flip false -> true, and only once the email is verified
+      allow update: if signedIn() && request.auth.uid == uid
+        && resource.data.verified == false
+        && request.resource.data.verified == true
+        && request.auth.token.email_verified == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified']);
+      allow delete: if false;
+    }
+
+    // Public counters shown on the landing page. Increments are only allowed together with the
+    // matching signup write (batched), so numbers cannot be bumped arbitrarily.
+    match /stats/public {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['total_users', 'verified_users'])
+        && request.resource.data.total_users == 1
+        && request.resource.data.verified_users in [0, 1]
+        && !exists(/databases/$(database)/documents/signups/$(request.auth.uid))
+        && existsAfter(/databases/$(database)/documents/signups/$(request.auth.uid));
+
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['total_users', 'verified_users'])
+        && (
+          // a brand new sign-up
+          (
+            !exists(/databases/$(database)/documents/signups/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/signups/$(request.auth.uid))
+            && request.resource.data.total_users == resource.data.total_users + 1
+            && (
+              (getAfter(/databases/$(database)/documents/signups/$(request.auth.uid)).data.verified == true
+                && request.resource.data.verified_users == resource.data.verified_users + 1)
+              ||
+              (getAfter(/databases/$(database)/documents/signups/$(request.auth.uid)).data.verified == false
+                && request.resource.data.verified_users == resource.data.verified_users)
+            )
+          )
+          ||
+          // an existing account completing email verification
+          (
+            exists(/databases/$(database)/documents/signups/$(request.auth.uid))
+            && get(/databases/$(database)/documents/signups/$(request.auth.uid)).data.verified == false
+            && getAfter(/databases/$(database)/documents/signups/$(request.auth.uid)).data.verified == true
+            && request.auth.token.email_verified == true
+            && request.resource.data.total_users == resource.data.total_users
+            && request.resource.data.verified_users == resource.data.verified_users + 1
+          )
+        );
+      allow delete: if false;
+    }
+
+    // Leads (RFQs, lab tests, upgrade requests, waitlist). Anyone may submit a well-formed lead;
+    // only the submitter or an admin can read it back. Immutable once created.
+    match /rfq_leads/{leadId} {
+      allow create: if request.resource.data.keys().hasAll(['kind', 'name', 'organization', 'email', 'created_at'])
+        && request.resource.data.kind in ['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo']
+        && request.resource.data.name is string && request.resource.data.name.size() <= 120
+        && request.resource.data.organization is string && request.resource.data.organization.size() <= 160
+        && request.resource.data.email is string
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && request.resource.data.email.size() <= 160
+        && request.resource.data.created_at == request.time
+        && request.resource.data.keys().size() <= 24
+        && (!('user_id' in request.resource.data)
+            || request.resource.data.user_id == ''
+            || (signedIn() && request.resource.data.user_id == request.auth.uid));
+      allow read: if signedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Feedback.
+    match /feedback/{feedbackId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['rating', 'comment', 'created_at', 'user_id'])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 0 && request.resource.data.rating <= 5
+        && request.resource.data.comment is string && request.resource.data.comment.size() <= 1500
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.created_at == request.time;
+      allow read: if signedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'triaged_at']);
+      allow delete: if false;
+    }
+
+    // Discovery registry entries: signed-in users can submit, signed-in users can read.
+    match /leaderboard/{entryId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['user_id', 'formula', 'predicted_mpa', 'score', 'dataset', 'created_at'])
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.created_at == request.time;
+      allow read: if signedIn();
+      allow update, delete: if false;
+    }
+
+    // Public design-challenge leaderboard. One entry per user (document id = uid) that can only improve.
+    match /challenge_entries/{uid} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'formula', 'cost', 'density', 'score', 'user_id', 'created_at'])
+        && request.resource.data.user_id == uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.formula is string && request.resource.data.formula.size() <= 60
+        && request.resource.data.score is number && request.resource.data.score >= 0 && request.resource.data.score <= 100
+        && request.resource.data.cost is number && request.resource.data.density is number
+        && request.resource.data.created_at == request.time;
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'formula', 'cost', 'density', 'score', 'user_id', 'created_at'])
+        && request.resource.data.user_id == uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.formula is string && request.resource.data.formula.size() <= 60
+        && request.resource.data.score is number && request.resource.data.score <= 100
+        && request.resource.data.score > resource.data.score
+        && request.resource.data.created_at == request.time;
+      allow delete: if false;
+    }
+
+    match /admin/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="MATERIALHUNT Inc. - deep-tech materials intelligence: 3D alloy simulation, mission co-pilot, comparative analysis, enterprise pre-screening and R&D analytics. 100% offline." />
+  <meta name="description" content="MaterialHunt: test a metal before you build with it. Find the closest Indian grade, live ₹/kg price, manufacturability, failure diagnosis and a ready-to-send RFQ - free." />
+  <meta property="og:title" content="MaterialHunt - test a metal before you build with it" />
+  <meta property="og:description" content="Closest Indian grade + ₹/kg, failure doctor, BOM cost-down scanner and 1-click RFQ for engineers, makers and procurement teams." />
   <meta name="theme-color" content="#070B14" />
-  <title>MATERIALHUNT Inc. — Deep-Tech Materials Intelligence</title>
+  <title>MaterialHunt — Test a metal before you build with it</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
+  <link rel="stylesheet" href="growth.css?v=4.0.0" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -35,34 +38,18 @@
         </span>
       </a>
 
-      <nav class="main-nav nav-scroll" aria-label="Primary">
-        <button class="nav-link active" data-view="simulator" title="3D Alloy & Mission Simulator">3D Simulator</button>
-        <button class="nav-link" data-view="comparison" title="Alloy A vs. B Comparative Analysis">Comparative Analysis</button>
-        <button class="nav-link" data-view="dashboard" title="Multi-Material Pre-Screening & PDF">Pre-Screening</button>
-        <button class="nav-link" data-view="analytics" title="Deep Engineering Analytics">Analytics</button>
-        <button class="nav-link" data-view="analytics-dashboard" title="Enterprise Usage Analytics Dashboard">Analytics Dashboard</button>
-        <button class="nav-link" data-view="batch" title="Enterprise Batch CSV & Custom Lab Data">Batch & Lab Data</button>
-        <button class="nav-link" data-view="roi" title="R&D ROI Calculator">R&D ROI</button>
-        <button class="nav-link" data-view="discoveryRegistry" title="Global R&D Discovery Registry & Feedback">Discovery Registry</button>
-        <button class="nav-link" data-view="pricing" title="Pricing, Corporate KYB & Compliance">Pricing & KYB</button>
-        <button class="nav-link" data-view="workspaces" title="Team Workspaces & Collaboration">Workspaces</button>
-        <button class="nav-link" data-view="report-templates" title="AS9100, ISO, MIL-STD Certified Templates">Report Templates</button>
-        <button class="nav-link" data-view="metal-pricing" title="Real-Time LME, SHFE, Indian Spot Pricing">Metal Pricing</button>
-        <button class="nav-link" data-view="supplier-marketplace" title="Verified Mills, Stockists, NABL Labs">Suppliers</button>
-        <button class="nav-link" data-view="failure-analysis" title="1,200+ Failure Modes with Root Cause Trees">Failure Analysis</button>
-        <button class="nav-link" data-view="compliance" title="ITAR/EAR, REACH, DFARS, CMRT Auto-Generation">Compliance</button>
-        <button class="nav-link" data-view="api-access" title="REST + WebSocket API, OpenAPI 3.1, SDKs">API Access</button>
-        <button class="nav-link" data-view="alloy-genome" title="3D Property Manifold, 180M Composition Space">Alloy Genome</button>
-        <button class="nav-link" data-view="digital-twin" title="FMU, Abaqus, CAD, MaterialX Export">Digital Twin</button>
-        <button class="nav-link" data-view="engagement-metrics" title="Consecutive Days, Badges, Experience Points, Cosmetics">Engagement Metrics</button>
-        <button class="nav-link" data-view="ai-design" title="Generative Alloy Design from Natural Language">AI Designer</button>
-        <button class="nav-link" data-view="export-control" title="ITAR/EAR/Wassenaar Automated Screening">Export Control</button>
-        <button class="nav-link vault-link hidden" data-view="admin" id="vaultNav">Vault</button>
+      <nav class="main-nav" aria-label="Primary">
+        <button class="nav-link active" data-view="simulator" title="Pick a metal, set the conditions, see if it survives">Simulator</button>
+        <button class="nav-link" data-view="ai-design" title="Describe the job in plain words and get real grades that fit">Alloy Finder</button>
+        <button class="nav-link" data-view="doctor" title="Something broke? Find out why and what to use instead">Failure Doctor</button>
+        <button class="nav-link" data-view="bom" title="Paste your parts list and see where you are overpaying">Cost-Down Scanner</button>
+        <button class="nav-link" data-view="comparison" title="Put two alloys head to head">Compare</button>
+        <button class="nav-link" data-view="pricing" title="Plans and pricing">Pricing</button>
       </nav>
 
       <div class="top-actions">
-        <span class="status-pill status-online" id="offlineBadge" title="Bundled three.js + Plotly.js, no CDN calls">
-          <span class="status-dot"></span><span id="offlineText">OFFLINE ENGINE</span>
+        <span class="status-pill status-online" id="offlineBadge" title="Simulation engine status">
+          <span class="status-dot"></span><span id="offlineText">ENGINE READY</span>
         </span>
         <button class="icon-btn help-btn" id="helpBtn" title="Quick help &amp; guided tour" aria-label="Quick help">
           <span class="help-glyph">?</span>
@@ -72,11 +59,15 @@
           <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg>
         </button>
         <button class="btn btn-ghost hidden" id="loginBtn">Sign in</button>
+        <button class="btn btn-primary btn-cta hidden" id="ctaSignup">Get started free</button>
+        <button class="icon-btn hidden" id="inviteBtn" title="Invite a colleague" aria-label="Invite a colleague">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 11a4 4 0 1 0-8 0M3 20a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
+        </button>
         <div class="user-chip hidden" id="userChip">
           <span class="avatar" id="userAvatar">MH</span>
           <span class="user-meta">
-            <strong id="userName">Pilot Guest</strong>
-            <small id="userTier">Enterprise VIP</small>
+            <strong id="userName">Member</strong>
+            <small id="userTier">Free</small>
           </span>
           <button class="icon-btn tiny" id="logoutBtn" title="Sign out" aria-label="Sign out">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/></svg>
@@ -85,40 +76,39 @@
       </div>
     </header>
 
-    <div class="summit-banner hidden" id="adminAccessBanner">
-      <span class="summit-pulse"></span>
-      <strong>ENTERPRISE VIP</strong>
-      <span>Enterprise R&amp;D access granted · <em>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</em> · ENTERPRISE VIP · KYB VERIFIED</span>
-      <button class="banner-close" id="adminAccessBannerClose" aria-label="Dismiss">×</button>
-    </div>
+    <div class="verify-banner hidden" id="verifyBanner" role="status"></div>
 
     <main>
       <!-- ================= 1. 3D ALLOY & MISSION SIMULATOR ================= -->
       <section class="view active" id="view-simulator">
         <section class="hero">
           <div class="hero-copy">
-            <span class="eyebrow"><span class="eyebrow-dot"></span> MATERIALHUNT INC. · 118-ELEMENT ENGINE · 100% OFFLINE</span>
-            <h1>Hunt the alloy<br /><span class="grad-text">before you melt metal.</span></h1>
+            <span class="eyebrow"><span class="eyebrow-dot"></span> FREE FOR ENGINEERS, MAKERS &amp; STUDENTS</span>
+            <h1>Will your metal survive?<br /><span class="grad-text">Know before you build.</span></h1>
             <p class="hero-lead">
-              Deep-tech materials intelligence for enterprise R&amp;D teams. Interrogate weighted liquidus failure,
-              pressure-burst envelopes and dynamic fluid head across all 118 elements — then export a
-              board-ready screening dossier without a single network call.
+              Pick a metal, set the heat and load, and see in seconds if it holds. Then get the <strong>closest Indian grade</strong>,
+              an <strong>indicative ₹/kg</strong>, whether your local shop can machine or weld it, and a <strong>ready-to-send RFQ</strong> for suppliers and test labs.
             </p>
             <div class="hero-actions">
               <button class="btn btn-primary" id="heroRunSim">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 3 14 9-14 9V3Z"/></svg>
-                Run Mission Simulation
+                Run a live test
               </button>
-              <button class="btn btn-glass" id="openPeriodic">
+              <button class="btn btn-glass" id="heroCreate">Create free account</button>
+              <button class="btn btn-ghost" id="openPeriodic">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                Open 118-Element Table
+                Browse elements
               </button>
             </div>
+            <div class="social-proof" id="socialProof" aria-live="polite">
+              <span class="sp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span id="socialProofText">Join the first verified engineers on MaterialHunt</span>
+            </div>
             <div class="trust-row">
-              <div><strong>118</strong><span>Elements supported</span></div>
-              <div><strong>4,500°C</strong><span>Liquidus ceiling</span></div>
-              <div><strong>∞</strong><span>Pressure burst model</span></div>
-              <div><strong>0</strong><span>CDN requests</span></div>
+              <div><strong>118</strong><span>Elements</span></div>
+              <div><strong>45+</strong><span>Real commercial grades</span></div>
+              <div><strong>₹/kg</strong><span>Indian price guide</span></div>
+              <div><strong>1-click</strong><span>RFQ &amp; test sheet</span></div>
             </div>
           </div>
 
@@ -167,6 +157,31 @@
               <button class="cam-btn cam-reset" id="resetSpecimen" title="Rebuild the specimen and clear fracture state">Reset Specimen</button>
             </div>
           </div>
+        </section>
+
+        <section class="goal-section" aria-label="Start with a goal">
+          <div class="section-head compact">
+            <div>
+              <span class="panel-kicker">START HERE · 10 SECONDS</span>
+              <h2>What are you trying to build?</h2>
+              <p>Pick a goal. We load a realistic metal and conditions, run the test, and explain the result in plain English.</p>
+            </div>
+          </div>
+          <div class="goal-grid" id="goalGrid"></div>
+        </section>
+
+        <section class="steps-section" aria-label="How it works">
+          <article class="step-card glass"><span class="step-num">1</span><h3>Choose a metal &amp; conditions</h3><p>Pick a goal above or mix your own alloy with the sliders. Set temperature, load and environment.</p></article>
+          <article class="step-card glass"><span class="step-num">2</span><h3>Get a clear verdict</h3><p>See if it holds, how much margin you have, its weight and cost, and why, in plain English.</p></article>
+          <article class="step-card glass"><span class="step-num">3</span><h3>Turn it into a real part</h3><p>Get the closest Indian grade, ₹/kg, shop-floor feasibility, and a one-page RFQ you can send today.</p></article>
+        </section>
+
+        <section class="audience-strip" aria-label="Who uses MaterialHunt">
+          <span>Built for</span>
+          <b>Student teams (Formula, drones, rockets)</b>
+          <b>Startups &amp; makers</b>
+          <b>Fabrication &amp; machine shops</b>
+          <b>Procurement &amp; R&amp;D teams</b>
         </section>
 
         <section class="stats-row" aria-label="Platform metrics">
@@ -459,12 +474,6 @@
                 <div><span>Safety factor</span><strong id="forgeSafety">—</strong><small id="benchmarkSafetyReq">min 1.20</small></div>
                 <div><span>Burst ratio</span><strong id="forgeBurst">—</strong><small id="benchmarkBurstReq">must stay below 1.00</small></div>
               </div>
-              <div class="xp-row">
-                <span>Benchmark Experience Points</span>
-                <div class="xp-track"><i id="forgeXpBar"></i></div>
-                <strong id="forgeXp">0 Experience Points</strong>
-              </div>
-              <div class="badge-row" id="benchmarkMilestones"></div>
             </div>
             <div class="forge-verdict" id="benchmarkVerdictCard">
               <span class="panel-kicker">MISSION VERDICT</span>
@@ -1043,159 +1052,96 @@
         </article>
       </section>
 
-      <!-- ================= 8. PRICING, CORPORATE KYB & COMPLIANCE ================= -->
+      <!-- ================= 8. PRICING ================= -->
       <section class="view" id="view-pricing">
         <div class="section-head">
           <div>
-            <span class="panel-kicker">COMMERCIAL TERMS</span>
-            <h2>Pricing, Corporate KYB &amp; Compliance</h2>
-            <p>Transparent enterprise tiers, corporate KYB onboarding and the compliance posture behind every screening decision.</p>
+            <span class="panel-kicker">PLANS</span>
+            <h2>Start free. Upgrade when it pays for itself.</h2>
+            <p>Every plan includes the full simulator. Paid plans add the reports and sourcing tools that save real money on real parts.</p>
           </div>
-          <span class="status-pill status-emerald">ENTERPRISE VIP · KYB VERIFIED</span>
+          <div class="billing-toggle" role="group" aria-label="Billing period">
+            <button class="active" data-bill="month">Monthly</button>
+            <button data-bill="year">Yearly <em>2 months free</em></button>
+          </div>
         </div>
 
         <div class="pricing-grid four-stream" id="pricingGrid">
           <article class="glass price-card">
-            <span class="price-tier">FREE FOREVER STUDIO</span>
+            <span class="price-tier">FREE</span>
             <strong class="price-value">₹0</strong>
             <span class="price-cycle">forever · no card</span>
             <ul class="price-list">
-              <li>3D simulator + all 118 elements</li>
-              <li>Validation Benchmarks &amp; stress-test benchmarks</li>
-              <li>Comparative Analysis + Discovery Registry</li>
-              <li>Community-grade dossier preview</li>
+              <li>Unlimited simulations, all 118 elements</li>
+              <li>Closest Indian grade + indicative ₹/kg</li>
+              <li>Failure Doctor &amp; manufacturability checks</li>
+              <li>3 PDF reports + 2 batch runs / month</li>
+              <li>Design challenge &amp; leaderboard</li>
             </ul>
-            <button class="btn btn-glass full" data-view="simulator">Open the free studio</button>
+            <button class="btn btn-glass full" data-plan-cta="free">Create free account</button>
           </article>
           <article class="glass price-card featured">
-            <span class="price-tier">PAY-PER-DOSSIER &amp; BATCH CREDITS</span>
-            <strong class="price-value">₹999</strong>
-            <span class="price-cycle">credit pack · no lock-in</span>
+            <span class="price-tag">MOST POPULAR</span>
+            <span class="price-tier">PRO</span>
+            <strong class="price-value" id="proPrice">₹1,499</strong>
+            <span class="price-cycle" id="proCycle">per month · cancel anytime</span>
             <ul class="price-list">
-              <li>Board-ready PDF dossier per credit</li>
-              <li>Batch CSV screening credits</li>
-              <li>Machining + heat-treatment spec export</li>
-              <li>Shareable spec and benchmark links</li>
+              <li>Unlimited PDF reports, no watermark</li>
+              <li>Unlimited Cost-Down Scanner &amp; batch runs</li>
+              <li>1-click RFQ + NABL test sheet, unlimited</li>
+              <li>Saved designs &amp; shareable links</li>
+              <li>Priority email support</li>
             </ul>
-            <button class="btn btn-primary full" id="buyCreditsBtn">Buy a ₹999 credit pack</button>
+            <button class="btn btn-primary full" data-plan-cta="pro">Upgrade to Pro</button>
           </article>
           <article class="glass price-card">
-            <span class="price-tier">SAMPLE MELT · POWDER · NABL BROKERAGE</span>
-            <strong class="price-value">Commission</strong>
-            <span class="price-cycle">per successful lot</span>
+            <span class="price-tier">TEAM</span>
+            <strong class="price-value" id="teamPrice">₹4,999</strong>
+            <span class="price-cycle" id="teamCycle">per month · up to 5 seats</span>
             <ul class="price-list">
-              <li>Custom sample melt coordination</li>
-              <li>Gas-atomised metal powder sourcing</li>
-              <li>NABL-accredited lab test booking</li>
-              <li>Supplier quote comparison in INR</li>
+              <li>Everything in Pro for 5 people</li>
+              <li>Shared team workspace &amp; design library</li>
+              <li>Branded RFQ and report templates</li>
+              <li>Procurement-ready cost-down reports</li>
             </ul>
-            <button class="btn btn-glass full" id="brokerageBtn">Request a quote</button>
+            <button class="btn btn-glass full" data-plan-cta="team">Start a team</button>
           </article>
-          <article class="glass price-card vip-card">
-            <span class="price-tier">ENTERPRISE ON-PREMISE / AIR-GAPPED</span>
+          <article class="glass price-card">
+            <span class="price-tier">ENTERPRISE</span>
             <strong class="price-value">Custom</strong>
-            <span class="price-cycle">Defence · Aerospace · PSU</span>
+            <span class="price-cycle">Defence · Aerospace · Manufacturing</span>
             <ul class="price-list">
-              <li>Air-gapped deployment with local models</li>
+              <li>On-premise or private cloud</li>
               <li>SSO, audit trail and role controls</li>
-              <li>KYB + dual-use compliance workflow</li>
-              <li>Dedicated onboarding and support</li>
+              <li>API access &amp; ERP integration</li>
+              <li>Custom grade &amp; price libraries</li>
             </ul>
-            <button class="btn btn-primary full" id="pilotLaunchBtn">Launch Interactive Pilot Sandbox (?mode=live_demo)</button>
+            <button class="btn btn-glass full" data-plan-cta="enterprise">Talk to sales</button>
           </article>
         </div>
 
         <div class="pricing-lower">
           <article class="glass kyb-panel">
-            <div class="panel-title-row"><h3>Corporate KYB Onboarding</h3><span class="pill pill-cyan" id="kybBadge">ENTERPRISE VIP · KYB VERIFIED</span></div>
+            <div class="panel-title-row"><h3>Pay as you go</h3><span class="pill pill-cyan">NO SUBSCRIPTION</span></div>
             <ol class="kyb-steps">
-              <li><strong>Entity registration</strong><span>Legal name, CIN / registration number and registered address.</span></li>
-              <li><strong>Beneficial ownership</strong><span>Directors and UBO declarations with document hashes.</span></li>
-              <li><strong>Dual-use screening</strong><span>Restricted-element handling authority and end-use statement.</span></li>
-              <li><strong>Commercial approval</strong><span>Tier assignment, billing status and waiver grants.</span></li>
+              <li><strong>₹999 · Report credit pack</strong><span>10 branded PDF reports or RFQ sheets. Credits never expire.</span></li>
+              <li><strong>Sourcing &amp; testing</strong><span>We route your RFQ to suppliers and NABL labs and compare quotes. Fee only on a successful order.</span></li>
             </ol>
             <div class="kyb-status-row">
-              <div><span>Demo lab</span><strong>ENTERPRISE VIP · KYB VERIFIED</strong></div>
-              <div><span>New registrations</span><strong>KYB VERIFICATION PENDING</strong></div>
+              <button class="btn btn-glass small" id="buyCreditsBtn">Buy a credit pack</button>
+              <button class="btn btn-glass small" id="brokerageBtn">Get supplier quotes</button>
             </div>
           </article>
 
           <article class="glass compliance-panel">
-            <div class="panel-title-row"><h3>Compliance &amp; Trust</h3><span class="pill pill-emerald">100% OFFLINE</span></div>
-            <div class="compliance-badges">
-              <span class="compliance-badge">ISO 27001 ALIGNED</span>
-              <span class="compliance-badge">SOC 2 READY</span>
-              <span class="compliance-badge">DPDP ACT 2023</span>
-              <span class="compliance-badge">DUAL-USE GUARDRAIL</span>
-              <span class="compliance-badge">ITAR-AWARE SCREENING</span>
-              <span class="compliance-badge">KYB VERIFIED</span>
-            </div>
-            <p class="micro-note">MATERIALHUNT Inc. runs entirely on the local machine: no telemetry, no CDN, no third-party inference. Screening outputs are engineering hypotheses and not certified test reports.</p>
+            <div class="panel-title-row"><h3>Good to know</h3><span class="pill pill-emerald">TRANSPARENT</span></div>
             <div class="compliance-facts">
-              <div><span>Data residency</span><strong>Local SQLite · on-device</strong></div>
-              <div><span>Model provenance</span><strong>Matbench-trained · local bundle</strong></div>
-              <div><span>Audit trail</span><strong>Tamper-evident event log</strong></div>
-              <div><span>Guardrail</span><strong>8 dual-use elements blocked</strong></div>
+              <div><span>Estimates</span><strong>Screening-grade, not certified test data</strong></div>
+              <div><span>Prices</span><strong>Indicative ranges, confirm with a supplier</strong></div>
+              <div><span>Guardrail</span><strong>Restricted elements blocked without clearance</strong></div>
+              <div><span>Your data</span><strong>Never sold. Delete on request</strong></div>
             </div>
           </article>
-        </div>
-      </section>
-
-      <!-- ================= HIDDEN FOUNDER VAULT ================= -->
-      <section class="view" id="view-admin">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">HIDDEN FOUNDER VAULT · mh_vault_99x</span>
-            <h2>MATERIALHUNT Founder Vault</h2>
-            <p>One-click ENTERPRISE ACCESS GRANT approvals, KYB approvals, feedback triage, pilot minting and a tamper-evident audit trail.</p>
-          </div>
-          <span class="status-pill status-rose" id="adminBadge">LOCKED</span>
-        </div>
-
-        <div class="vault-lock glass" id="adminLock">
-          <div class="vault-glyph">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6"/></svg>
-          </div>
-          <h3>Vault passkey required</h3>
-          <p>Gate <code>?gate=mh_vault_99x</code> is active. Enter the salted admin passkey. Three failed attempts trigger a 15-minute lockout.</p>
-          <form id="adminUnlockForm" class="vault-form">
-            <input type="password" id="adminPasskey" placeholder="Admin passkey" autocomplete="off" />
-            <button class="btn btn-primary" type="submit">Unlock Vault</button>
-          </form>
-          <p class="form-error" id="adminError"></p>
-          <p class="micro-note">Passkey is verified against a PBKDF2-SHA256 hash with a per-install salt.</p>
-        </div>
-
-        <div class="admin-content hidden" id="adminContent">
-          <div class="admin-stat-grid" id="adminStats"></div>
-          <div class="admin-grid">
-            <article class="glass admin-panel">
-              <div class="panel-title-row"><h3>Accounts &amp; KYB</h3><button class="text-btn" id="adminRefresh">Refresh</button></div>
-              <div class="table-wrap">
-                <table class="data-table admin-table">
-                  <thead><tr><th>Org / Email</th><th>KYB</th><th>Tier</th><th>Billing</th><th>Actions</th></tr></thead>
-                  <tbody id="adminUsers"></tbody>
-                </table>
-              </div>
-            </article>
-            <article class="glass admin-panel">
-              <div class="panel-title-row"><h3>Feedback Triage</h3><span class="pill pill-amber" id="adminFeedbackCount">0 open</span></div>
-              <div class="feedback-admin-list" id="adminFeedback"></div>
-            </article>
-            <article class="glass admin-panel span-2">
-              <div class="panel-title-row"><h3>Security Audit Trail</h3><span class="pill pill-cyan">immutable log</span></div>
-              <div class="audit-list" id="adminAudit"></div>
-            </article>
-            <article class="glass admin-panel span-2">
-              <div class="panel-title-row"><h3>Global R&amp;D Discovery Registry</h3><button class="text-btn" id="adminMintPilot">Mint pilot grant</button></div>
-              <div class="table-wrap">
-                <table class="data-table admin-table">
-                  <thead><tr><th>Rank</th><th>Team</th><th>Material</th><th>Predicted</th><th>Score</th></tr></thead>
-                  <tbody id="adminDiscoveryRegistry"><tr class="empty-row"><td colspan="5">Unlock the vault to load discoveries.</td></tr></tbody>
-                </table>
-              </div>
-            </article>
-          </div>
         </div>
       </section>
 
@@ -1349,26 +1295,13 @@
         <div class="export-format-grid glass" id="digitalTwinFormats"></div>
       </section>
 
-      <!-- ================= ENGAGEMENT METRICS ENGINE ================= -->
-      <section class="view" id="view-engagement-metrics">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">ENGAGEMENT LAYER</span>
-            <h2>Engagement Metrics & Milestones</h2>
-            <p>Daily consecutive days, alloy discovery badges, benchmark discoveries, Experience Points progression, and unlockable cosmetics for the 3D viewer.</p>
-          </div>
-          <span class="status-pill status-violet" id="engagementMetricsStatus">ACTIVE</span>
-        </div>
-        <div class="engagement-metrics-panel glass" id="engagementMetricsPanel"></div>
-      </section>
-
       <!-- ================= AI-POWERED ALLOY DESIGN ================= -->
       <section class="view" id="view-ai-design">
         <div class="section-head">
           <div>
-            <span class="panel-kicker">GENERATIVE MATERIALS AI</span>
-            <h2>AI-Powered Alloy Design</h2>
-            <p>Describe your requirement in plain English — the generative model proposes 10 novel compositions with predicted properties, uncertainty, and synthesis routes.</p>
+            <span class="panel-kicker">ALLOY FINDER</span>
+            <h2>Describe the job. Get real grades that fit.</h2>
+            <p>Type your temperature, load, budget and exclusions in plain words. Strict limits remove anything that cannot work, then the survivors are ranked. Every result is a real, buyable grade.</p>
           </div>
           <span class="status-pill status-cyan" id="aiDesignStatus">READY</span>
         </div>
@@ -1397,7 +1330,7 @@
       </div>
       <div class="footer-meta">
         <span><i class="dot dot-emerald"></i> Runs fully offline · Firebase Hosting ready</span>
-        <span><i class="dot dot-cyan"></i> FastAPI · scikit-learn · Three.js · Plotly</span>
+        <span><i class="dot dot-cyan"></i> Three.js · Plotly · Firebase</span>
         <span class="footer-warning">Screening hypothesis only — not a certified test report.</span>
       </div>
     </footer>
@@ -1409,40 +1342,37 @@
         <span class="ef-mark">MH</span>
         <div>
           <strong>MATERIALHUNT Inc.</strong>
-          <span>Deep-tech materials intelligence · Enterprise R&amp;D infrastructure</span>
+          <span>Test a metal before you build with it · Made in Bengaluru</span>
         </div>
       </div>
       <div class="ef-col">
-        <span class="ef-title">Modules</span>
-        <a href="#" data-view="simulator">3D Alloy &amp; Mission Simulator</a>
-        <a href="#" data-view="comparison">Alloy A vs. B Comparative Analysis</a>
-        <a href="#" data-view="dashboard">Multi-Material Pre-Screening</a>
-        <a href="#" data-view="analytics">Deep Engineering Analytics</a>
+        <span class="ef-title">Tools</span>
+        <a href="#" data-view="simulator">Simulator</a>
+        <a href="#" data-view="ai-design">Alloy Finder</a>
+        <a href="#" data-view="doctor">Failure Doctor</a>
+        <a href="#" data-view="comparison">Compare alloys</a>
       </div>
       <div class="ef-col">
-        <span class="ef-title">Enterprise</span>
-        <a href="#" data-view="batch">Batch CSV &amp; Lab Data</a>
-        <a href="#" data-view="roi">R&amp;D ROI Calculator</a>
-        <a href="#" data-view="discoveryRegistry">Global R&amp;D Discovery Registry</a>
-        <a href="#" data-view="pricing">Pricing, KYB &amp; Compliance</a>
+        <span class="ef-title">Buy &amp; save</span>
+        <a href="#" data-view="bom">Cost-Down Scanner</a>
+        <a href="#" data-view="supplier-marketplace">Suppliers &amp; labs</a>
+        <a href="#" data-view="metal-pricing">Metal prices</a>
+        <a href="#" data-view="pricing">Pricing</a>
       </div>
       <div class="ef-col ef-compliance">
         <span class="ef-title">Trust posture</span>
         <div class="ef-badges">
-          <span>100% OFFLINE ENGINE</span>
-          <span>ENTERPRISE VIP · KYB VERIFIED</span>
-          <span>ISO 27001 ALIGNED</span>
-          <span>SOC 2 READY</span>
-          <span>DPDP ACT 2023</span>
+          <span>SCREENING-GRADE ESTIMATES</span>
           <span>DUAL-USE GUARDRAIL</span>
+          <span>DPDP-AWARE DATA HANDLING</span>
         </div>
-        <a class="ef-pilot" href="?mode=live_demo" id="footerPilotLaunch">Launch Interactive Pilot Sandbox (?mode=live_demo) →</a>
+        <a class="ef-pilot" href="#" data-view="challenge">Try the design benchmark →</a>
       </div>
     </div>
     <div class="ef-bottom">
       <span>© <span id="footerYear">2026</span> MATERIALHUNT Inc. · All rights reserved.</span>
-      <span>ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0) · Enterprise R&amp;D pilots available on request.</span>
-      <span class="ef-offline"><i class="dot dot-emerald"></i> Offline verified · Firebase Hosting build</span>
+      <span>Estimates are for screening only and are not certified test results.</span>
+      <span class="ef-offline"><i class="dot dot-emerald"></i> <span class="mh-counter" data-counter-copy="footer">Verified members joining</span></span>
     </div>
   </footer>
 
@@ -1467,73 +1397,74 @@
 
   <!-- ================= AUTH MODAL ================= -->
   <div class="modal-backdrop hidden" id="authModal">
-    <div class="auth-modal glass" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-modal auth-split glass" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <button class="modal-close" id="closeAuth" aria-label="Close">×</button>
-      <div class="auth-brand">
+      <aside class="auth-pitch">
         <span class="brand-mark small">
           <svg viewBox="0 0 40 40" fill="none"><path d="M20 3 34.5 11.3v17.4L20 37 5.5 28.7V11.3Z" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="20" r="4.2" fill="currentColor"/></svg>
         </span>
-        <div><span class="panel-kicker">SECURE LAB ACCESS</span><h2 id="authTitle">Enter the hunt</h2></div>
-      </div>
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-auth="login">Sign in</button>
-        <button class="auth-tab" data-auth="register">Create lab account</button>
-      </div>
-
-      <div class="oauth-grid" aria-label="Social sign in">
-        <button type="button" class="oauth-btn" data-oauth="google" title="Sign in with Google">
-          <span class="oauth-g">G</span> Google
-        </button>
-        <button type="button" class="oauth-btn" data-oauth="apple" title="Sign in with Apple">
-          <span class="oauth-a"></span> Apple
-        </button>
-        <button type="button" class="oauth-btn" data-oauth="github" title="Sign in with GitHub">
-          <span class="oauth-gh">◉</span> GitHub
-        </button>
-        <button type="button" class="oauth-btn" data-oauth="microsoft" title="Sign in with Microsoft">
-          <span class="oauth-ms"><i></i><i></i><i></i><i></i></span> Microsoft
-        </button>
-      </div>
-      <div class="auth-divider"><span>or use a work email</span></div>
-
-      <form id="loginForm" class="auth-form">
-        <label class="field-label" for="loginEmail">Work email</label>
-        <input id="loginEmail" type="email" placeholder="demo@materialhunt.ai" autocomplete="email" required />
-        <label class="field-label" for="loginPassword">Password</label>
-        <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" required />
-        <button class="btn btn-primary full" type="submit">Sign in to MATERIALHUNT</button>
-        <div class="demo-credentials">
-          <button type="button" class="demo-fill" data-demo="demo">Use demo lab account</button>
-          <span>demo@materialhunt.ai · Demo@2026</span>
+        <h2>Free account. Real results.</h2>
+        <ul class="auth-benefits">
+          <li><b>Unlimited simulations</b> to test as many metals as you like</li>
+          <li><b>Closest Indian grade + ₹/kg</b> for every alloy you design</li>
+          <li><b>3 PDF reports &amp; 2 batch runs</b> every month, free</li>
+          <li><b>Failure Doctor &amp; Cost-Down Scanner</b></li>
+          <li><b>Design challenge</b> with a public leaderboard</li>
+        </ul>
+        <div class="auth-proof"><span class="mh-counter" data-counter-copy="short">Be among the first verified members</span></div>
+      </aside>
+      <div class="auth-main">
+        <div class="auth-head"><span class="panel-kicker" id="authKicker">WELCOME BACK</span><h2 id="authTitle">Sign in to MaterialHunt</h2></div>
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-auth="login">Sign in</button>
+          <button class="auth-tab" data-auth="register">Create free account</button>
         </div>
-      </form>
 
-      <form id="registerForm" class="auth-form hidden">
-        <div class="field-two-col">
-          <div>
-            <label class="field-label" for="registerOrg">Organisation</label>
-            <input id="registerOrg" type="text" placeholder="Vajra Aerospace Materials" required />
-          </div>
-          <div>
-            <label class="field-label" for="registerOrgId">KYB org ID (optional)</label>
-            <input id="registerOrgId" type="text" placeholder="MH-KYB-00000" />
-          </div>
+        <div class="oauth-grid single" aria-label="Social sign in">
+          <button type="button" class="oauth-btn" data-oauth="google" title="Continue with Google">
+            <span class="oauth-g">G</span> Continue with Google
+          </button>
         </div>
-        <label class="field-label" for="registerEmail">Work email</label>
-        <input id="registerEmail" type="email" placeholder="you@company.com" autocomplete="email" required />
-        <label class="field-label" for="registerPassword">Password (min 6 chars)</label>
-        <input id="registerPassword" type="password" placeholder="••••••••" autocomplete="new-password" required minlength="6" />
-        <button class="btn btn-primary full" type="submit">Create Free Starter account</button>
-        <p class="micro-note">Registration creates a pending KYB record. An admin can approve it from the hidden vault.</p>
-      </form>
+        <div class="auth-divider"><span>or use your email</span></div>
 
-      <p class="form-error" id="authError"></p>
-      <div class="auth-divider"><span>or walk in as a guest</span></div>
-      <button class="btn btn-glass full" id="guestSummitBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 2.6 6.1L21 10l-5 4.4L17.5 21 12 17.6 6.5 21 8 14.4 3 10l6.4-.9L12 3Z"/></svg>
-        Instant Enterprise VIP · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)
-      </button>
-      <p class="auth-footnote">Enterprise VIP access is valid for this offline pilot session only. No card, no internet.</p>
+        <form id="loginForm" class="auth-form">
+          <label class="field-label" for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" placeholder="you@company.com" autocomplete="email" required />
+          <label class="field-label" for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" required />
+          <button class="btn btn-primary full" type="submit">Sign in</button>
+          <button type="button" class="text-btn" id="forgotPassword">Forgot password?</button>
+        </form>
+
+        <form id="registerForm" class="auth-form hidden">
+          <div class="field-two-col">
+            <div>
+              <label class="field-label" for="registerOrg">Your name or organisation</label>
+              <input id="registerOrg" type="text" placeholder="e.g. Team Vajra, or Asha Rao" required />
+            </div>
+            <div>
+              <label class="field-label" for="registerOrgId">I am a</label>
+              <select id="registerOrgId" class="field-select">
+                <option value="">Select…</option>
+                <option>Student / student team</option>
+                <option>Startup / maker</option>
+                <option>Fabrication or machine shop</option>
+                <option>Procurement / purchasing</option>
+                <option>R&amp;D / design engineer</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+          <label class="field-label" for="registerEmail">Email</label>
+          <input id="registerEmail" type="email" placeholder="you@company.com" autocomplete="email" required />
+          <label class="field-label" for="registerPassword">Password (min 6 characters)</label>
+          <input id="registerPassword" type="password" placeholder="••••••••" autocomplete="new-password" required minlength="6" />
+          <button class="btn btn-primary full" type="submit">Create free account</button>
+          <p class="micro-note">We email a link to verify your address. By continuing you accept our <a href="#" data-legal="terms">Terms</a> and <a href="#" data-legal="privacy">Privacy Policy</a>.</p>
+        </form>
+
+        <p class="form-error" id="authError"></p>
+      </div>
     </div>
   </div>
 
@@ -1710,7 +1641,7 @@
     <span class="copilot-fab-icon">AI</span>
     <span class="copilot-fab-label">AI Co-Pilot</span>
   </button>
-  <div class="drawer-backdrop hidden" id="copilotBackdrop"></div>
+  
   <aside class="copilot-drawer glass" id="copilotDrawer" aria-label="AI Co-Pilot Helper">
     <div class="drawer-head">
       <div><span class="panel-kicker">CONTEXT-AWARE</span><h3>AI Co-Pilot Helper</h3></div>
@@ -1730,7 +1661,9 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=3.1.0"></script>
-  <script src="app.js?v=3.1.0"></script>
+  <script src="firebase-bridge.js?v=4.0.0"></script>
+  <script src="app.js?v=4.0.0"></script>
+  <script src="tools.js?v=4.0.0"></script>
+  <script src="growth.js?v=4.0.0"></script>
 </body>
 </html>

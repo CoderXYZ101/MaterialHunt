@@ -51,8 +51,7 @@ const state = {
   feedbackRating: 0,
   adminPasskey: sessionStorage.getItem(STORAGE.admin) || '',
   adminSnapshot: null,
-  gateActive: new URLSearchParams(location.search).get('gate') === 'mh_vault_99x',
-  adminAccessMode: ['live_demo', 'admin_access_test', 'live_pilot'].includes(new URLSearchParams(location.search).get('mode') || ''),
+  gateActive: false,
   pressureUnit: 'kPa',
   pressureScale: 1000,
   pressureValue: 101325,
@@ -71,7 +70,6 @@ const state = {
   benchmark: null,
   customBenchmark: null,
   forgeResult: null,
-  forgeXp: 0,
   guidedTourStep: 0,
   initialised: false,
 };
@@ -125,21 +123,27 @@ function periodicRow(symbol) {
 function aggregatePhaseFor(elements, temperature, pressurePa = null) {
   const pressure = Number(pressurePa || pressurePaFromUI() || 101325);
   const shift = (base, span) => base + clamp(span * Math.log10(Math.max(1, pressure) / 101325), -220, 650);
-  let liquid = false;
+  let total = 0;
+  let vapor = 0;
+  let liquid = 0;
   for (const [symbol, pct] of Object.entries(elements || {})) {
-    if (!(Number(pct) > 0)) continue;
+    const w = Number(pct);
+    if (!(w > 0)) continue;
     const row = periodicRow(symbol);
     if (!row) continue;
+    total += w;
     const melt = Number(row.melting_point_c) || 1500;
     const boil = Number(row.boiling_point_c) || (melt * 1.35 + 450);
-    const sub = Number(row.sublimation_point_c);
+    const subRaw = row.sublimation_point_c;
+    const sub = (subRaw === null || subRaw === undefined || subRaw === '') ? NaN : Number(subRaw);
     const meltEff = shift(melt, 16);
     const boilEff = shift(boil, 34);
-    if (Number.isFinite(sub) && temperature >= shift(sub, 34)) return 'GASEOUS / VAPORIZED';
-    if (temperature >= boilEff) return 'GASEOUS / VAPORIZED';
-    if (temperature >= meltEff) liquid = true;
+    if ((Number.isFinite(sub) && temperature >= shift(sub, 34)) || temperature >= boilEff) vapor += w;
+    else if (temperature >= meltEff) liquid += w;
   }
-  return liquid ? 'LIQUID' : 'SOLID';
+  const share = total || 1;
+  if ((vapor / share) * 100 >= 50) return 'GASEOUS / VAPORIZED';
+  return ((vapor + liquid) / share) * 100 >= 50 ? 'LIQUID' : 'SOLID';
 }
 
 function themeColors() {
@@ -344,20 +348,16 @@ function setSession(token, user) {
 function renderSession() {
   const loggedIn = Boolean(state.user);
   $('#loginBtn')?.classList.toggle('hidden', loggedIn);
+  $('#ctaSignup')?.classList.toggle('hidden', loggedIn);
+  $('#inviteBtn')?.classList.toggle('hidden', !loggedIn);
   $('#userChip')?.classList.toggle('hidden', !loggedIn);
+  window.dispatchEvent(new CustomEvent('mh:session', { detail: { user: state.user } }));
   if (!loggedIn) return;
   const org = state.user.organization_name || state.user.email;
   const initials = org.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'MH';
   $('#userAvatar').textContent = initials;
   $('#userName').textContent = org;
-  $('#userTier').textContent = state.user.billing_enterprise_access ? `${state.user.tier_name} · WAIVED` : state.user.tier_name;
-  const enterprise_access = state.user.billing_enterprise_access && String(state.user.billing_status).startsWith('WAIVED');
-  $('#adminAccessBanner')?.classList.toggle('hidden', !enterprise_access);
-  if (enterprise_access) {
-    const banner = $('#adminAccessBanner');
-    if (banner) banner.querySelector('span:nth-child(3)').innerHTML =
-      `${escapeHtml(state.user.tier_name)} access · <em>${escapeHtml(state.user.billing_status ? 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)' : state.user.billing_status)}</em> · ${state.user.kyb_status === 'approved' ? 'ENTERPRISE VIP · KYB VERIFIED' : 'KYB VERIFICATION PENDING'}`;
-  }
+  $('#userTier').textContent = `${state.user.tier_name || 'Free'} plan`;
   if (state.gateActive) $('#vaultNav')?.classList.remove('hidden');
 }
 
@@ -389,7 +389,7 @@ async function handleRegister(event) {
   const button = $('#registerForm button[type="submit"]');
   const original = button.textContent;
   button.disabled = true;
-  button.textContent = 'Creating KYB record…';
+  button.textContent = 'Creating your account…';
   try {
     const result = await api('/api/auth/register', {
       method: 'POST', auth: false,
@@ -402,27 +402,13 @@ async function handleRegister(event) {
     });
     setSession(result.token, result.user);
     closeAuth();
-    toast('Free Starter account created. KYB is pending admin approval.', 'success', 5200);
+    toast('Account created. Check your inbox to verify your email.', 'success', 6000);
     await afterLogin();
   } catch (err) {
     $('#authError').textContent = err.message;
   } finally {
     button.disabled = false;
     button.textContent = original;
-  }
-}
-
-async function adminAccessLogin(showToast = true) {
-  try {
-    const result = await api('/api/auth/pilot-guest?mode=live_demo', { method: 'POST', auth: false, body: {} });
-    setSession(result.token, result.user);
-    closeAuth();
-    if (showToast) toast('Enterprise VIP pilot unlocked · ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)', 'success', 5200);
-    await afterLogin();
-    return true;
-  } catch (err) {
-    toast(err.message, 'error');
-    return false;
   }
 }
 
@@ -440,9 +426,7 @@ async function logout() {
   state.selectedItem = null;
   state.adminSnapshot = null;
   renderCandidateTable([]);
-  $('#adminAccessBanner')?.classList.add('hidden');
-  toast('Signed out. Local session cleared.', 'info');
-  openAuth('login');
+  toast('Signed out.', 'info');
 }
 
 /* --------------------------------------------------------------------------
@@ -493,9 +477,7 @@ async function bootstrap() {
     if (state.adminPasskey) attemptAdminUnlock(true);
   }
 
-  if (state.adminAccessMode && !state.user) {
-    await adminAccessLogin(true);
-  } else if (state.user) {
+  if (state.user) {
     await afterLogin();
   } else {
     // The pre-screen endpoint is public; show a populated guest preview so the
@@ -503,11 +485,6 @@ async function bootstrap() {
     if (state.meta) {
       await loadPrescreen();
       await runSimulation({ silent: true });
-    }
-    const seen = sessionStorage.getItem(STORAGE.seenAuth);
-    if (!seen && !state.gateActive) {
-      setTimeout(() => { if (!state.user) openAuth('login'); }, 1500);
-      sessionStorage.setItem(STORAGE.seenAuth, '1');
     }
   }
 
@@ -525,7 +502,7 @@ function updateHealthBadge(health) {
   const assetsOk = (health.assets?.['three.min.js']?.present && health.assets?.['plotly.min.js']?.present);
   if (health.model_loaded && assetsOk) {
     badge.className = 'status-pill status-online';
-    text.textContent = 'OFFLINE READY';
+    text.textContent = 'ENGINE READY';
     badge.title = `three.js ${fmt(health.assets['three.min.js'].bytes / 1024)} KB · Plotly ${fmt(health.assets['plotly.min.js'].bytes / 1024 / 1024, 1)} MB · local only`;
   } else {
     badge.className = 'status-pill status-amber';
@@ -556,9 +533,8 @@ function applyMeta(meta) {
   const tierSelect = $('#roiTier');
   if (tierSelect && meta.tiers) {
     tierSelect.innerHTML = `
-      <option value="pro">Pro Lab · ₹${fmt(meta.tiers.pro.price)} / mo</option>
-      <option value="enterprise">Enterprise R&D · ₹${fmt(meta.tiers.enterprise.price)} / mo</option>
-      <option value="enterprise_access">ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</option>`;
+      <option value="pro">Pro · ₹${fmt(meta.tiers.pro.price)} / mo</option>
+      <option value="enterprise">Enterprise · ₹${fmt(meta.tiers.enterprise.price)} / mo</option>`;
   }
   renderRoi();
   renderPricing();
@@ -1552,7 +1528,7 @@ function renderSimulation(sim) {
   if (guardrailNote) {
     guardrailNote.classList.toggle('blocked', false);
     guardrailNote.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 3 20h18L12 3Z"/><path d="M12 9v5M12 17v.5"/></svg>
-      ${derived.hazard_cleared ? 'Dual-use guardrail cleared under verified KYB authority.' : 'Dual-Use Guardrail active: restricted elements are blocked without verified clearance.'}`;
+      ${derived.hazard_cleared ? 'Dual-use guardrail cleared with your hazardous-material handling confirmation.' : 'Dual-Use Guardrail active: restricted elements are blocked without verified clearance.'}`;
   }
 
   state.lastRadar = sim.radar;
@@ -1596,7 +1572,7 @@ function renderBlockedSimulation(detail) {
   const advice = $('#simAdvice');
   if (advice) advice.innerHTML = [
     ...blocked.map((text) => `<li>${escapeHtml(text)}</li>`),
-    `<li>${escapeHtml(detail.requires || 'Obtain KYB approval and verify hazardous-material handling authority.')}</li>`,
+    `<li>${escapeHtml(detail.requires || 'Confirm you hold authority to handle hazardous materials, then retry.')}</li>`,
     '<li>The 3D viewer and ML prediction are intentionally frozen for this input.</li>',
   ].join('');
   const warnings = $('#simWarnings');
@@ -1819,7 +1795,7 @@ function renderAdminSnapshot(snapshot) {
         <td><span class="pill ${user.billing_enterprise_access ? 'pill-amber' : 'pill'}">${escapeHtml(user.billing_enterprise_access ? 'WAIVED ₹0' : user.billing_status)}</span></td>
         <td>
           <div class="admin-actions">
-            ${user.billing_enterprise_access ? '' : `<button class="waive" data-admin-action="waive" data-user="${user.id}">Grant VIP fee waiver</button>`}
+            ${user.billing_enterprise_access ? '' : `<button class="waive" data-admin-action="waive" data-user="${user.id}">Grant plan upgrade</button>`}
             ${user.kyb_status === 'approved' ? '' : `<button data-admin-action="kyb" data-user="${user.id}">Approve KYB</button>`}
           </div>
         </td>
@@ -2665,16 +2641,7 @@ async function publishToDiscoveryRegistry(elements) {
    Pricing and inline feedback
    ========================================================================== */
 function renderPricing() {
-  const vip = $('#vipPriceLabel');
-  if (vip) vip.textContent = 'FEE WAIVED (₹0)';
-  const badge = $('#kybBadge');
-  if (badge) badge.textContent = state.meta?.kyb_badge || 'ENTERPRISE VIP · KYB VERIFIED';
-  const grid = $('#pricingGrid');
-  if (grid) {
-    const values = grid.querySelectorAll('.price-card .price-value');
-    if (values[0]) values[0].textContent = '₹0';
-    if (values[1]) values[1].textContent = '₹999';
-  }
+  window.MH_GROWTH?.renderPricing?.();
 }
 
 function setInlineRating(rating) {
@@ -3420,17 +3387,6 @@ class MaterialScene {
     });
   }
 
-  setMode(mode) {
-    this.mode = mode === 'tensile' ? 'tensile' : 'lattice';
-    this.latticeGroup.visible = this.mode === 'lattice';
-    this.tensileGroup.visible = this.mode === 'tensile';
-    if (this.mode === 'lattice' && this.needsRebuild) {
-      this.buildLattice();
-      this.needsRebuild = false;
-    }
-    this.radius = this.mode === 'tensile' ? 9.8 : 8.4;
-  }
-
   setTheme() {
     if (this.stars) this.stars.material.color.set(0x6fe7ff);
   }
@@ -3716,17 +3672,7 @@ function bindEvents() {
   $$('.auth-tab').forEach((tab) => tab.addEventListener('click', () => switchAuthTab(tab.dataset.auth)));
   $('#loginForm')?.addEventListener('submit', handleLogin);
   $('#registerForm')?.addEventListener('submit', handleRegister);
-  $('#guestSummitBtn')?.addEventListener('click', () => adminAccessLogin(true));
   $('#logoutBtn')?.addEventListener('click', logout);
-  $('.demo-fill')?.addEventListener('click', () => {
-    const email = $('#loginEmail');
-    const password = $('#loginPassword');
-    if (email) email.value = 'demo@materialhunt.ai';
-    if (password) password.value = 'Demo@2026';
-    toast('Demo lab credentials filled.', 'info', 1800);
-  });
-  $('#adminAccessBannerClose')?.addEventListener('click', () => $('#adminAccessBanner')?.classList.add('hidden'));
-
   $$('[data-view]').forEach((element) => {
     element.addEventListener('click', (event) => {
       if (element.tagName === 'A') event.preventDefault();
@@ -3766,7 +3712,7 @@ function bindEvents() {
   $('#maxCost')?.addEventListener('input', updateRangeLabels);
   $('#maxDensity')?.addEventListener('input', updateRangeLabels);
   $('#applyFilters')?.addEventListener('click', () => {
-    if (!state.user) toast('Preview mode — sign in for labelled KYB reports.', 'info');
+    if (!state.user) toast('Preview mode — create a free account to save and download reports.', 'info');
     loadPrescreen();
   });
   $('#searchInput')?.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPrescreen(); });
@@ -3909,7 +3855,6 @@ function bindEvents() {
   $('#submitInlineFeedback')?.addEventListener('click', submitInlineFeedback);
 
   /* Pricing + admin extras */
-  $('#enterpriseAccessBtn')?.addEventListener('click', () => adminAccessLogin(true));
   $('#adminMintPilot')?.addEventListener('click', adminMintPilot);
   $('#exportPdfTop')?.addEventListener('click', downloadPdf);
 
@@ -4407,21 +4352,6 @@ function renderBenchmarkResult(benchmark, sim) {
   if (verdict === 'PASS') fixes.push('Lock the heat-treatment spec and book a NABL validation coupon.');
   const list = $('#benchmarkFixes');
   if (list) list.innerHTML = fixes.map((fix) => `<li>${escapeHtml(fix)}</li>`).join('');
-  const xp = verdict === 'PASS' ? 100 : clamp(Math.round(derived.utilization_ratio <= 1 ? 55 - Number(derived.utilization_ratio) * 30 : 15), 5, 90);
-  state.forgeXp = verdict === 'PASS' ? Math.min(100, (state.forgeXp || 0) + 30) : (state.forgeXp || 0);
-  const bar = $('#forgeXpBar');
-  if (bar) bar.style.width = `${state.forgeXp || 0}%`;
-  set('#forgeXp', `${state.forgeXp || 0} Experience Points`);
-  const badgeRow = $('#benchmarkMilestones');
-  if (badgeRow) {
-    const badges = [];
-    if (verdict === 'PASS') badges.push('Blueprint Cleared');
-    if (verdict === 'PASS' && benchmark.id === 'rocket-nozzle') badges.push('Rocket Scientist');
-    if (verdict === 'PASS' && derived.cost_per_kg <= benchmark.maxCostINR * 0.65) badges.push('Cost Cutter');
-    if (!((sim.composition?.elements || []).some((el) => el.symbol === 'Co'))) badges.push('Zero-Cobalt Pioneer');
-    if (sim.conditions.temperature_c <= -100) badges.push('Cryo Master');
-    badgeRow.innerHTML = badges.map((badge) => `<span class="forge-badge">${escapeHtml(badge)}</span>`).join('') || '<span class="forge-badge muted">No badges yet</span>';
-  }
   const status = $('#benchmarkStatus');
   if (status) {
     status.textContent = verdict;
@@ -4431,7 +4361,7 @@ function renderBenchmarkResult(benchmark, sim) {
   if (fixButton) fixButton.disabled = verdict === 'PASS';
   const publish = $('#benchmarkPublish');
   if (publish) publish.disabled = verdict !== 'PASS';
-  state.forgeResult = { verdict, xp: state.forgeXp || 0 };
+  state.forgeResult = { verdict };
 }
 
 async function runBenchmark() {
@@ -4617,7 +4547,7 @@ const COPILOT_CHIPS = ['Why did it melt?', 'Make it cheaper', 'Explain liquidus'
 
 function copilotOpen() {
   $('#copilotDrawer')?.classList.add('open');
-  $('#copilotBackdrop')?.classList.remove('hidden');
+  setTimeout(() => $('#copilotInput')?.focus(), 320);
   updateCopilotContext();
   if (!$('#copilotMessages')?.children.length) {
     copilotPush('assistant', 'I can see your alloy, temperature, pressure and active benchmark. Ask me anything, or use a quick prompt below.');
@@ -4626,7 +4556,6 @@ function copilotOpen() {
 
 function copilotClose() {
   $('#copilotDrawer')?.classList.remove('open');
-  $('#copilotBackdrop')?.classList.add('hidden');
 }
 
 function updateCopilotContext() {
@@ -4749,7 +4678,7 @@ async function copilotAction(action) {
 async function oauthLogin(provider) {
   const bridge = window.MH_FIREBASE;
   if (!bridge?.signIn) {
-    toast('OAuth needs the Firebase bridge. Use Work Email or Instant Pilot Guest for now.', 'warning', 5200);
+    toast('Sign-in service is still loading. Please retry in a moment.', 'warning', 4000);
     return;
   }
   const button = $(`[data-oauth="${provider}"]`);
@@ -4763,7 +4692,7 @@ async function oauthLogin(provider) {
   setSession(result.token, result.user);
   closeAuth();
   await afterLogin();
-  toast(`Signed in with ${provider}. Profile synced to Firestore users/{uid}.`, 'success', 5200);
+  toast(`Signed in as ${state.user?.email || 'member'}.`, 'success', 4000);
 }
 
 async function saveLead(lead) {
@@ -4936,7 +4865,6 @@ function bindExtraEvents() {
 
   $('#copilotFab')?.addEventListener('click', copilotOpen);
   $('#copilotClose')?.addEventListener('click', copilotClose);
-  $('#copilotBackdrop')?.addEventListener('click', copilotClose);
   $('#copilotForm')?.addEventListener('submit', (event) => {
     event.preventDefault();
     const input = $('#copilotInput');
@@ -4991,7 +4919,7 @@ function bindExtraEvents() {
   $('#requestSampleBtn')?.addEventListener('click', () => openRfq('Custom sample melt'));
   $('#bookLabBtn')?.addEventListener('click', openLab);
   $('#brokerageBtn')?.addEventListener('click', () => openRfq('Supplier quote (mill / stockist)'));
-  $('#buyCreditsBtn')?.addEventListener('click', () => { toast('₹999 dossier credit pack reserved. No lock-in, cancel anytime.', 'success', 4600); openRfq('Custom sample melt'); });
+    $('#buyCreditsBtn')?.addEventListener('click', () => window.openUpgrade?.('credits'));
   $('#riskAskAi')?.addEventListener('click', () => { copilotOpen(); copilotAsk('Explain the supply-chain risk and Indian alternatives'); });
   $('#closeRfq')?.addEventListener('click', () => $('#rfqModal')?.classList.add('hidden'));
   $('#rfqModal')?.addEventListener('click', (event) => { if (event.target === $('#rfqModal')) $('#rfqModal')?.classList.add('hidden'); });
@@ -5170,7 +5098,7 @@ function renderAnalyticsDashboard() {
         <div class="kpi-icon">⚡</div>
         <div class="kpi-value">${state.user ? 'Enterprise' : 'Free Studio'}</div>
         <div class="kpi-label">Current Tier</div>
-        <div class="kpi-trend">${state.user?.billing_enterprise_access ? 'ENTERPRISE ACCESS GRANT — WAIVED' : 'Upgrade for more'}</div>
+        <div class="kpi-trend">${state.user?.tier_name ? `${state.user.tier_name} plan` : 'Free plan'}</div>
       </div>
     </div>
     <div class="glass" style="padding: 20px;">
@@ -5926,65 +5854,6 @@ Generated: ${new Date().toISOString()}
   }, 1000);
 }
 
-// --- GAMIFICATION ENGINE ---
-const MILESTONES = [
-  { id: 'first_sim', name: 'First Simulation', desc: 'Run your first simulation', experiencePoints: 50, icon: '🧪', unlocked: true },
-  { id: 'first_benchmark', name: 'Benchmark Accepted', desc: 'Complete your first Validation Benchmarks benchmark', experiencePoints: 100, icon: '🏆', unlocked: false },
-  { id: 'rocket_scientist', name: 'Rocket Scientist', desc: 'Pass the Reusable Rocket Nozzle benchmark', experiencePoints: 500, icon: '🚀', unlocked: false },
-  { id: 'cryo_master', name: 'Cryo Master', desc: 'Design an alloy for -196°C service', experiencePoints: 300, icon: '❄️', unlocked: false },
-  { id: 'cost_cutter', name: 'Cost Cutter', desc: 'Beat a benchmark at 50% of cost ceiling', experiencePoints: 400, icon: '💰', unlocked: false },
-  { id: 'zero_cobalt', name: 'Zero-Cobalt Pioneer', desc: 'Pass any benchmark with 0% Co', experiencePoints: 300, icon: '🚫', unlocked: false },
-  { id: 'weight_watcher', name: 'Weight Watcher', desc: 'Beat a benchmark at 80% of density ceiling', experiencePoints: 350, icon: '⚖️', unlocked: false },
-  { id: 'optimizer', name: 'Optimizer', desc: 'Use Auto-Optimize 10 times', experiencePoints: 200, icon: '⚡', unlocked: false },
-  { id: 'periodic_master', name: 'Periodic Master', desc: 'Use 20+ different elements', experiencePoints: 250, icon: '🧬', unlocked: false },
-  { id: 'share_alloy', name: 'Viral Alloy', desc: 'Share an alloy link that gets 10 opens', experiencePoints: 150, icon: '🔗', unlocked: false },
-  { id: 'discoveryRegistry', name: 'Global Leader', desc: 'Reach Top 10 on Discovery Discovery Registry', experiencePoints: 1000, icon: '👑', unlocked: false },
-  { id: 'api_user', name: 'API Pioneer', desc: 'Make 100 API calls', experiencePoints: 200, icon: '🔌', unlocked: false },
-];
-
-function renderGamification() {
-  const container = $('#engagementMetricsPanel');
-  if (!container) return;
-  
-  const userXP = JSON.parse(localStorage.getItem('mh_user_xp') || '0');
-  const userMilestones = JSON.parse(localStorage.getItem('mh_user_milestones') || '[]');
-  const consecutiveDays = JSON.parse(localStorage.getItem('mh_daily_consecutiveDays') || '{"count":0,"last":null}');
-  
-  // Check milestones
-  MILESTONES.forEach(a => {
-    if (userMilestones.includes(a.id)) a.unlocked = true;
-  });
-  
-  const totalXP = userMilestones.reduce((sum, id) => {
-    const a = MILESTONES.find(x => x.id === id);
-    return sum + (a?.experiencePoints || 0);
-  }, 0);
-  
-  container.innerHTML = `
-    <div class="daily-streak">
-      <div class="streak-fire">${consecutiveDays.count > 0 ? '🔥' : '💧'}</div>
-      <div>
-        <div class="streak-count">${consecutiveDays.count}</div>
-        <div class="streak-label">Day Consecutive Days</div>
-      </div>
-      <div style="margin-left: auto;">
-        <div style="font-size: 24px; font-weight: 800; color: var(--cyan);">${totalXP.toLocaleString()}</div>
-        <div class="streak-label">Total Experience Points</div>
-      </div>
-    </div>
-    <div class="achievement-grid">
-      ${MILESTONES.map(a => `
-        <div class="achievement-card ${a.unlocked ? 'unlocked' : 'locked'}" data-achievement="${a.id}">
-          <div class="achievement-icon">${a.icon}</div>
-          <div class="achievement-name">${a.name}</div>
-          <div class="achievement-desc">${a.desc}</div>
-          <div class="achievement-xp">+${a.experiencePoints} Experience Points</div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
 // --- AI-POWERED ALLOY DESIGN ---
 function renderAIDesign() {
   const container = $('#aiDesignPanel');
@@ -6275,7 +6144,6 @@ function initEnterpriseFeatures() {
   if ($('#apiAccessPanel')) renderApiAccess();
   if ($('#genomeCanvas')) initAlloyGenome();
   if ($('#digitalTwinFormats')) renderDigitalTwinExport();
-  if ($('#engagementMetricsPanel')) renderGamification();
   if ($('#aiDesignPanel')) renderAIDesign();
   if ($('#exportControlPanel')) renderExportControl();
   
@@ -6371,14 +6239,6 @@ window.initEnterpriseFeatures = initEnterpriseFeatures;
 window.trackSimulation = trackSimulation;
 window.trackBenchmark = trackBenchmark;
   // ---- ADDED: Missing button handlers ----
-  $('#exportPdfTop')?.addEventListener('click', () => {
-    if (!window.Blob) {
-      toast('Blob not supported', 'error', 3000);
-      return;
-    }
-    toast('PDF dossier exported', 'success', 2000);
-  });
-
   $('#exportTableCsv')?.addEventListener('click', () => {
     if (!window.Blob || !window.URL) {
       toast('Blob not supported', 'error', 3000);
@@ -6405,13 +6265,6 @@ window.trackBenchmark = trackBenchmark;
     a.click();
     URL.revokeObjectURL(url);
     toast('CSV exported', 'success', 2000);
-  });
-
-  $('#pilotLaunchBtn')?.addEventListener('click', () => {
-    const mode = '?mode=live_demo';
-    const url = '/' + mode;
-    toast('Launching Interactive Pilot Sandbox', 'success', 2000);
-    if (window.location) window.location.href = url;
   });
 
   $('#tourPreset')?.addEventListener('click', () => {

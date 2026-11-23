@@ -8,12 +8,13 @@
 
 (function () {
   const firebaseConfig = {
-    apiKey: 'REPLACE_WITH_FIREBASE_WEB_API_KEY',
+    apiKey: 'AIzaSyCSdfxGQu5opz4x5E_1GxLfPTb2HbpmhdE',
     authDomain: 'materialhunt-2026.firebaseapp.com',
     projectId: 'materialhunt-2026',
-    storageBucket: 'materialhunt-2026.appspot.com',
-    messagingSenderId: '000000000000',
-    appId: '1:000000000000:web:materialhunt2026',
+    storageBucket: 'materialhunt-2026.firebasestorage.app',
+    messagingSenderId: '993727280011',
+    appId: '1:993727280011:web:65ed39f822a99c0386b58e',
+    measurementId: 'G-3QC10Z0HSJ',
   };
 
   const HOSTED = /(^|\.)web\.app$|(^|\.)firebaseapp\.com$/.test(location.hostname);
@@ -172,7 +173,7 @@
     const meltEff = pressureShift(melt, pressurePa, 16);
     const boilEff = pressureShift(boil, pressurePa, 34);
     const row = periodicData(symbol);
-    const sub = Number(row.sublimation_point_c);
+    const sub = (row.sublimation_point_c === null || row.sublimation_point_c === undefined || row.sublimation_point_c === '') ? NaN : Number(row.sublimation_point_c);
     if (Number.isFinite(sub)) {
       const subEff = pressureShift(sub, pressurePa, 34);
       if (temperatureC >= subEff) return { phase: 'GASEOUS / VAPORIZED', note: `${symbol} sublimates at ${Math.round(subEff)}°C at this pressure.`, melting: melt, boiling: boil, meltEff, boilEff, subEff };
@@ -323,7 +324,14 @@
     const margin = 1 - utilization;
     let verdict = 'SAFE';
     let verdictLabel = 'Structural envelope verified';
-    if (isMelted) { verdict = 'MELTED'; verdictLabel = 'Liquidus failure — alloy loses load-bearing capacity'; }
+    const GAS_ELEMENTS = ['H', 'He', 'N', 'O', 'F', 'Ne', 'Cl', 'Ar', 'Kr', 'Xe', 'Rn'];
+    const vaporMass = phases.filter((p) => p.phase === 'GASEOUS / VAPORIZED').reduce((acc, p) => acc + Number(p.wt_pct || 0), 0);
+    const gasMass = phases.filter((p) => GAS_ELEMENTS.includes(p.symbol)).reduce((acc, p) => acc + Number(p.wt_pct || 0), 0);
+    const isGas = gasMass >= 50;
+    const isVaporized = vaporMass >= 50;
+    if (isGas) { verdict = 'MELTED'; verdictLabel = 'Not a structural material: this is a gas at ordinary conditions'; }
+    else if (isVaporized) { verdict = 'MELTED'; verdictLabel = 'Vaporised: boils off, no solid is left to carry load'; }
+    else if (isMelted) { verdict = 'MELTED'; verdictLabel = 'Liquidus failure — alloy loses load-bearing capacity'; }
     else if (isBurst) { verdict = 'UNSAFE'; verdictLabel = 'Pressure-burst containment failure'; }
     else if (utilization > 1) { verdict = 'UNSAFE'; verdictLabel = 'Applied stress exceeds derated working strength'; }
     else if (utilization > 0.85) { verdict = 'MARGINAL'; verdictLabel = 'Thin margin — increase section or lower load'; }
@@ -362,7 +370,8 @@
     advice.push('Validate the top candidate with a NABL-accredited tensile coupon before production release.');
     const warnings = [];
     if (carbon > 0.05) warnings.push('High carbon chemistry can reduce weldability and fracture toughness.');
-    if (vaporized.length) warnings.push(`Vaporized elements at this temperature/pressure: ${vaporized.join(', ')}.`);
+    const notableVapor = phases.filter((p) => vaporized.includes(p.symbol) && Number(p.wt_pct || 0) >= 1).map((p) => p.symbol);
+    if (notableVapor.length) warnings.push(`Vaporized elements at this temperature/pressure: ${notableVapor.join(', ')}.`);
     if (temperature > 400) warnings.push('Hot-strength values are extrapolated by the offline screening engine; confirm with a creep test.');
     return {
       product: 'MATERIALHUNT',
@@ -385,7 +394,7 @@
       },
       derived: {
         density_gcm3: round(density, 3), cost_per_kg: round(cost), thermal_limit_c: round(limit), liquidus_c: round(liquidus, 2),
-        is_melted: isMelted, liquidus_message: isMelted ? 'Liquidus failure' : 'Solid state',
+        is_melted: isMelted, is_vaporized: isVaporized, is_gas: isGas, liquidus_message: isGas ? 'Gas' : isVaporized ? 'Vaporised' : isMelted ? 'Liquidus failure' : 'Solid state',
         corrosion_index: round(corrosion, 3), ductility_index: round(ductility, 3), modulus_gpa: round(modulus, 1),
         crystal_structure: structure, environment_factor: round(envFactor, 3), profile_factor: profileFactor,
         thermal_factor: round(tFactor, 3), strength_25c_mpa: round(strength), operating_strength_mpa: round(operating),
@@ -402,7 +411,7 @@
         oxygen_escape_kpa_min: round(Math.max(0, 0.0018 * Math.exp((temperature - 500) / 400)), 5),
         element_phases: phases.map((p) => ({ symbol: p.symbol, wt_pct: p.wt_pct, phase: p.phase, note: p.note, melting_point_c: p.melting_point_c, boiling_point_c: p.boiling_point_c, melting_effective_c: p.melting_effective_c, boiling_effective_c: p.boiling_effective_c })),
         vaporized_elements: vaporized, liquid_elements: liquid,
-        aggregate_phase: vaporized.length ? 'GASEOUS / VAPORIZED' : liquid.length ? 'LIQUID' : 'SOLID',
+        aggregate_phase: (() => { const mass = (list) => phases.filter((p) => list.includes(p.symbol)).reduce((a, p) => a + Number(p.wt_pct || 0), 0); const v = mass(vaporized); const l = mass(liquid); return v >= 50 ? 'GASEOUS / VAPORIZED' : (v + l >= 50 || isMelted) ? 'LIQUID' : 'SOLID'; })(),
       },
       environment: {
         temperature_c: temperature, temperature_k: round(temperature + 273.15, 2), pressure_pa: pressure,
@@ -557,11 +566,9 @@
 
   function fallbackUser(mode) {
     return {
-      id: 9001, email: mode === 'register' ? 'new-lab@materialhunt.firebase' : 'pilot@materialhunt.firebase',
-      organization_name: mode === 'register' ? 'New Lab (KYB pending)' : 'MATERIALHUNT Pilot Lab',
-      org_id: 'MH-FIREBASE-2026', tier: 'enterprise', tier_name: 'Enterprise R&D',
-      role: 'member', kyb_status: mode === 'register' ? 'pending' : 'approved',
-      billing_status: 'WAIVED', billing_waived: true, created_at: new Date().toISOString(),
+      id: 'demo', email: 'demo@example.com', organization_name: 'Sample Lab',
+      org_id: '', tier: 'free', tier_name: 'Free', role: 'member', kyb_status: 'pending',
+      billing_status: 'FREE', billing_enterprise_access: false, created_at: new Date().toISOString(),
     };
   }
 
@@ -701,42 +708,13 @@
       const dynamic = 0.5 * medium * Math.pow(velocity / 3.6, 2);
       return jsonResponse({ ok: true, environment: { temperature_c: temp, pressure_pa: pressure, dynamic_pressure_pa: round(dynamic, 2), total_pressure_pa: round(pressure + dynamic, 2), pressure_label: fmtPressure(pressure + dynamic), environment_density_kgm3: medium, velocity_kmh: velocity } });
     }
-    if (route === '/api/labels') return jsonResponse({ ok: true, labels: handbook.meta?.labels || {}, waiver_label: 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)', kyb_badge: 'ENTERPRISE VIP · KYB VERIFIED' });
-    if (route === '/api/auth/pilot-guest' || route === '/api/auth/guest-summit') {
-      return jsonResponse({ ok: true, token: `offline-pilot-${Date.now()}`, mode: 'live_demo', user: fallbackUser('pilot') });
+    if (route === '/api/labels') return jsonResponse({ ok: true, labels: handbook.meta?.labels || {}, waiver_label: '', kyb_badge: '' });
+    if (route.startsWith('/api/auth/') || route === '/api/stats/public' || route === '/api/leads') {
+      const handled = await authRoute(route, body, headers);
+      if (handled) return handled;
     }
-    if (route === '/api/auth/login') {
-      const email = String(body?.email || '');
-      const password = String(body?.password || '');
-      const demo = email === 'demo@materialhunt.ai' && password === 'Demo@2026';
-      const rnd = email === 'rnd@vajra-aero.in' && password === 'Vajra@2026';
-      if (!demo && !rnd) return jsonResponse({ detail: 'Invalid email or password.' }, 401);
-      const user = fallbackUser('pilot');
-      user.email = email;
-      user.organization_name = demo ? 'Demo Lab · MATERIALHUNT' : 'Vajra Aerospace Materials';
-      user.billing_waived = demo;
-      user.tier_name = demo ? 'Enterprise R&D' : 'Free Starter';
-      user.tier = demo ? 'enterprise' : 'free';
-      return jsonResponse({ ok: true, token: `offline-${demo ? 'demo' : 'rnd'}-${Date.now()}`, user });
-    }
-    if (route === '/api/auth/register') {
-      const user = fallbackUser('register');
-      user.email = body?.email || user.email;
-      user.organization_name = body?.organization_name || user.organization_name;
-      user.org_id = body?.org_id || user.org_id;
-      return jsonResponse({ ok: true, token: `offline-register-${Date.now()}`, user });
-    }
-    if (route === '/api/auth/me') {
-      const auth = String(headers.Authorization || headers.authorization || '');
-      if (!auth) return jsonResponse({ detail: 'Not authenticated.' }, 401);
-      return jsonResponse({ ok: true, user: bridge.user || fallbackUser('pilot') });
-    }
-    if (route === '/api/auth/logout') return jsonResponse({ ok: true });
     if (route === '/api/feedback') {
-      const list = readJson(LS.feedback, []);
-      const entry = { id: list.length + 1, rating: Number(body?.rating || 0), category: body?.category || 'General', message: body?.message || '', status: 'Open', created_at: new Date().toISOString() };
-      list.unshift(entry);
-      writeJson(LS.feedback, list.slice(0, 50));
+      const entry = await saveFeedback(body || {});
       return jsonResponse({ ok: true, feedback: entry });
     }
     if (route === '/api/leaderboard' || route === '/api/discoveryRegistry') return jsonResponse(leaderboardResponse());
@@ -801,8 +779,16 @@
   window.MH_OFFLINE_PDF = (request) => base64Pdf(reportLines(request));
 
   /* ------------------------------------------------------------------ */
-  /* Firebase SDK (dynamic, hosted only)                                */
+  /* Firebase SDK, real accounts, tiers, public stats, leads            */
   /* ------------------------------------------------------------------ */
+  const TIER_NAMES = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enterprise' };
+  const FOUNDING_LIMIT = 500; // first N verified accounts are tagged "Founding member" by the UI
+  let authSettled = false;
+  let authResolve = () => {};
+  const authReady = new Promise((resolve) => { authResolve = resolve; });
+  const syncing = {};
+  let pendingReg = null;
+
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -814,96 +800,274 @@
     });
   }
 
+  function settleAuth() {
+    if (!authSettled) { authSettled = true; authResolve(); }
+  }
+
   async function initFirebase() {
     if (bridge.ready) return bridge;
-    if (!HOSTED || !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('REPLACE_')) {
-      bridge.error = 'Firebase keys not configured — offline local auth remains active.';
+    if (bridge.initPromise) return bridge.initPromise;
+    bridge.initPromise = (async () => {
+      try {
+        await loadScript(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app-compat.js`);
+        await Promise.all([
+          loadScript(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth-compat.js`),
+          loadScript(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore-compat.js`),
+        ]);
+        window.firebase.initializeApp(firebaseConfig);
+        bridge.auth = window.firebase.auth();
+        bridge.db = window.firebase.firestore();
+        bridge.ready = true;
+        bridge.auth.onAuthStateChanged(async (user) => {
+          if (user) {
+            try { await syncAccount(user); } catch { /* handled inside */ }
+          } else {
+            bridge.user = null;
+          }
+          settleAuth();
+          window.dispatchEvent(new CustomEvent('mh:auth', { detail: { user: bridge.user } }));
+        });
+      } catch (error) {
+        bridge.error = error.message;
+        settleAuth();
+      }
       return bridge;
+    })();
+    return bridge.initPromise;
+  }
+
+  function toAppUser(fbUser, profile) {
+    const p = profile || {};
+    const tier = TIER_NAMES[p.tier] ? p.tier : 'free';
+    const email = fbUser.email || p.email || '';
+    return {
+      id: fbUser.uid,
+      email,
+      organization_name: p.org || fbUser.displayName || email.split('@')[0] || 'Member',
+      org_id: p.org_id || '',
+      tier,
+      tier_name: TIER_NAMES[tier],
+      role: p.role === 'admin' ? 'admin' : 'member',
+      kyb_status: p.kyb_status || 'pending',
+      billing_status: tier === 'free' ? 'FREE' : 'ACTIVE',
+      billing_enterprise_access: false,
+      email_verified: Boolean(fbUser.emailVerified),
+      referral_code: String(fbUser.uid).slice(0, 8),
+      created_at: p.created_at?.toDate ? p.created_at.toDate().toISOString() : (p.created_at || new Date().toISOString()),
+    };
+  }
+
+  function syncAccount(fbUser) {
+    if (!syncing[fbUser.uid]) {
+      syncing[fbUser.uid] = doSync(fbUser).finally(() => { delete syncing[fbUser.uid]; });
     }
+    return syncing[fbUser.uid];
+  }
+
+  async function doSync(fbUser) {
+    const db = bridge.db;
+    const FV = window.firebase.firestore.FieldValue;
+    const userRef = db.collection('users').doc(fbUser.uid);
+    const signupRef = db.collection('signups').doc(fbUser.uid);
+    const statsRef = db.collection('stats').doc('public');
+    let profile = null;
     try {
-      await loadScript(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-app-compat.js`);
-      await loadScript(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-auth-compat.js`);
-      await loadScript(`https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-firestore-compat.js`);
-      window.firebase.initializeApp(firebaseConfig);
-      bridge.auth = window.firebase.auth();
-      bridge.db = window.firebase.firestore();
-      bridge.ready = true;
-      bridge.auth.onAuthStateChanged(async (user) => {
-        bridge.user = user ? { uid: user.uid, email: user.email, displayName: user.displayName, photoURL: user.photoURL } : null;
-        if (user) {
-          try {
-            await bridge.db.collection('users').doc(user.uid).set({
-              email: user.email || '', displayName: user.displayName || '', photoURL: user.photoURL || '',
-              lastLoginAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-          } catch { /* Firestore rules may still be propagating */ }
-        }
-      });
+      const snap = await userRef.get();
+      if (snap.exists) {
+        profile = snap.data();
+      } else {
+        const ref = (localStorage.getItem('mh_ref') || '').slice(0, 16);
+        const reg = pendingReg || {};
+        profile = {
+          email: fbUser.email || '', displayName: fbUser.displayName || '',
+          org: reg.org || fbUser.displayName || '', org_id: reg.org_id || '',
+          tier: 'free', role: 'member', kyb_status: 'pending',
+          referred_by: ref, referral_code: String(fbUser.uid).slice(0, 8),
+          created_at: FV.serverTimestamp(),
+        };
+        const verified = Boolean(fbUser.emailVerified);
+        const batch = db.batch();
+        batch.set(userRef, profile);
+        batch.set(signupRef, {
+          created_at: FV.serverTimestamp(), verified,
+          provider: (fbUser.providerData?.[0]?.providerId || 'password'), referred_by: ref,
+        });
+        batch.set(statsRef, { total_users: FV.increment(1), verified_users: FV.increment(verified ? 1 : 0) }, { merge: true });
+        await batch.commit();
+        profile.created_at = new Date().toISOString();
+      }
+      pendingReg = null;
+      if (fbUser.emailVerified) await markVerified(fbUser, db, FV);
     } catch (error) {
-      bridge.error = error.message;
+      bridge.syncError = error.message;
     }
-    return bridge;
+    bridge.profile = profile || {};
+    bridge.user = toAppUser(fbUser, profile);
+    return bridge.user;
+  }
+
+  async function markVerified(fbUser, db, FV) {
+    const signupRef = db.collection('signups').doc(fbUser.uid);
+    const snap = await signupRef.get();
+    if (!snap.exists || snap.data().verified) return;
+    await fbUser.getIdToken(true); // refresh so rules see email_verified = true
+    const batch = db.batch();
+    batch.update(signupRef, { verified: true });
+    batch.set(db.collection('stats').doc('public'), { verified_users: FV.increment(1) }, { merge: true });
+    await batch.commit();
+  }
+
+  function friendlyAuthError(error) {
+    const map = {
+      'auth/invalid-email': 'That email address does not look right.',
+      'auth/user-not-found': 'No account found for that email. Create a free account instead.',
+      'auth/wrong-password': 'Incorrect password. Try again or reset it.',
+      'auth/invalid-credential': 'Incorrect email or password.',
+      'auth/invalid-login-credentials': 'Incorrect email or password.',
+      'auth/email-already-in-use': 'An account with this email already exists. Sign in instead.',
+      'auth/weak-password': 'Choose a stronger password (at least 6 characters).',
+      'auth/too-many-requests': 'Too many attempts. Wait a minute and try again.',
+      'auth/network-request-failed': 'Network problem. Check your connection and retry.',
+      'auth/popup-closed-by-user': 'Sign-in window was closed before finishing.',
+      'auth/popup-blocked': 'Your browser blocked the sign-in window. Allow pop-ups and retry.',
+      'auth/operation-not-allowed': 'This sign-in method is not enabled yet.',
+      'auth/unauthorized-domain': 'This domain is not authorised for sign-in yet.',
+    };
+    return map[error?.code] || error?.message || 'Something went wrong. Please retry.';
+  }
+
+  async function authRoute(route, body, headers) {
+    if (route === '/api/stats/public') {
+      await initFirebase();
+      try {
+        const snap = await bridge.db.collection('stats').doc('public').get();
+        const d = snap.exists ? snap.data() : {};
+        return jsonResponse({ ok: true, total_users: Number(d.total_users || 0), verified_users: Number(d.verified_users || 0), founding_limit: FOUNDING_LIMIT });
+      } catch {
+        return jsonResponse({ ok: false, total_users: 0, verified_users: 0, founding_limit: FOUNDING_LIMIT });
+      }
+    }
+    if (route === '/api/leads') {
+      const saved = await saveLead(body || {});
+      return jsonResponse(saved);
+    }
+    await initFirebase();
+    if (!bridge.auth) return jsonResponse({ detail: 'Sign-in service is unavailable right now. Please retry in a moment.' }, 503);
+    try {
+      if (route === '/api/auth/register') {
+        pendingReg = { org: String(body?.organization_name || '').trim(), org_id: String(body?.org_id || '').trim() };
+        const cred = await bridge.auth.createUserWithEmailAndPassword(String(body?.email || '').trim(), String(body?.password || ''));
+        if (pendingReg?.org) { try { await cred.user.updateProfile({ displayName: pendingReg.org }); } catch { /* non-fatal */ } }
+        try { await cred.user.sendEmailVerification(); } catch { /* non-fatal */ }
+        const user = await syncAccount(cred.user);
+        return jsonResponse({ ok: true, token: await cred.user.getIdToken(), user, verification_sent: true });
+      }
+      if (route === '/api/auth/login') {
+        const cred = await bridge.auth.signInWithEmailAndPassword(String(body?.email || '').trim(), String(body?.password || ''));
+        const user = await syncAccount(cred.user);
+        return jsonResponse({ ok: true, token: await cred.user.getIdToken(), user });
+      }
+      if (route === '/api/auth/me') {
+        await Promise.race([authReady, new Promise((r) => setTimeout(r, 6000))]);
+        const fbUser = bridge.auth.currentUser;
+        if (!fbUser) return jsonResponse({ detail: 'Not authenticated.' }, 401);
+        return jsonResponse({ ok: true, user: bridge.user || await syncAccount(fbUser) });
+      }
+      if (route === '/api/auth/refresh') {
+        const fbUser = bridge.auth.currentUser;
+        if (!fbUser) return jsonResponse({ detail: 'Not authenticated.' }, 401);
+        await fbUser.reload();
+        const user = await syncAccount(bridge.auth.currentUser);
+        return jsonResponse({ ok: true, user });
+      }
+      if (route === '/api/auth/resend-verification') {
+        const fbUser = bridge.auth.currentUser;
+        if (!fbUser) return jsonResponse({ detail: 'Not authenticated.' }, 401);
+        await fbUser.sendEmailVerification();
+        return jsonResponse({ ok: true });
+      }
+      if (route === '/api/auth/reset') {
+        await bridge.auth.sendPasswordResetEmail(String(body?.email || '').trim());
+        return jsonResponse({ ok: true });
+      }
+      if (route === '/api/auth/logout') {
+        await bridge.auth.signOut();
+        bridge.user = null;
+        return jsonResponse({ ok: true });
+      }
+    } catch (error) {
+      const status = String(error?.code || '').includes('too-many') ? 429 : 401;
+      return jsonResponse({ detail: friendlyAuthError(error), code: error?.code || '' }, status);
+    }
+    return null;
   }
 
   async function signIn(providerName) {
     await initFirebase();
-    if (!bridge.auth) {
-      return { ok: false, offline: true, message: 'Firebase keys are not configured. Use the Instant Pilot guest button for full access.' };
-    }
-    const providers = {
-      google: () => new window.firebase.auth.GoogleAuthProvider(),
-      github: () => new window.firebase.auth.GithubAuthProvider(),
-      apple: () => new window.firebase.auth.OAuthProvider('apple.com'),
-      microsoft: () => new window.firebase.auth.OAuthProvider('microsoft.com'),
-    };
-    const provider = providers[providerName]?.();
-    if (!provider) return { ok: false, message: 'Unknown identity provider.' };
-    if (providerName === 'microsoft') provider.addScope('openid profile email');
+    if (!bridge.auth) return { ok: false, message: 'Sign-in service is unavailable right now. Please retry in a moment.' };
+    if (providerName !== 'google') return { ok: false, message: 'That sign-in method is not available yet.' };
     try {
+      const provider = new window.firebase.auth.GoogleAuthProvider();
       const result = await bridge.auth.signInWithPopup(provider);
-      const user = result.user;
-      return {
-        ok: true, token: await user.getIdToken(),
-        user: {
-          id: user.uid, email: user.email, organization_name: user.displayName || (user.email || '').split('@')[0],
-          org_id: 'FIREBASE', tier: 'enterprise', tier_name: 'Enterprise R&D', role: 'member',
-          kyb_status: 'approved', billing_status: 'WAIVED', billing_waived: true,
-        },
-      };
+      const user = await syncAccount(result.user);
+      return { ok: true, token: await result.user.getIdToken(), user };
     } catch (error) {
-      return { ok: false, message: error.message };
+      return { ok: false, message: friendlyAuthError(error) };
     }
   }
 
   async function saveLead(lead) {
-    const payload = { ...lead, created_at: new Date().toISOString(), source: HOSTED ? 'firebase-hosting' : 'offline' };
     await initFirebase();
+    const clean = {};
+    Object.entries(lead || {}).forEach(([k, v]) => {
+      if (['string', 'number', 'boolean'].includes(typeof v)) clean[k] = typeof v === 'string' ? v.slice(0, 600) : v;
+    });
+    if (!['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo'].includes(clean.kind)) clean.kind = 'rfq';
+    clean.name = String(clean.name || clean.email || 'Visitor').slice(0, 120);
+    clean.organization = String(clean.organization || '-').slice(0, 160);
+    clean.email = String(clean.email || '').slice(0, 160);
+    clean.source = location.hostname;
+    clean.user_id = bridge.auth?.currentUser?.uid || '';
+    clean.ref = (localStorage.getItem('mh_ref') || '').slice(0, 16);
     if (bridge.db) {
       try {
-        const ref = await bridge.db.collection('rfq_leads').add(payload);
+        const doc = { ...clean, created_at: window.firebase.firestore.FieldValue.serverTimestamp() };
+        const ref = await bridge.db.collection('rfq_leads').add(doc);
         return { ok: true, id: ref.id, storage: 'firestore' };
       } catch (error) {
-        payload.firestore_error = error.message;
+        clean.firestore_error = error.message;
       }
     }
     const leads = readJson(LS.leads, []);
-    payload.id = `local-${Date.now()}`;
-    leads.unshift(payload);
+    clean.id = `local-${Date.now()}`;
+    clean.created_at = new Date().toISOString();
+    leads.unshift(clean);
     writeJson(LS.leads, leads.slice(0, 40));
-    return { ok: true, id: payload.id, storage: 'local' };
+    return { ok: true, id: clean.id, storage: 'local' };
+  }
+
+  async function saveFeedback(body) {
+    await initFirebase();
+    const rating = Math.max(0, Math.min(5, Math.round(Number(body.rating || 0))));
+    const entry = { rating, category: String(body.category || 'General').slice(0, 60), comment: String(body.message || '').slice(0, 1500) };
+    const uid = bridge.auth?.currentUser?.uid;
+    if (bridge.db && uid) {
+      try {
+        await bridge.db.collection('feedback').add({ ...entry, user_id: uid, status: 'Open', created_at: window.firebase.firestore.FieldValue.serverTimestamp() });
+        return { ...entry, status: 'Open', created_at: new Date().toISOString() };
+      } catch { /* fall through to local */ }
+    }
+    const list = readJson(LS.feedback, []);
+    const local = { id: list.length + 1, ...entry, message: entry.comment, status: 'Open', created_at: new Date().toISOString() };
+    list.unshift(local);
+    writeJson(LS.feedback, list.slice(0, 50));
+    return local;
   }
 
   function saveProfile(profile) {
-    const uid = profile?.uid || profile?.id || 'local';
     writeJson(LS.profile, { ...profile, saved_at: new Date().toISOString() });
-    if (bridge.db) {
-      bridge.db.collection('users').doc(String(uid)).set({
-        ...profile, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true }).catch(() => {});
-    }
     return { ok: true };
   }
-
   bridge.initFirebase = initFirebase;
   bridge.signIn = signIn;
   bridge.saveLead = saveLead;
@@ -914,5 +1078,5 @@
   bridge.getHandbook = () => handbook;
 
   loadHandbook();
-  if (HOSTED) setTimeout(initFirebase, 900);
+  setTimeout(initFirebase, 300);
 })();
