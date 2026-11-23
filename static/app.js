@@ -3720,6 +3720,7 @@ function updateModeUI() {
   const title = $('#heroViewerTitle');
   if (title) title.textContent = titles[state.mode] || titles.lattice;
   $('#latticeControls')?.classList.toggle('hidden', state.mode !== 'lattice');
+  $('#latticeNote')?.classList.toggle('hidden', state.mode !== 'lattice');
   $('#shapeColors')?.classList.toggle('hidden', state.mode === 'lattice');
   if (state.scene) {
     state.scene.setMode(state.mode);

@@ -525,3 +525,5 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .shape-colors .sc-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px rgba(34,211,238,.7); }
 .shape-colors input[type=color] { width: 22px; height: 20px; border: 0; padding: 0; background: none; cursor: pointer; }
 @media (max-width: 720px) { .shape-colors { top: 44px; max-width: calc(100% - 24px); flex-wrap: wrap; } }
+
+.viewport-note { margin: 6px 4px 0; font-size: 11px; opacity: .65; text-align: center; }
