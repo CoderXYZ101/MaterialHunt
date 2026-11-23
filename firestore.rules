@@ -57,7 +57,13 @@ service cloud.firestore {
     // prizes and mark one as claimed (together with the Pro days, see the users rule above).
     match /prizes/{prizeId} {
       allow read: if signedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
-      allow create, delete: if isAdmin();
+      // only places 1, 2 and 3 can ever exist: one prize per place per leaderboard (id = leaderboard + "_" + place)
+      allow create: if isAdmin()
+        && request.resource.data.rank in [1, 2, 3]
+        && ((request.resource.data.rank == 1 && prizeId.matches('^.+_1$'))
+          || (request.resource.data.rank == 2 && prizeId.matches('^.+_2$'))
+          || (request.resource.data.rank == 3 && prizeId.matches('^.+_3$')));
+      allow delete: if isAdmin();
       allow update: if signedIn() && resource.data.user_id == request.auth.uid
         && resource.data.claimed == false
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed', 'claimed_at'])
