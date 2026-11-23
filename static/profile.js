@@ -108,7 +108,7 @@
           <button class="btn btn-glass small" type="button" id="profPick">Add a photo</button>
           <button class="btn btn-ghost small" type="button" id="profClear">Remove</button>
           <input type="file" id="profFile" accept="image/*" class="hidden" />
-          <label class="guardrail-check prof-show"><input type="checkbox" id="profShow" ${p.show_avatar ? 'checked' : ''} /><span><strong>Show my photo on the leaderboard</strong><small>Only signed-in members can see it. Off by default. Every photo is checked automatically and can be reported.</small></span></label>
+          <label class="guardrail-check prof-show"><input type="checkbox" id="profShow" ${p.show_avatar ? 'checked' : ''} /><span><strong>Show my photo on the leaderboard</strong><small>Only signed-in members can see it. Off by default. Photos are reviewed by our team and can be reported.</small></span></label>
         </div>
       </div>
       <form class="auth-form" id="profForm">

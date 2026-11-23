@@ -291,7 +291,7 @@ async function handleAvatar(request, env, headers) {
   try { body = await request.json(); } catch { return reply(400, { error: 'bad_request' }, headers); }
   const image = String(body.image || '');
   if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 30000) return reply(400, { error: 'bad_image' }, headers);
-  if (!env.AI) return reply(503, { error: 'check_unavailable' }, headers);
+  const aiCheck = env.PHOTO_AI_CHECK === 'on' && Boolean(env.AI); // off by default: it uses the same free AI budget as the assistant
 
   let bot;
   try { bot = await botSignIn(env); } catch { return reply(503, { error: 'check_unavailable' }, headers); }
@@ -302,7 +302,7 @@ async function handleAvatar(request, env, headers) {
 
   const raw = atob(image.slice(image.indexOf(',') + 1));
   const bytes = Array.from(raw, (c) => c.charCodeAt(0));
-  const verdict = await visionVerdict(env, bytes);
+  const verdict = aiCheck ? await visionVerdict(env, bytes) : 'skipped';
   if (verdict === 'unsafe') return reply(422, { error: 'unsafe' }, headers);
   // if the checker could not decide, the photo is accepted and appears in the admin Photos tab for the daily hand check
 

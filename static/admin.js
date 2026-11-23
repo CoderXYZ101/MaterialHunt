@@ -414,7 +414,7 @@
   function photosHtml() {
     const m = checkedMap();
     const list = showChecked ? photos : photosToCheck();
-    return `<p class="micro-note">Photos are checked automatically, then you look at them here once a day. "Looks fine" hides a photo from this list (on this device only). "Remove" deletes it and stops that member adding photos again. Only members who switched "show my photo" on have it visible to others.</p>
+    return `<p class="micro-note">Photos are not checked by AI (to save the free AI budget for the assistant), so look at them here once a day. "Looks fine" hides a photo from this list (on this device only). "Remove" deletes it and stops that member adding photos again. Only members who switched "show my photo" on have it visible to others.</p>
       <p><button class="btn btn-ghost small" id="phAll">${showChecked ? 'Show only unchecked' : 'Show already checked too'}</button> <span class="admin-org">${photosToCheck().length} to check · ${photos.length} photos in total</span></p>
       <div class="photo-grid">${list.length ? list.map((p) => `<div class="photo-tile glass"><img src="${esc(p.avatar)}" alt="" /><b>${esc(p.display_name || 'Member')}</b><small class="admin-org">${p.show_avatar ? 'shown on leaderboard' : 'private'}${m[photoKey(p)] ? ' · checked' : ''}</small>
         <div class="admin-actions"><button class="btn btn-glass small" data-ph="ok" data-id="${esc(p.uid)}">Looks fine</button><button class="btn btn-primary small" data-ph="remove" data-id="${esc(p.uid)}">Remove</button></div></div>`).join('') : '<div class="empty-state"><strong>Nothing to check</strong><span>New photos will appear here.</span></div>'}</div>`;
