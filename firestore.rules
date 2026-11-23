@@ -105,9 +105,8 @@ service cloud.firestore {
     }
 
     // Public profile. Readable by signed-in members only (photos are never public).
-    // A photo can only be put on a profile by the MaterialHunt server after an automatic safety check
-    // (the member's own writes may keep or remove the photo, never replace it). Admins can remove a
-    // photo or reset a name or bio, and block photos for a member who misuses them.
+    // Members can add or change their own photo; admins review photos by hand every day (Admin -> Photos),
+    // can remove a photo, reset a name or bio, and block photos for a member who misuses them.
     function profileFieldsOk() {
       return request.resource.data.keys().hasOnly(['display_name', 'bio', 'org', 'who', 'avatar', 'show_avatar', 'updated_at', 'photo_blocked'])
         && request.resource.data.display_name is string && request.resource.data.display_name.size() > 0 && request.resource.data.display_name.size() <= 40
@@ -123,15 +122,14 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid
         && profileFieldsOk()
-        && request.resource.data.avatar == ''
         && !('photo_blocked' in request.resource.data);
       allow update: if signedIn() && request.auth.uid == uid
         && profileFieldsOk()
-        && (request.resource.data.avatar == '' || request.resource.data.avatar == resource.data.avatar)
+        && (!resource.data.get('photo_blocked', false) || request.resource.data.avatar == '')
         && request.resource.data.get('photo_blocked', false) == resource.data.get('photo_blocked', false);
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatar', 'show_avatar', 'photo_blocked', 'display_name', 'bio', 'org', 'who', 'updated_at']);
-      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if signedIn() && ((request.auth.uid == uid && !resource.data.get('photo_blocked', false)) || isAdmin());
     }
 
     // Reports about a profile (photo, name, bio or behaviour). One report per reporter per member.

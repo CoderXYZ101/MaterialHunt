@@ -152,29 +152,22 @@
       e.preventDefault();
       const err = q('#profError', m);
       err.textContent = '';
-      const existing = mine?.avatar || '';
-      const wantsNew = Boolean(draftAvatar) && draftAvatar !== existing;
-      const keep = draftAvatar === '' ? '' : existing;
+      const blocked = Boolean(mine?.photo_blocked);
       const doc = {
         display_name: q('#profName', m).value.trim().slice(0, 40), bio: q('#profBio', m).value.trim().slice(0, 200), org: q('#profOrg', m).value.trim().slice(0, 80), who: q('#profWho', m).value,
-        avatar: keep, show_avatar: Boolean((keep || wantsNew) && q('#profShow', m).checked),
+        avatar: blocked ? '' : draftAvatar, show_avatar: Boolean(!blocked && draftAvatar && q('#profShow', m).checked),
       };
-      if (mine?.photo_blocked) doc.photo_blocked = true;
+      if (blocked) doc.photo_blocked = true;
       if (!doc.display_name) { err.textContent = 'Please enter a display name.'; return; }
+      if (blocked && draftAvatar) { err.textContent = 'Photos are switched off for this account.'; return; }
       const submit = q('button[type=submit]', m);
       submit.disabled = true;
       try {
         await window.MH_FIREBASE.initFirebase();
         await db().collection('profiles').doc(uid()).set({ ...doc, updated_at: window.firebase.firestore.FieldValue.serverTimestamp() });
         mine = { ...doc };
-        let photoNote = '';
-        if (wantsNew) {
-          try { await uploadPhoto(draftAvatar); mine.avatar = draftAvatar; }
-          catch (pe) { photoNote = pe.message; draftAvatar = keep; mine.show_avatar = false; }
-        }
         cache.set(uid(), mine);
         applyChip();
-        if (photoNote) { err.textContent = `Profile saved, but the photo was not added: ${photoNote}`; submit.disabled = false; return; }
         notify('Profile saved.', 'success', 2500);
         closeModal();
       } catch (error) { err.textContent = error.message || 'Could not save your profile.'; }
