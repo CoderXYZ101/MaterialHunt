@@ -25,6 +25,7 @@
   let attached = null;
   let busy = false;
   let restored = false;
+  let toolsOn = true;
 
   /* ------------------------------------------------------------------ */
   /* System prompt + per-question context                                */
@@ -41,6 +42,7 @@ Rules:
 - Refuse help with weapons, explosives or evading export controls.
 - Keep answers under about 180 words unless the user asks for depth. Short paragraphs and bullet lists. No headings.
 - When you recommend a specific grade from the app's library you may add a tag [[load:ID]] to offer a one-click test. Library ids: ${grades}
+- You have tools: find_alloys, grade_info, compare_grades and diagnose_failure. For any question about which material to use, a grade's numbers, a comparison, or why a part failed, CALL the tool instead of guessing, then explain the tool's result in plain words. Report anything the tool says it could not check.
 - To suggest a search for the user's requirement add [[find:their requirement in plain words]]. To open a tool add [[view:doctor]], [[view:bom]], [[view:ai-design]] or [[view:pricing]].
 - End EVERY answer with one final line exactly like: FOLLOWUPS: question one | question two | question three (each under 9 words, things the user is likely to ask next).`;
   }
@@ -73,7 +75,18 @@ Rules:
       if (!cfg) throw new Error('Firebase config missing');
       const app = appMod.getApps().find((a) => a.name === 'mh-ai') || appMod.initializeApp(cfg, 'mh-ai');
       const ai = aiMod.getAI(app, { backend: new aiMod.GoogleAIBackend() });
-      return aiMod.getGenerativeModel(ai, { model: (window.MH_CONFIG?.aiModel || 'gemini-2.5-flash'), systemInstruction: systemPrompt(), generationConfig: { temperature: 0.5, maxOutputTokens: 900 } });
+      const cfgModel = { model: (window.MH_CONFIG?.aiModel || 'gemini-2.5-flash'), systemInstruction: systemPrompt(), generationConfig: { temperature: 0.5, maxOutputTokens: 900 } };
+      if (toolsOn) {
+        const S = aiMod.Schema;
+        const str = (d) => S.string({ description: d });
+        cfgModel.tools = [{ functionDeclarations: [
+          { name: 'find_alloys', description: 'Search the library of real commercial grades against a requirement written in plain words. Applies strict pass/fail limits (temperature, yield strength, cost, density, excluded elements, non-magnetic, sour service, conductivity, biocompatibility) and returns matching grades with real numbers.', parameters: S.object({ properties: { requirement: str('The engineering requirement in plain words, with numbers and units') } }) },
+          { name: 'grade_info', description: 'Properties, standards, indicative Indian price, availability and shop-floor feasibility for one named grade.', parameters: S.object({ properties: { grade: str('Grade name, for example 316L, Inconel 625 or Ti-6Al-4V') } }) },
+          { name: 'compare_grades', description: 'Compare two named grades side by side.', parameters: S.object({ properties: { grade_a: str('First grade'), grade_b: str('Second grade') } }) },
+          { name: 'diagnose_failure', description: 'Diagnose why a metal part failed and suggest safer grades.', parameters: S.object({ properties: { metal: str('The metal or grade that failed'), what_happened: str('cracked under vibration, melted or softened, rusted or corroded, warped or bent, or brittle snap'), environment: str('coastal or seawater, hot 900C exhaust, acidic or chemical, cryogenic, or dry indoor') } }) },
+        ] }];
+      }
+      return aiMod.getGenerativeModel(ai, cfgModel);
     })();
     modelPromise.catch(() => { modelPromise = null; });
     return modelPromise;
@@ -83,16 +96,78 @@ Rules:
     return messages.slice(-10).filter((m) => m.text).map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text.slice(0, 1200) }] }));
   }
 
+  function gradeBrief(g) {
+    return { name: g.name, standards: [g.std.astm, g.std.is, g.std.en].filter((x) => x && x !== '-'), yield_mpa: g.y, max_service_c: g.t, density_g_cm3: Number(dens(g).toFixed(2)), price_inr_per_kg: g.price, availability: AV[g.av], machining: g.m, welding: g.w, additive: g.am, corrosion_0_to_3: g.c };
+  }
+  function runTool(name, args) {
+    const t = T();
+    try {
+      if (name === 'find_alloys') {
+        const r = t.findAlloys(String(args.requirement || ''));
+        if (r.blocked) return { result: 'out_of_scope', note: 'This looks like a functional-material request (magnetic, catalytic, amorphous). The library only covers structural alloys.' };
+        if (r.failure) return { result: 'failure_diagnosis', mechanism: r.failure.result.mechanism, why: r.failure.result.why, safer: r.failure.result.fixes.map((f) => f.name) };
+        if (r.noLimits) return { result: 'no_limits_found', note: 'No usable limits in the text. Ask the user for temperature, load, budget or environment.' };
+        return {
+          understood: { temperature_c: r.req.tempC, min_yield_mpa: r.req.yieldMin, applied_stress_mpa: r.req.stress, max_cost_inr_per_kg: r.req.maxCost, max_density: r.req.maxDensity, excluded: r.req.banned, non_magnetic: r.req.nonMagnetic, sour_service: r.req.sour, ranked_by: r.req.rank },
+          grades_passing: r.passed.length, of: r.total,
+          top: r.passed.slice(0, 5).map((e) => ({ ...gradeBrief(e.grade), yield_at_temperature_mpa: Math.round(e.yT), notes: e.notes })),
+          blocked_by: r.passed.length ? undefined : (r.unlock || []).map((u) => ({ relax: u.gate, candidates: u.list.map((e) => e.grade.name) })),
+          not_checked_automatically: r.req.unmodelled,
+        };
+      }
+      if (name === 'grade_info') {
+        const g = t.findGrade(String(args.grade || ''));
+        return g ? gradeBrief(g) : { error: 'Grade not found in the library' };
+      }
+      if (name === 'compare_grades') {
+        const a = t.findGrade(String(args.grade_a || ''));
+        const b = t.findGrade(String(args.grade_b || ''));
+        return a && b ? { a: gradeBrief(a), b: gradeBrief(b) } : { error: 'One or both grades are not in the library' };
+      }
+      if (name === 'diagnose_failure') {
+        const g = t.findGrade(String(args.metal || ''));
+        if (!g) return { error: 'Metal not found in the library' };
+        const w = String(args.what_happened || '');
+        const e = String(args.environment || '');
+        const event = /rust|corrod|pitting/i.test(w) ? 'corroded' : /melt|soft/i.test(w) ? 'melted' : /brittle|snap/i.test(w) ? 'brittle' : /crack|vibrat|fatigue/i.test(w) ? 'crack_vib' : 'warped';
+        const env = /sea|salt|coast|marine/i.test(e) ? 'coastal' : /hot|exhaust|furnace|900/i.test(e) ? 'hot900' : /acid|chem/i.test(e) ? 'acid' : /cryo|cold|sub/i.test(e) ? 'cryo' : 'dry';
+        const r = t.diagnose(g, event, env);
+        return { mechanism: r.mechanism, why: r.why, evidence: r.evidence, safer: r.fixes.map((f) => gradeBrief(f)) };
+      }
+    } catch (error) { return { error: String(error.message || error) }; }
+    return { error: 'Unknown tool' };
+  }
+
   async function askModel(question, onChunk) {
+    try { return await askModelOnce(question, onChunk); } catch (error) {
+      const msg = String(error?.message || error);
+      if (toolsOn && /function|tool|declaration|schema|parameters/i.test(msg) && !/not been used|not enabled|PERMISSION|API/i.test(msg)) {
+        toolsOn = false; modelPromise = null; chat = null;
+        return askModelOnce(question, onChunk);
+      }
+      throw error;
+    }
+  }
+
+  async function askModelOnce(question, onChunk) {
     const model = await getModel();
     if (!chat) chat = model.startChat({ history: plainHistory() });
     const prompt = `Context: ${JSON.stringify(buildContext())}\n\nUser question: ${question}`;
     const parts = attached ? [{ text: prompt }, { inlineData: { mimeType: attached.mime, data: attached.b64 } }] : prompt;
-    const result = await chat.sendMessageStream(parts);
+    let result = await chat.sendMessageStream(parts);
     let full = '';
-    for await (const chunk of result.stream) {
-      full += chunk.text();
-      onChunk(full);
+    for (let round = 0; round < 4; round += 1) {
+      for await (const chunk of result.stream) {
+        let piece = '';
+        try { piece = chunk.text(); } catch { piece = ''; }
+        full += piece;
+        onChunk(full);
+      }
+      const resp = await result.response;
+      const calls = typeof resp.functionCalls === 'function' ? resp.functionCalls() : [];
+      if (!calls || !calls.length) break;
+      const replies = calls.map((c) => ({ functionResponse: { name: c.name, response: { content: runTool(c.name, c.args || {}) } } }));
+      result = await chat.sendMessageStream(replies);
     }
     return full;
   }
@@ -155,17 +230,30 @@ Rules:
       return out;
     }
 
-    const constraints = [req.tempC !== null, req.stress, req.maxCost, req.maxDensity, req.banned.length, req.corr, req.weld, req.am, req.hydrogen].filter(Boolean).length;
-    if (constraints >= 2 || /\b(recommend|suggest|which|what|best)\b.*\b(metal|alloy|material|grade|steel)\b/.test(lower)) {
-      if (req.functional) { out.html = 'That needs a functional-materials search (magnetic, catalytic or amorphous). My search covers structural alloys, so I would not trust a list for it.'; return out; }
+    if (req.constraintCount >= 2 || req.rank || /(recommend|suggest|which|what|best).*(metal|alloy|material|grade|steel)/.test(lower) || /(rust|rusted|corroded|cracked|melted|warped|failed|broke)/.test(lower)) {
+      if (req.functional) { out.html = 'That reads like a functional-materials request (magnetic, catalytic or amorphous). My search covers structural alloys. If you need a <b>non-magnetic structural</b> metal, say so with your load and conditions.'; return out; }
       const res = t.findAlloys(text);
+      if (res.failure) {
+        const r = res.failure.result;
+        out.html = `<p>That sounds like <b>${esc(r.mechanism)}</b>. ${esc(r.why)}</p>${r.fixes.length ? `<p>Safer options: ${r.fixes.map((f) => `<b>${esc(f.name)}</b>`).join(', ')}.</p>` : ''}`;
+        out.actions = r.fixes.slice(0, 2).map((f) => ['load', f.id, `Test ${f.name}`]).concat([['view', 'doctor', 'Open Failure Doctor']]);
+        out.followups = ['Why does this happen?', 'What does the best fix cost?', 'Create an RFQ'];
+        return out;
+      }
+      if (res.noLimits) {
+        out.html = '<p>Tell me at least one requirement and I will filter the real grades: a temperature, a load (MPa), a budget (₹/kg), the environment (seawater, acid), or things like <b>non-magnetic</b>, <b>weldable</b> or <b>lightweight</b>.</p>';
+        out.followups = ['Strongest metal in the library', 'Metal for 600°C under ₹1,000/kg', 'Non-magnetic metal for seawater'];
+        return out;
+      }
+      const rankWord = { strength: 'strongest', density: 'lightest', cost: 'cheapest', temp: 'most heat-resistant', corrosion: 'most corrosion-resistant', conductivity: 'most conductive' }[res.req.rank];
+      const extra = res.req.unmodelled.length ? `<p><i>Not checked automatically: ${esc(res.req.unmodelled.join(', '))}. Confirm with your supplier.</i></p>` : '';
       if (res.passed.length) {
-        out.html = `<p><b>${res.passed.length}</b> of ${res.total} grades pass every limit you gave. Top picks:</p><ol>${res.passed.slice(0, 3).map((e) => `<li><b>${esc(e.grade.name)}</b>: ${num(Math.round(e.yT))} MPa at temperature, ${e.rho.toFixed(2)} g/cm³, ${rupee(e.grade.price[0])}-${rupee(e.grade.price[1])}/kg</li>`).join('')}</ol>`;
+        out.html = `<p>${rankWord ? `Sorted by <b>${rankWord}</b> among ${res.passed.length} grades that meet your limits.` : `<b>${res.passed.length}</b> of ${res.total} grades pass every limit you gave.`} Top picks:</p><ol>${res.passed.slice(0, 3).map((e) => `<li><b>${esc(e.grade.name)}</b>: ${num(Math.round(e.yT))} MPa yield at temperature, ${e.rho.toFixed(2)} g/cm³, ${rupee(e.grade.price[0])}-${rupee(e.grade.price[1])}/kg</li>`).join('')}</ol>${res.req.rank === 'strength' ? '<p><i>Strongest among the engineering grades in this library. Ceramics, composites and exotic materials are not included.</i></p>' : ''}${extra}`;
         out.actions = [['load', res.passed[0].grade.id, `Test ${res.passed[0].grade.name}`], ['find', text, 'See all results']];
         out.followups = ['Why not the others?', 'Is it easy to weld?', 'Create an RFQ for the top pick'];
       } else {
         const gate = res.unlock && res.unlock[0];
-        out.html = `<p>No commercial grade meets every limit.${gate ? ` The closest option passes everything except <b>${esc(gate.gate)}</b>: <b>${esc(gate.list[0].grade.name)}</b>.` : ''} Relaxing one limit is usually enough.</p>`;
+        out.html = `<p>No commercial grade meets every limit.${gate ? ` The closest option passes everything except <b>${esc(gate.gate)}</b>: <b>${esc(gate.list[0].grade.name)}</b>.` : ''} Relaxing one limit is usually enough.</p>${extra}`;
         out.actions = [['find', text, 'See what blocks it']];
         out.followups = ['Which limit should I relax?', 'Show cheaper options', 'Suggest a coating instead'];
       }

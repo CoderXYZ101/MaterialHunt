@@ -81,6 +81,7 @@
     grade('h230', 'Haynes 230', 'Nickel superalloy', { Cr: 22, W: 14, Mo: 2, Fe: 1.5, bal: 'Ni' }, { al: ['haynes230', 'h230', 'alloy230', 'n06230'], y: 390, uts: 860, t: 1150, d: 8.97, price: [4500, 7000], av: 'import', std: { astm: 'B435 / UNS N06230', is: '-', en: '2.4733' }, m: 'hard', w: 'good', am: 'possible', c: 3, s: 'FCC', cryo: true }),
     grade('c276', 'Hastelloy C-276', 'Nickel superalloy', { Mo: 16, Cr: 15.5, Fe: 5, W: 3.7, bal: 'Ni' }, { al: ['c276', 'hastelloyc276', 'hastelloy', 'n10276'], y: 355, uts: 790, t: 1000, d: 8.89, price: [3500, 5500], av: 'import', std: { astm: 'B575 / UNS N10276', is: '-', en: '2.4819' }, m: 'hard', w: 'good', am: 'possible', c: 3, s: 'FCC', cryo: true }),
     grade('monel400', 'Monel 400', 'Nickel alloy', { Cu: 31.5, Fe: 1.5, Mn: 1, bal: 'Ni' }, { al: ['monel400', 'monel', 'n04400', 'alloy400'], y: 240, uts: 550, t: 540, d: 8.8, price: [1800, 2800], av: 'order', std: { astm: 'B164 / UNS N04400', is: '-', en: '2.4360' }, m: 'moderate', w: 'good', am: 'possible', c: 3, s: 'FCC', cryo: true }),
+    grade('monelk500', 'Monel K-500 (age-hardened)', 'Nickel alloy', { Cu: 29.5, Al: 2.8, Ti: 0.5, Fe: 1, Mn: 0.8, bal: 'Ni' }, { al: ['monelk500', 'k500', 'k-500', 'n05500', 'alloy k500'], y: 790, uts: 1100, t: 480, d: 8.44, price: [3000, 4500], av: 'import', std: { astm: 'B865 / UNS N05500', is: '-', en: '2.4375' }, m: 'moderate', w: 'fair', am: 'possible', c: 3, s: 'FCC', cryo: true }),
     grade('ni200', 'Nickel 200', 'Nickel alloy', { bal: 'Ni' }, { al: ['nickel200', 'ni200', 'n02200', 'purenickel'], y: 150, uts: 450, t: 315, d: 8.89, price: [1700, 2500], av: 'order', std: { astm: 'B160 / UNS N02200', is: '-', en: '2.4066' }, m: 'moderate', w: 'good', am: 'possible', c: 3, s: 'FCC', cryo: true }),
     grade('stellite6', 'Stellite 6 (cobalt wear alloy)', 'Cobalt alloy', { Cr: 28, W: 4.5, C: 1.2, Fe: 2, bal: 'Co' }, { al: ['stellite6', 'stellite', 'cocr'], y: 650, uts: 900, t: 800, d: 8.4, price: [3500, 6000], av: 'import', std: { astm: 'AMS 5894', is: '-', en: '-' }, m: 'hard', w: 'poor', am: 'possible', c: 3, s: 'FCC', cryo: false }),
     grade('tzm', 'Molybdenum TZM', 'Refractory metal', { Ti: 0.5, Zr: 0.08, bal: 'Mo' }, { al: ['tzm', 'molybdenum', 'moly'], y: 560, uts: 690, t: 1400, d: 10.2, price: [6000, 9000], av: 'import', std: { astm: 'B386 / R03630', is: '-', en: '-' }, m: 'hard', w: 'poor', am: 'possible', c: 2, s: 'BCC', cryo: false }),
@@ -1231,37 +1232,73 @@ Chassis plate: 6061-T6, 6 kg`;
     return map;
   }
 
+  /* ---- property tables used by the finder gates ---- */
+  const FERRO_FAMILIES = ['Carbon steel', 'Low-alloy steel', 'Tool steel', 'Specialty steel', 'Cast iron'];
+  const FERRO_IDS = ['ss410', 'ss430', 'ss174', 'du2205', 'du2507', 'ni200', 'stellite6', 'monel400'];
+  const isMagnetic = (g) => FERRO_IDS.includes(g.id) || FERRO_FAMILIES.includes(g.family);
+  const EC = { cuetp: 100, brass70: 28, brassfc: 26, phbronze: 15, albronze: 7, al6061: 43, al6063: 53, al7075: 33, al2024: 30, al5083: 29, al5052: 35, alsi10mg: 30, mgaz31: 38, ni200: 18, tungsten: 31, tzm: 34 };
+  const elecCond = (g) => EC[g.id] ?? 3;
+  const BIO = ['ti2', 'ti64', 'ss316l'];
+  const FOOD = ['ss304', 'ss304l', 'ss316', 'ss316l', 'ti2', 'ti64', 'du2205'];
+  const WEAR = ['d2', 'h13', 'stellite6', 'ss174', 'maraging', 'en24', 'tungsten', 'ss410'];
+  const SOUR_OK = ['in625', 'c276'];
+  const SOUR_LIMITED = ['ss316l', 'ss316', 'in718', 'monelk500', 'monel400', 'du2205', 'du2507', 'ss174', 'ti64', 'ti2', 'ss904l', 'h230'];
+  const STRUCT_CUES = /\b(mpa|gpa|ksi|yield|stress|load|pressure|weld\w*|valve|stem|shaft|bracket|tank|pipe|frame|blade|fastener|bolt|housing|plate|beam|structural|aerospace|subsea|offshore|marine|cryogenic|part|component)\b/i;
+  const toMPa = (n, u) => Number(n) * (/gpa/i.test(u) ? 1000 : /ksi/i.test(u) ? 6.895 : 1);
+
+  const UNMODELLED = [
+    [/fatigue/i, 'fatigue life'], [/creep/i, 'creep life'], [/fracture toughness|\bK1c\b|\bKIC\b/i, 'fracture toughness value'],
+    [/hardness|\bHRC\b|\bHV\b|brinell/i, 'hardness'], [/thermal expansion|\bCTE\b/i, 'thermal expansion'], [/damping/i, 'vibration damping'],
+    [/radiation|nuclear/i, 'radiation behaviour'], [/vacuum|outgass/i, 'vacuum outgassing'], [/lead time|delivery time/i, 'lead time'],
+    [/elongation/i, 'elongation target'], [/modulus|stiffness/i, 'stiffness / modulus'], [/coating|plating|anodi[sz]/i, 'coating options'],
+    [/\bASTM\b|\bAPI\b|\bNORSOK\b|\bISO\b/i, 'specific standard compliance'], [/fire|flammab/i, 'fire behaviour'],
+  ];
+
   function parseRequirement(text) {
-    const t = String(text || '');
-    const req = { text: t, tempC: null, stress: null, maxCost: null, maxDensity: null, banned: [], corr: 0, weld: false, ductile: false, am: false, hydrogen: false, functional: false, sf: 1.5, notes: [] };
-    // temperatures: °C, deg C, K (kelvin)
+    const raw = String(text || '').replace(/[−–]/g, '-');
+    const req = {
+      text: raw, tempC: null, stress: null, yieldMin: null, maxCost: null, maxDensity: null, banned: [], corr: 0,
+      weld: false, ductile: false, am: false, hydrogen: false, functional: false, nonMagnetic: false, sour: false, conductive: false,
+      bio: false, food: false, wear: false, rank: null, sfExplicit: null, sfUser: null, notes: [], unmodelled: [], constraintCount: 0,
+    };
+    // temperatures: C, F, K
     const temps = [];
-    t.replace(/(-?\d[\d,]*(?:\.\d+)?)\s*(?:°\s*C|deg(?:rees)?\s*C|celsius)/gi, (m, n) => { temps.push(Number(n.replace(/,/g, ''))); return m; });
-    t.replace(/(\d+(?:\.\d+)?)\s*K\b/g, (m, n) => { temps.push(Number(n) - 273.15); return m; });
-    if (temps.length) req.tempC = temps.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a));
-    if (/cryo|liquid (?:hydrogen|nitrogen|helium|oxygen)|\bLH2\b|\bLN2\b/i.test(t) && (req.tempC === null || req.tempC > -150)) req.tempC = req.tempC !== null && req.tempC < 0 ? req.tempC : -196;
-    // stress
+    raw.replace(/(-?\d[\d,]*(?:\.\d+)?)\s*(?:°\s*C|deg(?:rees)?\s*C|celsius)/gi, (m, n) => { temps.push(Number(n.replace(/,/g, ''))); return m; });
+    raw.replace(/(-?\d[\d,]*(?:\.\d+)?)\s*(?:°\s*F|deg(?:rees)?\s*F|fahrenheit)/gi, (m, n) => { temps.push((Number(n.replace(/,/g, '')) - 32) / 1.8); return m; });
+    raw.replace(/(\d+(?:\.\d+)?)\s*K\b/g, (m, n) => { temps.push(Number(n) - 273.15); return m; });
+    if (temps.length) req.tempC = Math.max(-269, temps.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a)));
+    if (/cryo|liquid (?:hydrogen|nitrogen|helium|oxygen)|\bLH2\b|\bLN2\b/i.test(raw) && (req.tempC === null || req.tempC > -150)) req.tempC = req.tempC !== null && req.tempC < 0 ? req.tempC : -196;
+
+    // explicit yield-strength requirements are separate from applied stress (no hidden safety factor)
+    let work = raw;
+    const yields = [];
+    const takeYield = (m, n, u) => { yields.push(toMPa(n, u)); return ' '; };
+    work = work.replace(/(?:min(?:imum)?\.?\s*)?(?:yield(?:\s*strength)?|\bys\b|proof\s*stress|0\.2\s*%\s*(?:proof|offset))\s*(?:of|[:=≥>]|>=|at least|min(?:imum)?)?\s*(\d+(?:\.\d+)?)\s*(MPa|GPa|ksi)/gi, (m, n, u) => takeYield(m, n, u));
+    work = work.replace(/(\d+(?:\.\d+)?)\s*(MPa|GPa|ksi)\s*(?:min(?:imum)?\s*)?yield/gi, (m, n, u) => takeYield(m, n, u));
+    if (yields.length) req.yieldMin = Math.max(...yields);
     const stresses = [];
-    t.replace(/(\d+(?:\.\d+)?)\s*(MPa|GPa)/gi, (m, n, u) => { stresses.push(Number(n) * (/gpa/i.test(u) ? 1000 : 1)); return m; });
+    work.replace(/(\d+(?:\.\d+)?)\s*(MPa|GPa|ksi)/gi, (m, n, u) => { stresses.push(toMPa(n, u)); return m; });
     if (stresses.length) req.stress = Math.max(...stresses);
-    const sf = t.match(/safety factor\s*(?:of)?\s*(\d+(?:\.\d+)?)/i);
-    if (sf) req.sf = Number(sf[1]);
+    const sf = raw.match(/(?:safety factor|factor of safety|\bSF\b)\s*(?:of|=|:)?\s*(\d+(?:\.\d+)?)/i);
+    if (sf) req.sfExplicit = Number(sf[1]);
+
     // cost (INR/kg, USD converted at 85)
-    let m = t.match(/(?:under|below|less than|max(?:imum)?|within|<=?|≤)\s*(₹|rs\.?|inr|\$|usd)?\s*([\d,]+(?:\.\d+)?)\s*(?:\/\s*kg|per\s*kg|₹\s*\/\s*kg|\$\s*\/\s*kg)/i)
-      || t.match(/(₹|rs\.?|inr|\$|usd)\s*([\d,]+(?:\.\d+)?)\s*(?:\/\s*kg|per\s*kg)/i);
+    let m = raw.match(/(?:under|below|less than|max(?:imum)?|within|<=?|≤)\s*(₹|rs\.?|inr|\$|usd)?\s*([\d,]+(?:\.\d+)?)\s*(?:\/\s*kg|per\s*kg|₹\s*\/\s*kg|\$\s*\/\s*kg)/i)
+      || raw.match(/(₹|rs\.?|inr|\$|usd)\s*([\d,]+(?:\.\d+)?)\s*(?:\/\s*kg|per\s*kg)/i);
     if (m) {
       const cur = (m[1] || '').toLowerCase();
       const val = Number(m[2].replace(/,/g, ''));
       req.maxCost = /\$|usd/.test(cur) ? val * 85 : val;
       if (/\$|usd/.test(cur)) req.notes.push(`Converted $${val}/kg to about ₹${num(req.maxCost)}/kg`);
     }
-    // density limit
-    m = t.match(/(?:density|lighter than|under|below|<=?|≤)\s*(?:<=?|≤)?\s*(\d+(?:\.\d+)?)\s*g\s*\/\s*(?:cm3|cm³|cc)/i);
+    m = raw.match(/(?:density|lighter than|under|below|<=?|≤)\s*(?:<=?|≤)?\s*(\d+(?:\.\d+)?)\s*g\s*\/\s*(?:cm3|cm³|cc)/i);
     if (m) req.maxDensity = Number(m[1]);
-    // banned elements
+
+    // excluded elements
     const names = elementNames();
     const banned = new Set();
-    t.replace(/(?:\bno\b|\bzero\b|without|free of|exclude|avoid|non[- ])\s+([^.;\n]*)/gi, (full, tail) => {
+    raw.replace(/(?:\bno\b|\bzero\b|without|free of|exclude|avoid)\s+([^.;\n]*)/gi, (full, tail) => {
+      if (/^(?:magnetic|magnetism)/i.test(String(tail).trim())) return full;
       String(tail).split(/[,\/]|\band\b|\bor\b|\s+/).forEach((tok) => {
         const word = tok.trim().replace(/[^A-Za-z]/g, '');
         if (!word) return;
@@ -1271,32 +1308,63 @@ Chassis plate: 6061-T6, 6 kg`;
       return full;
     });
     req.banned = Array.from(banned);
-    // environment + needs
-    if (/sea ?water|submerg|marine|offshore|ocean|brine/i.test(t)) req.corr = 3;
-    else if (/coast|salt|chloride|humid|corros|rust/i.test(t)) req.corr = 2;
-    if (/acid|chemical|caustic/i.test(t)) req.corr = 3;
-    req.weld = /weld/i.test(t);
-    req.ductile = /ductil|toughness|tough\b|fracture|weld/i.test(t);
-    req.am = /lpbf|slm|dmls|3d[- ]?print|additive|\bAM\b|powder bed/i.test(t);
-    req.hydrogen = /hydrogen/i.test(t) && !/storage alloy|hydride/i.test(t);
-    req.functional = /magnetic|catalys|amorphous|glass ribbon|metallic glass|hydrogen storage|hydride|thermoelectric|superconduct/i.test(t);
+
+    // environment and needs (negation-safe: "non-magnetic" and "H2S" are NOT functional-material requests)
+    const noSour = raw.replace(/hydrogen\s+sulph?ide/gi, ' H2S ');
+    req.nonMagnetic = /non[-\s]?magnetic|paramagnetic|low[-\s]?magnetic|magnetically transparent|magnetic permeability|\bMRI\b|\bMR[- ]safe\b/i.test(raw);
+    req.sour = /\bNACE\b|MR0175|ISO 15156|sour (?:service|gas|environment)|\bH2S\b|hydrogen\s+sulph?ide/i.test(raw);
+    if (/sea ?water|submerg|marine|offshore|subsea|ocean|brine/i.test(raw)) req.corr = 3;
+    else if (/coast|salt|chloride|humid|corros|rust/i.test(raw)) req.corr = 2;
+    if (/acid|chemical|caustic|\bH2S\b|sour/i.test(raw)) req.corr = 3;
+    req.weld = /weld/i.test(raw);
+    req.ductile = /ductil|toughness|tough\b|fracture|weld/i.test(raw);
+    req.am = /lpbf|slm|dmls|3d[- ]?print|additive|\bAM\b|powder bed/i.test(raw);
+    req.hydrogen = /hydrogen/i.test(noSour) && !/storage alloy|hydride/i.test(noSour);
+    req.conductive = /conductiv|bus ?bar|current[- ]carrying|electrical contact|heat ?sink|heat exchanger|thermal management/i.test(raw);
+    req.bio = /implant|biocompatib|surgical|dental|orthop|medical device/i.test(raw);
+    req.food = /food|pharma|sanitary|hygienic|dairy|beverage|brewery/i.test(raw);
+    req.wear = /\bwear\b|abras|galling|erosion|cutting tool|\bdie\b|\bdies\b/i.test(raw);
+    const stripped = raw.replace(/non[-\s]?magnetic|paramagnetic|low[-\s]?magnetic|magnetically transparent/gi, ' ');
+    req.functional = /\bmagnet(?:ic|s)\b|catalys|amorphous|metallic glass|glass ribbon|hydrogen storage|hydride|thermoelectric|superconduct/i.test(stripped) && !STRUCT_CUES.test(stripped);
+
+    // superlatives choose the ranking key (never silently fall back to cheapest/lightest)
+    const RANKS = [
+      [/strongest|highest strength|most strong|toughest|highest yield/i, 'strength'],
+      [/lightest|lowest density|most lightweight/i, 'density'],
+      [/cheapest|lowest cost|most affordable|least expensive/i, 'cost'],
+      [/highest (?:melting|temperature)|most heat[- ]resistant|hottest|withstand(?:s)? the highest/i, 'temp'],
+      [/most corrosion[- ]resistant|best corrosion|corrosion[- ]proof/i, 'corrosion'],
+    ];
+    const hit = RANKS.find(([re]) => re.test(raw));
+    if (hit) req.rank = hit[1];
+    else if (/\blight(?:weight)?\b/i.test(raw)) req.rank = 'density';
+    else if (/\bcheap|low[- ]cost|budget|affordable/i.test(raw)) req.rank = 'cost';
+    else if (req.conductive) req.rank = 'conductivity';
+
+    UNMODELLED.forEach(([re, label]) => { if (re.test(raw) && !(label === 'specific standard compliance' && req.sour)) req.unmodelled.push(label); });
+    req.constraintCount = [req.tempC !== null, req.stress, req.yieldMin, req.maxCost, req.maxDensity, req.banned.length, req.corr, req.weld, req.am, req.hydrogen,
+      req.nonMagnetic, req.sour, req.conductive, req.bio, req.food, req.wear].filter(Boolean).length;
     return req;
   }
 
   function evaluateGrade(g, req) {
     const fails = [];
+    const notes = [];
     const T = req.tempC;
     const rho = analyticDensity(g.comp);
     const price = mid(g.price);
     const effT = T === null ? 25 : T;
     const yT = effT < -50 && g.cryo ? g.y * 1.3 : yieldAt(g, effT);
+    const sfY = req.sfUser ?? req.sfExplicit ?? 1.0;   // a stated minimum yield already includes the user's margin
+    const sfS = req.sfUser ?? req.sfExplicit ?? 1.5;   // applied loads get a default design factor, shown and editable
+    const need = Math.max(req.yieldMin ? req.yieldMin * sfY : 0, req.stress ? req.stress * sfS : 0);
     if (req.maxDensity && rho > req.maxDensity) fails.push(['density', `Density ${rho.toFixed(2)} g/cm³ is above your ${req.maxDensity} g/cm³ limit`, rho / req.maxDensity - 1]);
     if (req.maxCost && price > req.maxCost) fails.push(['cost', `Typical ${rupee(price)}/kg is above your ${rupee(req.maxCost)}/kg limit`, price / req.maxCost - 1]);
     const hit = req.banned.filter((el) => (g.comp[el] || 0) > 0.05);
     if (hit.length) fails.push(['banned', `Contains ${hit.join(', ')}, which you excluded`, 1]);
     if (T !== null && T > 0 && g.t < T) fails.push(['temperature', `Rated to about ${num(g.t)}°C, below your ${num(T)}°C`, (T - g.t) / Math.max(T, 100)]);
     if (effT <= -50 && !g.cryo) fails.push(['cryogenic', `${g.s === 'BCC' ? 'BCC lattice turns brittle in the cold' : 'Not proven tough at low temperature'}`, 1]);
-    if (req.stress && yT < req.stress * req.sf) fails.push(['strength', `Yield at ${num(effT)}°C is about ${num(Math.round(yT))} MPa, below ${num(Math.round(req.stress * req.sf))} MPa needed (${req.stress} MPa × ${req.sf})`, 1 - yT / (req.stress * req.sf)]);
+    if (need && yT < need) fails.push(['strength', `Yield at ${num(effT)}°C is about ${num(Math.round(yT))} MPa, below ${num(Math.round(need))} MPa needed`, 1 - yT / need]);
     if (g.c < req.corr) fails.push(['corrosion', `Corrosion resistance ${g.c}/3, needs ${req.corr}/3`, (req.corr - g.c) / 3]);
     if (req.weld && g.w === 'poor') fails.push(['weldability', 'Prone to cracking when welded', 0.5]);
     if (req.ductile) {
@@ -1306,49 +1374,90 @@ Chassis plate: 6061-T6, 6 kg`;
     }
     if (req.am && g.am !== 'proven') fails.push(['process', 'Not a proven laser powder-bed (LPBF) material', 0.5]);
     if (req.hydrogen && (g.s !== 'FCC' || ['Titanium', 'Tool steel', 'Specialty steel', 'Magnesium'].includes(g.family))) fails.push(['hydrogen', 'Susceptible to hydrogen embrittlement or hydride formation', 1]);
-    const margin = req.stress ? yT / (req.stress * req.sf) : null;
+    if (req.nonMagnetic && isMagnetic(g)) fails.push(['magnetic', 'Magnetic (ferromagnetic) material', 1]);
+    if (req.conductive && elecCond(g) < 30) fails.push(['conductivity', `Electrical/thermal conductivity only about ${elecCond(g)}% of copper (needs 30%+)`, 1 - elecCond(g) / 30]);
+    if (req.bio && !BIO.includes(g.id)) fails.push(['biocompat', 'Not a standard implant-grade biocompatible metal', 1]);
+    if (req.food && !FOOD.includes(g.id)) fails.push(['food', 'Not a standard food / pharma contact metal', 1]);
+    if (req.wear && !WEAR.includes(g.id)) fails.push(['wear', 'Not a wear- or abrasion-resistant grade', 0.6]);
+    if (req.sour) {
+      if (!SOUR_OK.includes(g.id) && !SOUR_LIMITED.includes(g.id)) fails.push(['sour', 'Not qualified for sour (H2S) service under NACE MR0175 / ISO 15156', 1]);
+      else if (SOUR_LIMITED.includes(g.id)) notes.push('Sour service only with limits (hardness, temperature, chloride). Check NACE MR0175 / ISO 15156 for your exact condition.');
+    }
+    const margin = need ? yT / need : null;
     const availPts = { stock: 10, order: 6, import: 2 }[g.av] || 0;
     const strengthPts = margin === null ? 20 : 30 * clampN((margin - 1) / 1.5, 0, 1);
     const costPts = req.maxCost ? 30 * clampN(1 - price / req.maxCost, 0, 1) : 30 * clampN(1 - price / 6000, 0, 1);
     const densPts = req.maxDensity ? 20 * clampN(1 - rho / req.maxDensity, 0, 1) : 20 * clampN(1 - rho / 12, 0, 1);
-    return { grade: g, fails, rho, yT, margin, price, score: Math.round(strengthPts + costPts + densPts + availPts + 10) };
+    return { grade: g, fails, notes, rho, yT, margin, need, price, score: Math.round(strengthPts + costPts + densPts + availPts + 10) };
   }
 
-  function findAlloys(text) {
+  /* failure-style questions ("my 304 bracket rusted at the coast") route to the Failure Doctor logic */
+  function detectFailure(text, req) {
+    const g = findGrade(text);
+    if (!g || !/\b(failed|failure|broke|broken|cracked|cracking|rusted|rusting|corroded|melted|warped|bent|snapped|keeps? (?:cracking|rusting|breaking))\b/i.test(text)) return null;
+    let event = 'warped';
+    if (/rust|corrod|pitting|stain/i.test(text)) event = 'corroded';
+    else if (/melt|soft|sag|slump/i.test(text)) event = 'melted';
+    else if (/brittle|shatter|snap/i.test(text)) event = 'brittle';
+    else if (/crack|fatigue|vibrat|broke|break/i.test(text)) event = 'crack_vib';
+    let env = 'dry';
+    if (/sea|salt|coast|marine|ocean|chloride/i.test(text)) env = 'coastal';
+    else if (/exhaust|furnace|boiler|kiln|hot|900|1000/i.test(text) || (req.tempC !== null && req.tempC >= 600)) env = 'hot900';
+    else if (/acid|chemical|caustic|bleach/i.test(text)) env = 'acid';
+    else if (/cryo|cold|freez|sub-?zero/i.test(text) || (req.tempC !== null && req.tempC <= -50)) env = 'cryo';
+    return { grade: g, event, env, result: diagnose(g, event, env) };
+  }
+
+  function findAlloys(text, opts = {}) {
     const req = parseRequirement(text);
+    if (opts.sf) req.sfUser = Number(opts.sf);
     if (req.functional) return { req, blocked: 'functional' };
+    const failure = detectFailure(text, req);
+    if (failure) return { req, failure, passed: [], near: [], unlock: [], funnel: {}, total: GRADES.length };
     const evaluated = GRADES.map((g) => evaluateGrade(g, req));
-    const passed = evaluated.filter((e) => !e.fails.length).sort((a, b) => b.score - a.score);
+    const rankKey = {
+      strength: (e) => -e.yT, density: (e) => e.rho, cost: (e) => e.price, temp: (e) => -e.grade.t,
+      corrosion: (e) => -(e.grade.c * 1e6) + e.price, conductivity: (e) => -elecCond(e.grade),
+    }[req.rank];
+    const passed = evaluated.filter((e) => !e.fails.length).sort((a, b) => (rankKey ? rankKey(a) - rankKey(b) : b.score - a.score));
     const funnel = {};
     evaluated.forEach((e) => e.fails.forEach(([k]) => { funnel[k] = (funnel[k] || 0) + 1; }));
     const near = evaluated.filter((e) => e.fails.length).sort((a, b) => (a.fails.length - b.fails.length) || (b.score - a.score)).slice(0, 3);
     const single = {};
     evaluated.filter((e) => e.fails.length === 1).forEach((e) => { (single[e.fails[0][0]] = single[e.fails[0][0]] || []).push(e); });
     const unlock = Object.entries(single).map(([gate, list]) => ({ gate, list: list.sort((a, b) => a.fails[0][2] - b.fails[0][2]).slice(0, 3) })).sort((a, b) => a.list[0].fails[0][2] - b.list[0].fails[0][2]).slice(0, 3);
-    return { req, passed, near, unlock, funnel, total: evaluated.length };
+    return { req, passed, near, unlock, funnel, total: evaluated.length, noLimits: req.constraintCount === 0 && !req.rank };
   }
 
-  const FUNNEL_LABEL = { density: 'too heavy', cost: 'too expensive', banned: 'contains excluded elements', temperature: 'cannot take the temperature', cryogenic: 'brittle in the cold', strength: 'not strong enough', corrosion: 'corrodes too easily', weldability: 'poor weldability', metalloids: 'too brittle (B/C/Si/P)', process: 'not proven for 3D printing', hydrogen: 'hydrogen-embrittlement risk' };
-  const UNLOCK_LABEL = { density: 'the weight limit', cost: 'the budget', banned: 'the excluded elements', temperature: 'the temperature requirement', cryogenic: 'the low-temperature toughness requirement', strength: 'the strength requirement', corrosion: 'the corrosion requirement', weldability: 'the weldability requirement', metalloids: 'the ductility requirement', process: 'the 3D-printing requirement', hydrogen: 'the hydrogen-service requirement' };
+  const FUNNEL_LABEL = { density: 'too heavy', cost: 'too expensive', banned: 'contains excluded elements', temperature: 'cannot take the temperature', cryogenic: 'brittle in the cold', strength: 'not strong enough', corrosion: 'corrodes too easily', weldability: 'poor weldability', metalloids: 'too brittle (B/C/Si/P)', process: 'not proven for 3D printing', hydrogen: 'hydrogen-embrittlement risk', magnetic: 'magnetic', conductivity: 'not conductive enough', biocompat: 'not biocompatible', food: 'not food-safe', wear: 'not wear-resistant', sour: 'not qualified for sour service' };
+  const UNLOCK_LABEL = { density: 'the weight limit', cost: 'the budget', banned: 'the excluded elements', temperature: 'the temperature requirement', cryogenic: 'the low-temperature toughness requirement', strength: 'the strength requirement', corrosion: 'the corrosion requirement', weldability: 'the weldability requirement', metalloids: 'the ductility requirement', process: 'the 3D-printing requirement', hydrogen: 'the hydrogen-service requirement', magnetic: 'the non-magnetic requirement', conductivity: 'the conductivity requirement', biocompat: 'the biocompatibility requirement', food: 'the food-safety requirement', wear: 'the wear requirement', sour: 'the sour-service requirement' };
   const FINDER_EXAMPLES = [
     'Lightweight drone arm at 25°C, 300 MPa, density under 3 g/cm3, under ₹800/kg',
+    'Subsea valve stem, minimum yield 750 MPa, non-magnetic, H2S sour service, weldable',
     'Cryogenic liquid hydrogen tank at 20 K, 150 MPa, weldable and tough, no cobalt',
-    'Turbine blade at 1000°C, 50 MPa, zero cobalt, under $60/kg',
-    'Seawater pump shaft, 200 MPa, weldable, under ₹700/kg',
-    'Hydrogen pipeline fitting, 150 MPa, ductile and weldable',
+    'EV battery busbar, high electrical conductivity, under ₹1,000/kg',
+    'Surgical implant, biocompatible, 500 MPa',
+    'What is the strongest metal here?',
+    'My 304 bracket keeps rusting at the coast',
     'Rocket injector plate at 1400°C, 60 MPa, zero cobalt, under ₹2000/kg',
   ];
 
   function reqChips(req) {
+    const sfNow = req.sfUser ?? req.sfExplicit;
+    const sfOpts = ['auto', '1', '1.25', '1.5', '2'].map((v) => `<option value="${v}" ${(v === 'auto' && sfNow == null) || Number(v) === sfNow ? 'selected' : ''}>${v === 'auto' ? 'Auto' : `${v}×`}</option>`).join('');
     const chips = [];
     chips.push(['Temperature', req.tempC === null ? 'Not given (room temp.)' : `${num(Math.round(req.tempC))}°C`]);
-    chips.push(['Stress', req.stress ? `${num(req.stress)} MPa × safety ${req.sf}` : 'Not given']);
+    if (req.yieldMin) chips.push(['Min. yield strength', `${num(req.yieldMin)} MPa (used as stated)`]);
+    if (req.stress) chips.push(['Applied stress', `${num(req.stress)} MPa (safety factor applied)`]);
+    if (req.yieldMin || req.stress) chips.push(['Safety factor', `<select id="aiSf" class="field-select">${sfOpts}</select>`, true]);
     chips.push(['Max cost', req.maxCost ? `${rupee(Math.round(req.maxCost))}/kg` : 'Not given']);
     chips.push(['Max density', req.maxDensity ? `${req.maxDensity} g/cm³` : 'Not given']);
     chips.push(['Excluded', req.banned.length ? req.banned.join(', ') : 'None']);
-    const needs = [req.corr ? `corrosion ${req.corr}/3` : '', req.weld ? 'weldable' : '', req.ductile ? 'ductile, tough' : '', req.am ? 'LPBF printable' : '', req.hydrogen ? 'hydrogen service' : ''].filter(Boolean);
+    const needs = [req.corr ? `corrosion ${req.corr}/3` : '', req.weld ? 'weldable' : '', req.ductile ? 'ductile, tough' : '', req.am ? 'LPBF printable' : '', req.hydrogen ? 'hydrogen service' : '',
+      req.nonMagnetic ? 'non-magnetic' : '', req.sour ? 'sour (H2S) service' : '', req.conductive ? 'conductive' : '', req.bio ? 'biocompatible' : '', req.food ? 'food-safe' : '', req.wear ? 'wear-resistant' : ''].filter(Boolean);
     chips.push(['Also needs', needs.length ? needs.join(', ') : 'Nothing specific']);
-    return chips.map(([k, v]) => `<div class="ai-req-item"><div class="ai-req-label">${esc(k)}</div><div class="ai-req-value">${esc(v)}</div></div>`).join('');
+    if (req.rank) chips.push(['Ranking by', { strength: 'highest strength', density: 'lowest weight', cost: 'lowest cost', temp: 'highest temperature', corrosion: 'best corrosion resistance', conductivity: 'highest conductivity' }[req.rank]]);
+    return chips.map(([k, v, html]) => `<div class="ai-req-item"><div class="ai-req-label">${esc(k)}</div><div class="ai-req-value">${html ? v : esc(v)}</div></div>`).join('');
   }
 
   function resultCard(e, i, req, tag) {
@@ -1370,6 +1479,7 @@ Chassis plate: 6061-T6, 6 kg`;
         <div><span>CNC</span>${pill(...FEAS.m[g.m])}</div><div><span>Welding</span>${pill(...FEAS.w[g.w])}</div><div><span>3D printing</span>${pill(...FEAS.am[g.am])}</div>
       </div>
       ${tag === 'near' ? `<ul class="ai-why">${e.fails.map(([, why]) => `<li>${esc(why)}</li>`).join('')}</ul>` : ''}
+      ${(e.notes || []).map((n) => `<p class="ai-caveat">${esc(n)}</p>`).join('')}
       <div class="ai-result-actions">
         <button class="btn btn-primary small" data-find-load="${g.id}">Test in simulator</button>
         <button class="btn btn-glass small" data-find-rfq="${g.id}">Get RFQ</button>
@@ -1382,51 +1492,74 @@ Chassis plate: 6061-T6, 6 kg`;
     if (!container) return;
     container.innerHTML = `
       <div class="ai-design-input">
-        <label class="field-label" for="aiDesignPrompt">Describe what the part must survive</label>
+        <label class="field-label" for="aiDesignPrompt">Describe your problem: what the part must do, or what went wrong</label>
         <textarea id="aiDesignPrompt" rows="3" placeholder="e.g. Turbine blade at 1000°C, 50 MPa, zero cobalt, under $60/kg, weldable"></textarea>
         <div class="finder-examples">${FINDER_EXAMPLES.map((x, i) => `<button type="button" class="copilot-chip" data-example="${i}">${esc(x)}</button>`).join('')}</div>
         <div class="rfq-actions"><button class="btn btn-primary" id="runAIDesign">Find alloys</button><button class="btn btn-ghost" id="clearAIDesign">Clear</button></div>
-        <p class="micro-note">Searches ${GRADES.length} real commercial grades. Limits like density, cost, temperature and excluded elements are strict pass/fail gates applied before any ranking. Density is calculated from composition, not guessed.</p>
+        <p class="micro-note">Searches ${GRADES.length} real commercial grades. Every limit you give (strength, temperature, budget, weight, excluded elements, non-magnetic, sour service, conductivity, biocompatibility…) is a strict pass/fail check before ranking, and anything it cannot check is listed so nothing is silently ignored. Describe a failure instead ("my 304 bracket rusted at the coast") and it diagnoses the cause.</p>
       </div>
       <div class="ai-design-requirements" id="aiDesignRequirements" style="display:none"></div>
       <div id="aiFunnel" class="ai-funnel"></div>
       <div class="ai-design-results" id="aiDesignResults"></div>`;
     qa('[data-example]', container).forEach((b) => b.addEventListener('click', () => { q('#aiDesignPrompt').value = FINDER_EXAMPLES[Number(b.dataset.example)]; runFinder(); }));
-    q('#runAIDesign').addEventListener('click', runFinder);
+    q('#runAIDesign').addEventListener('click', () => runFinder());
     q('#clearAIDesign').addEventListener('click', () => { q('#aiDesignPrompt').value = ''; q('#aiDesignRequirements').style.display = 'none'; q('#aiFunnel').innerHTML = ''; q('#aiDesignResults').innerHTML = ''; });
   }
 
-  function runFinder() {
+  function failureHtml(f) {
+    const r = f.result;
+    return `<div class="ai-note warn"><b>This sounds like a failure, so here is the likely cause.</b></div>
+      <div class="ai-result-card" style="grid-column:1/-1"><div class="ai-result-header"><span class="ai-result-formula">${esc(r.mechanism)}</span></div>
+      <p class="dr-why">${esc(r.why)}</p><ul class="dr-evidence">${r.evidence.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      ${r.fixes.map((g, i) => `<div class="ai-result-card"><div class="ai-result-header"><span class="ai-result-formula">${esc(g.name)}</span>${i === 0 ? '<span class="ai-result-score">BEST FIX</span>' : ''}</div>
+        <div class="ai-result-props"><span class="ai-result-prop"><b>${rupee(g.price[0])}-${rupee(g.price[1])}</b> /kg</span><span class="ai-result-prop tone-${AVAIL[g.av].tone}">${esc(AVAIL[g.av].label)}</span></div>
+        <div class="ai-result-actions"><button class="btn btn-primary small" data-find-load="${g.id}">Test in simulator</button><button class="btn btn-glass small" data-find-rfq="${g.id}">Get RFQ</button></div></div>`).join('')}`;
+  }
+
+  function runFinder(sfOverride) {
     const text = q('#aiDesignPrompt')?.value?.trim();
     if (!text) { notify('Describe the requirement first, or pick an example.', 'warning'); return; }
-    const out = findAlloys(text);
+    const out = findAlloys(text, { sf: typeof sfOverride === 'string' || typeof sfOverride === 'number' ? sfOverride : null });
     const reqBox = q('#aiDesignRequirements');
     reqBox.style.display = 'grid';
     reqBox.innerHTML = reqChips(out.req);
+    q('#aiSf')?.addEventListener('change', (e) => runFinder(e.target.value === 'auto' ? null : e.target.value));
     const funnel = q('#aiFunnel');
     const results = q('#aiDesignResults');
+    const unmod = out.req.unmodelled.length ? `<div class="ai-note warn"><b>Not checked automatically:</b> ${esc(out.req.unmodelled.join(', '))}. Confirm these with your supplier or a lab. Everything else above is a strict pass/fail check.</div>` : '';
     if (out.blocked) {
-      funnel.innerHTML = '<div class="ai-note warn"><b>Out of scope.</b> This finder only covers structural, load-bearing alloys. Magnetic, catalytic, amorphous and hydrogen-storage materials need a different search, so none are returned.</div>';
+      funnel.innerHTML = '<div class="ai-note warn"><b>This looks like a functional-material request</b> (magnetic, catalytic, amorphous or hydrogen-storage). The finder covers structural alloys, so no list is returned. If you need a non-magnetic structural metal, say "non-magnetic" with your load and conditions.</div>';
       results.innerHTML = '';
       return;
     }
-    const failed = Object.entries(out.funnel).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${FUNNEL_LABEL[k] || k}`);
-    funnel.innerHTML = `<div class="ai-note"><b>${out.passed.length} of ${out.total}</b> commercial grades pass every hard limit.${failed.length ? ` Removed: ${esc(failed.join(' · '))}.` : ''}</div>${out.req.notes.length ? `<div class="ai-note">${esc(out.req.notes.join('. '))}.</div>` : ''}`;
-    const list = out.passed.slice(0, 8);
-    const useNear = !list.length;
-    results.innerHTML = list.length
-      ? list.map((e, i) => resultCard(e, i, out.req, 'pass')).join('')
-      : (out.unlock.length
-        ? `<div class="ai-note warn"><b>No commercial grade meets every requirement.</b> Here is what is really blocking you. Each grade below passes everything except one limit:</div>${out.unlock.map((u) => `<div class="ai-note"><b>If you relax ${esc(UNLOCK_LABEL[u.gate] || u.gate)}:</b></div>${u.list.map((e) => resultCard(e, 0, out.req, 'near')).join('')}`).join('')}`
-        : `<div class="ai-note warn"><b>No commercial grade meets every requirement.</b> Closest options and what each one misses:</div>${out.near.map((e, i) => resultCard(e, i, out.req, 'near')).join('')}`);
+    if (out.failure) {
+      funnel.innerHTML = '';
+      results.innerHTML = failureHtml(out.failure);
+    } else if (out.noLimits) {
+      funnel.innerHTML = '<div class="ai-note warn"><b>I could not find any limits in that.</b> Add at least one requirement so the list means something: a temperature, a load in MPa, a budget in ₹/kg, a corrosion environment, "non-magnetic", "weldable", or ask a question like "strongest metal".</div>';
+      results.innerHTML = '';
+      return;
+    } else {
+      const failed = Object.entries(out.funnel).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${FUNNEL_LABEL[k] || k}`);
+      const rankNote = out.req.rank ? ` Sorted by ${{ strength: 'highest strength', density: 'lowest weight', cost: 'lowest cost', temp: 'highest temperature', corrosion: 'best corrosion resistance', conductivity: 'highest conductivity' }[out.req.rank]}.` : '';
+      const scope = out.req.rank === 'strength' ? ' This is the strongest among the engineering grades in the library; ceramics, composites and exotic materials are not included.' : '';
+      funnel.innerHTML = `<div class="ai-note"><b>${out.passed.length} of ${out.total}</b> commercial grades pass every hard limit.${esc(rankNote)}${esc(scope)}${failed.length ? ` Removed: ${esc(failed.join(' · '))}.` : ''}</div>${out.req.notes.length ? `<div class="ai-note">${esc(out.req.notes.join('. '))}.</div>` : ''}`;
+      const list = out.passed.slice(0, 8);
+      results.innerHTML = list.length
+        ? list.map((e, i) => resultCard(e, i, out.req, 'pass')).join('')
+        : (out.unlock.length
+          ? `<div class="ai-note warn"><b>No commercial grade meets every requirement.</b> Here is what is really blocking you. Each grade below passes everything except one limit:</div>${out.unlock.map((u) => `<div class="ai-note"><b>If you relax ${esc(UNLOCK_LABEL[u.gate] || u.gate)}:</b></div>${u.list.map((e) => resultCard(e, 0, out.req, 'near')).join('')}`).join('')}`
+          : `<div class="ai-note warn"><b>No commercial grade meets every requirement.</b> Closest options and what each one misses:</div>${out.near.map((e, i) => resultCard(e, i, out.req, 'near')).join('')}`);
+    }
+    funnel.innerHTML += unmod;
     qa('[data-find-load]', results).forEach((b) => b.addEventListener('click', () => {
-      applyGrade(BY_ID[b.dataset.findLoad], { tempC: out.req.tempC ?? 25, loadMpa: out.req.stress || undefined, safety: out.req.sf });
+      applyGrade(BY_ID[b.dataset.findLoad], { tempC: out.req.tempC ?? 25, loadMpa: out.req.stress || out.req.yieldMin || undefined, safety: out.req.sfUser ?? out.req.sfExplicit ?? 1.5 });
     }));
     qa('[data-find-rfq]', results).forEach((b) => b.addEventListener('click', () => {
-      state.simRequest = { ...(state.simRequest || {}), temperature_c: out.req.tempC ?? 25, load_mpa: out.req.stress || 0, safety_factor: out.req.sf };
+      state.simRequest = { ...(state.simRequest || {}), temperature_c: out.req.tempC ?? 25, load_mpa: out.req.stress || out.req.yieldMin || 0, safety_factor: out.req.sfUser ?? out.req.sfExplicit ?? 1.5 };
       openRfqSheet(b.dataset.findRfq);
     }));
-    if (window.MH_GROWTH?.track) window.MH_GROWTH.track('alloy_finder', { passed: out.passed.length, near: useNear });
+    if (window.MH_GROWTH?.track) window.MH_GROWTH.track('alloy_finder', { passed: (out.passed || []).length, failure: Boolean(out.failure) });
   }
   window.renderAIDesign = renderFinder;
 

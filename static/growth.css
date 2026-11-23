@@ -375,3 +375,6 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 @media (max-width: 1280px) { #offlineBadge { display: none; } .brand-sub { display: none; } }
 @media (max-width: 1000px) { .user-meta small, .kyb-link { display: none; } .btn-cta { padding: 8px 12px; font-size: 12px; } }
 @media (max-width: 760px) { .topbar { flex-wrap: wrap; } .main-nav { order: 3; flex-basis: 100%; } .brand-copy { display: none; } }
+
+.ai-caveat { margin: 2px 0 0; font-size: 11.5px; color: var(--amber); line-height: 1.5; }
+.ai-req-value select { width: 100%; background: var(--panel-soft); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 4px 6px; font-size: 12.5px; }

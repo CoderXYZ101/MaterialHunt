@@ -10,7 +10,7 @@
   <title>MaterialHunt — Test a metal before you build with it</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.1.0" />
+  <link rel="stylesheet" href="growth.css?v=4.3.0" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -249,7 +249,7 @@
 
             <div class="thermal-slider-wrap">
               <div class="thermal-labels"><span>−273°C</span><span>Cryogenic</span><span>Ambient</span><span>Creep</span><span>+4,500°C</span></div>
-              <input id="temperatureSlider" class="thermal-slider" type="range" min="-273.15" max="4500" step="1" value="25" />
+              <input id="temperatureSlider" class="thermal-slider" type="range" min="-269" max="4500" step="1" value="25" />
               <div class="thermal-scale"><span></span></div>
             </div>
             <div class="liquidus-strip">
@@ -532,7 +532,7 @@
             </div>
             <div class="range-field">
               <div class="range-head"><label for="comparisonTempA">Temperature</label><output id="comparisonTempAOut">25°C</output></div>
-              <input id="comparisonTempA" type="range" min="-273.15" max="4500" step="1" value="25" />
+              <input id="comparisonTempA" type="range" min="-269" max="4500" step="1" value="25" />
             </div>
             <div class="range-field">
               <div class="range-head"><label for="comparisonVelA">Velocity</label><output id="comparisonVelAOut">0 km/h</output></div>
@@ -578,7 +578,7 @@
             </div>
             <div class="range-field">
               <div class="range-head"><label for="comparisonTempB">Temperature</label><output id="comparisonTempBOut">25°C</output></div>
-              <input id="comparisonTempB" type="range" min="-273.15" max="4500" step="1" value="25" />
+              <input id="comparisonTempB" type="range" min="-269" max="4500" step="1" value="25" />
             </div>
             <div class="range-field">
               <div class="range-head"><label for="comparisonVelB">Velocity</label><output id="comparisonVelBOut">0 km/h</output></div>
@@ -899,7 +899,7 @@
               <div><label class="field-label" for="labCompound">Composition</label><input id="labCompound" type="text" value="Fe:70, Cr:18, Ni:8, Mo:2, C:2" /></div>
               <div><label class="field-label" for="labStrength">Measured yield (MPa)</label><input id="labStrength" type="number" min="0" step="1" value="980" /></div>
               <div><label class="field-label" for="labDensity">Measured density (g/cm³)</label><input id="labDensity" type="number" min="0" step="0.01" value="7.85" /></div>
-              <div><label class="field-label" for="labTemp">Test temperature (°C)</label><input id="labTemp" type="number" min="-273.15" max="4500" step="1" value="25" /></div>
+              <div><label class="field-label" for="labTemp">Test temperature (°C)</label><input id="labTemp" type="number" min="-269" max="4500" step="1" value="25" /></div>
               <div><label class="field-label" for="labCost">Measured cost (INR/kg)</label><input id="labCost" type="number" min="0" step="1" value="320" /></div>
               <div><label class="field-label" for="labNotes">Lab reference</label><input id="labNotes" type="text" placeholder="Coupon ID / heat number" /></div>
             </div>
@@ -1681,12 +1681,12 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.1.0"></script>
-  <script src="app.js?v=4.1.0"></script>
-  <script src="config.js?v=4.1.0"></script>
-  <script src="tools.js?v=4.1.0"></script>
-  <script src="growth.js?v=4.1.0"></script>
-  <script src="ai.js?v=4.1.0"></script>
-  <script src="admin.js?v=4.2.0"></script>
+  <script src="firebase-bridge.js?v=4.3.0"></script>
+  <script src="app.js?v=4.3.0"></script>
+  <script src="config.js?v=4.3.0"></script>
+  <script src="tools.js?v=4.3.0"></script>
+  <script src="growth.js?v=4.3.0"></script>
+  <script src="ai.js?v=4.3.0"></script>
+  <script src="admin.js?v=4.3.0"></script>
 </body>
 </html>
