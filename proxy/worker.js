@@ -11,7 +11,17 @@
    ========================================================================== */
 
 const DEFAULT_ORIGINS = 'https://materialhunt-2026.web.app,https://materialhunt-2026.firebaseapp.com';
-const DEFAULT_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
+// Tried in order; the first one that works is used. Cloudflare retires models from time to time,
+// so a list keeps the assistant alive. You can put your own first with a MODEL variable
+// (one name, or several separated by commas).
+const DEFAULT_MODELS = [
+  '@cf/google/gemma-4-26b-a4b-it',
+  '@cf/meta/llama-3.2-3b-instruct',
+  '@cf/mistralai/mistral-small-3.1-24b-instruct',
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/ibm-granite/granite-4.0-h-micro',
+  '@cf/meta/llama-3.1-8b-instruct-fp8',
+];
 
 const RULES = `You are the MaterialHunt Assistant: a practical materials, manufacturing and sourcing engineer for Indian engineers, student teams, makers, fabricators and buyers.
 Answer ANY question the user asks. Materials, design, machining, welding, 3D printing, corrosion, failure analysis, procurement, costs and standards are your specialty, but you can also help with general, study and writing questions.
@@ -63,17 +73,22 @@ export default {
     const ids = String(body.libraryIds || '').slice(0, 2500);
     const system = `${RULES}\n\nLibrary grade ids you may use in [[load:ID]] tags: ${ids || 'none'}\n\nReference data:\n${reference || 'none'}`;
 
-    try {
-      const stream = await env.AI.run(env.MODEL || DEFAULT_MODEL, {
-        messages: [{ role: 'system', content: system }, ...messages],
-        stream: true,
-        max_tokens: 700,
-        temperature: 0.5,
-      });
-      return new Response(stream, { headers: { ...headers, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' } });
-    } catch (error) {
-      // includes the free daily limit being reached: the site then falls back to its built-in answers
-      return reply(503, { error: String(error && error.message ? error.message : error).slice(0, 300) }, headers);
+    const chain = String(env.MODEL || '').split(',').map((m) => m.trim()).filter(Boolean).concat(DEFAULT_MODELS);
+    const errors = [];
+    for (const model of chain) {
+      try {
+        const stream = await env.AI.run(model, {
+          messages: [{ role: 'system', content: system }, ...messages],
+          stream: true,
+          max_tokens: 700,
+          temperature: 0.5,
+        });
+        return new Response(stream, { headers: { ...headers, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', 'X-Model': model, 'Access-Control-Expose-Headers': 'X-Model' } });
+      } catch (error) {
+        errors.push(`${model}: ${String(error && error.message ? error.message : error).slice(0, 120)}`);
+      }
     }
+    // every model failed (for example the free daily limit is used up): the site falls back to built-in answers
+    return reply(503, { error: 'No model available', tried: errors }, headers);
   },
 };
