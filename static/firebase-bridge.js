@@ -701,7 +701,7 @@
       const dynamic = 0.5 * medium * Math.pow(velocity / 3.6, 2);
       return jsonResponse({ ok: true, environment: { temperature_c: temp, pressure_pa: pressure, dynamic_pressure_pa: round(dynamic, 2), total_pressure_pa: round(pressure + dynamic, 2), pressure_label: fmtPressure(pressure + dynamic), environment_density_kgm3: medium, velocity_kmh: velocity } });
     }
-    if (route === '/api/labels') return jsonResponse({ ok: true, labels: handbook.meta?.labels || {}, waiver_label: 'VIP GRANT — FEE WAIVED (₹0)', kyb_badge: 'ENTERPRISE VIP · KYB VERIFIED' });
+    if (route === '/api/labels') return jsonResponse({ ok: true, labels: handbook.meta?.labels || {}, waiver_label: 'ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)', kyb_badge: 'ENTERPRISE VIP · KYB VERIFIED' });
     if (route === '/api/auth/pilot-guest' || route === '/api/auth/guest-summit') {
       return jsonResponse({ ok: true, token: `offline-pilot-${Date.now()}`, mode: 'live_demo', user: fallbackUser('pilot') });
     }
@@ -739,8 +739,8 @@
       writeJson(LS.feedback, list.slice(0, 50));
       return jsonResponse({ ok: true, feedback: entry });
     }
-    if (route === '/api/leaderboard') return jsonResponse(leaderboardResponse());
-    if (route === '/api/leaderboard/submit') {
+    if (route === '/api/leaderboard' || route === '/api/discoveryRegistry') return jsonResponse(leaderboardResponse());
+    if (route === '/api/leaderboard/submit' || route === '/api/discoveryRegistry/submit') {
       const sim = simulate(body);
       const stored = readJson(LS.leaderboard, []);
       const entry = {
@@ -768,7 +768,7 @@
       return jsonResponse({ ok: true, snapshot });
     }
     if (route === '/api/admin/snapshot') return jsonResponse({ ok: true, snapshot: { overview: { total_users: 4, mrr_inr: 0, waived_accounts: 3, pending_kyb: 1, avg_rating: 4.6, open_feedback: 0 }, users: [fallbackUser('pilot')], feedback: readJson(LS.feedback, []), audit: [] } });
-    if (route === '/api/admin/discoveries') return jsonResponse({ ok: true, leaderboard: leaderboardResponse().leaders });
+    if (route === '/api/admin/discoveries') return jsonResponse({ ok: true, leaderboard: leaderboardResponse().leaders, discoveryRegistry: leaderboardResponse().leaders });
     if (route.startsWith('/api/admin/')) return jsonResponse({ ok: true, message: 'Local admin action recorded.' });
     return jsonResponse({ detail: `Offline route ${route} is not implemented.` }, 404);
   }
@@ -781,6 +781,8 @@
       const url = typeof input === 'string' ? input : (input && input.url) || '';
       const isApi = url.startsWith('/api/') || url.includes('/api/') || url.endsWith('/api');
       if (!isApi) return nativeFetch(input, init);
+      // Firebase Hosting has no backend function: skip the doomed network call (it would log console errors).
+      if (HOSTED) return offlineApi(url, init);
       try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 4200);
