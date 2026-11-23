@@ -1,0 +1,10 @@
+{
+  // Cloudflare Worker config for the MaterialHunt AI proxy.
+  // Deployed from the "proxy" folder of this repo (set Root directory = proxy in Cloudflare).
+  "name": "materialhunt-ai",
+  "main": "worker.js",
+  "compatibility_date": "2025-06-01",
+  "workers_dev": true,
+  // Gives the Worker free access to Workers AI as env.AI (no key needed)
+  "ai": { "binding": "AI" }
+}
