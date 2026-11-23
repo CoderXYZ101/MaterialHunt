@@ -132,7 +132,7 @@
     bom: ['Scan more parts lists with a free account', 'Create a free account to keep using the Cost-Down Scanner.'],
     pdf: ['Create a free account to download reports', 'Free accounts get 3 PDF reports a month.'],
     rfq: ['Create a free account to generate RFQs', 'Free accounts get 3 RFQ / PDF reports a month, with the full NABL test sheet.'],
-    batch: ['Create a free account to run batch screens', 'Free accounts get 2 batch runs a month.'],
+    batch: ['Create a free account to use this tool', 'It only takes a few seconds.'],
   };
 
   function gateSignup(kind) {
@@ -143,7 +143,7 @@
   function gateLimit(kind) {
     if (PLAN.tier() === 'guest') { gateSignup(kind); return; }
     const label = { batch: 'batch runs', ai: 'assistant questions (today)' }[PLAN.bucket(kind)] || 'reports';
-    showGate({ title: `You have used this month's free ${label}`, text: 'Upgrade to Pro for unlimited reports, RFQ sheets and batch runs.', primary: ['See Pro', () => openUpgrade('pro')], secondary: ['Not now', null] });
+    showGate({ title: `You have used this month's free ${label}`, text: 'Upgrade to Pro for unlimited reports and RFQ sheets.', primary: ['See Pro', () => openUpgrade('pro')], secondary: ['Not now', null] });
     track('gate_upgrade', { kind });
   }
   function gateVerify() {
@@ -201,10 +201,9 @@
   /* Upgrade / lead capture                                               */
   /* ------------------------------------------------------------------ */
   const PLAN_COPY = {
-    pro: { name: 'Pro', blurb: 'Unlimited reports, RFQs, batch runs and the Cost-Down Scanner.' },
-    team: { name: 'Team', blurb: 'Pro for up to 5 people with a shared workspace and branded RFQs.' },
-    enterprise: { name: 'Enterprise', blurb: 'On-premise or private cloud, SSO, API access and custom libraries.' },
-    credits: { name: 'Report credit pack', blurb: '10 branded PDF reports or RFQ sheets for ₹999. Credits never expire.' },
+    pro: { name: 'Pro', blurb: 'Unlimited PDF reports and RFQ sheets, and a higher daily limit on the AI assistant.' },
+    team: { name: 'Team (early access)', blurb: 'Coming soon: Pro for up to 5 people with shared tools. Leave your details and we will tell you when it is ready.' },
+    enterprise: { name: 'Your organisation', blurb: 'Tell us what you need and we will reply by email.' },
   };
   let billing = 'month';
 
@@ -313,9 +312,9 @@
     if (!modal) { modal = document.createElement('div'); modal.id = 'upgradeModal'; modal.className = 'modal-backdrop hidden'; document.body.appendChild(modal); }
     const u = state.user || {};
     const opts = paymentOptions(plan);
-    const canPay = plan !== 'enterprise' && (opts.razorpay || opts.link || opts.upi);
+    const canPay = plan === 'pro' && (opts.razorpay || opts.link || opts.upi);
     modal.innerHTML = `<div class="auth-modal glass tool-modal" role="dialog" aria-modal="true"><button class="modal-close" data-x aria-label="Close">×</button>
-      <span class="panel-kicker">${plan === 'enterprise' ? 'TALK TO SALES' : 'UPGRADE'}</span>
+      <span class="panel-kicker">${plan === 'enterprise' ? 'TELL US WHAT YOU NEED' : plan === 'team' ? 'COMING SOON' : 'UPGRADE'}</span>
       <h2>${esc(info.name)}</h2><p class="micro-note">${esc(info.blurb)}</p>
       <div class="upgrade-price"><strong>${esc(planPrice(plan))}</strong></div>
       <form class="auth-form" id="upgradeForm">
@@ -325,7 +324,7 @@
         </div>
         <label class="field-label" for="upEmail">Email</label><input id="upEmail" type="email" value="${esc(u.email || '')}" required />
         <label class="field-label" for="upNote">Anything we should know? (optional)</label><input id="upNote" type="text" placeholder="e.g. team size, parts you buy, timeline" />
-        <button class="btn btn-primary full" type="submit">${plan === 'enterprise' ? 'Request a call' : canPay ? 'Continue to payment' : 'Request this plan'}</button>
+        <button class="btn btn-primary full" type="submit">${plan === 'enterprise' ? 'Send' : plan === 'team' ? 'Request early access' : canPay ? 'Continue to payment' : 'Request this plan'}</button>
         <p class="form-error" id="upError"></p>
         <p class="micro-note">${canPay ? 'You will choose how to pay on the next step.' : 'We will email you a secure payment link within one business day.'}</p>
       </form></div>`;
@@ -347,7 +346,7 @@
       if (canPay) { showPaymentStep(modal, plan, who, close); return; }
       q('.tool-modal', modal).innerHTML = `<button class="modal-close" data-x aria-label="Close">×</button>
         <span class="panel-kicker">REQUEST RECEIVED</span><h2>Thank you${who.name ? `, ${esc(who.name.split(' ')[0])}` : ''}.</h2>
-        <p>${res?.ok ? 'We will email you within one business day' : 'We saved this on your device. Please retry shortly,'} to confirm ${esc(info.name)} and send ${plan === 'enterprise' ? 'a call invite' : 'a secure payment link'}.</p>
+        <p>${res?.ok ? (plan === 'enterprise' ? 'We have your message and will reply by email.' : plan === 'team' ? 'You are on the early-access list. We will email you when it is ready.' : 'We have your request and will email you soon to confirm and send a secure payment link.') : 'We saved this on your device. Please try again in a moment.'}</p>
         <div class="rfq-actions"><button class="btn btn-primary" data-x2>Done</button></div>`;
       q('[data-x]', modal).onclick = close; q('[data-x2]', modal).onclick = close;
     };

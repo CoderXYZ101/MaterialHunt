@@ -10,7 +10,7 @@
   <title>MaterialHunt — Test a metal before you build with it</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.3.5" />
+  <link rel="stylesheet" href="growth.css?v=4.3.7" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -107,7 +107,7 @@
             </div>
             <div class="trust-row">
               <div><strong>118</strong><span>Elements</span></div>
-              <div><strong>45+</strong><span>Real commercial grades</span></div>
+              <div><strong>48</strong><span>Real commercial grades</span></div>
               <div><strong>₹/kg</strong><span>Indian price guide</span></div>
               <div><strong>1-click</strong><span>RFQ &amp; test sheet</span></div>
             </div>
@@ -1075,9 +1075,9 @@
             <ul class="price-list">
               <li>Unlimited simulations, all 118 elements</li>
               <li>Closest Indian grade + indicative ₹/kg</li>
-              <li>Failure Doctor &amp; manufacturability checks</li>
-              <li>3 PDF reports + 2 batch runs / month</li>
-              <li>Design challenge &amp; leaderboard</li>
+              <li>Failure Doctor, Alloy Finder &amp; Cost-Down Scanner</li>
+              <li>3 PDF reports or RFQ sheets / month</li>
+              <li>Design benchmark &amp; leaderboard</li>
             </ul>
             <button class="btn btn-glass full" data-plan-cta="free">Create free account</button>
           </article>
@@ -1087,50 +1087,47 @@
             <strong class="price-value" id="proPrice">₹1,499</strong>
             <span class="price-cycle" id="proCycle">per month · cancel anytime</span>
             <ul class="price-list">
-              <li>Unlimited PDF reports, no watermark</li>
-              <li>Unlimited Cost-Down Scanner &amp; batch runs</li>
-              <li>1-click RFQ + NABL test sheet, unlimited</li>
-              <li>Saved designs &amp; shareable links</li>
-              <li>Priority email support</li>
+              <li>Everything in Free</li>
+              <li>Unlimited PDF reports &amp; RFQ sheets</li>
+              <li>Higher daily limit on the AI assistant</li>
+              <li>Early access to new tools</li>
+              <li>Email support</li>
             </ul>
             <button class="btn btn-primary full" data-plan-cta="pro">Upgrade to Pro</button>
           </article>
           <article class="glass price-card">
+            <span class="price-tag soon">COMING SOON</span>
             <span class="price-tier">TEAM</span>
             <strong class="price-value" id="teamPrice">₹4,999</strong>
-            <span class="price-cycle" id="teamCycle">per month · up to 5 seats</span>
+            <span class="price-cycle" id="teamCycle">planned · up to 5 seats</span>
             <ul class="price-list">
-              <li>Everything in Pro for 5 people</li>
-              <li>Shared team workspace &amp; design library</li>
-              <li>Branded RFQ and report templates</li>
-              <li>Procurement-ready cost-down reports</li>
+              <li>Everything in Pro for up to 5 people</li>
+              <li>Shared team library (being built)</li>
+              <li>Team RFQ and report templates (being built)</li>
+              <li>Join the list to hear when it is ready</li>
             </ul>
-            <button class="btn btn-glass full" data-plan-cta="team">Start a team</button>
+            <button class="btn btn-glass full" data-plan-cta="team">Request early access</button>
           </article>
           <article class="glass price-card">
-            <span class="price-tier">ENTERPRISE</span>
-            <strong class="price-value">Custom</strong>
-            <span class="price-cycle">Defence · Aerospace · Manufacturing</span>
+            <span class="price-tier">ORGANISATIONS</span>
+            <strong class="price-value">Let's talk</strong>
+            <span class="price-cycle">companies, colleges and teams</span>
             <ul class="price-list">
-              <li>On-premise or private cloud</li>
-              <li>SSO, audit trail and role controls</li>
-              <li>API access &amp; ERP integration</li>
-              <li>Custom grade &amp; price libraries</li>
+              <li>Tell us what you need</li>
+              <li>Custom grade and price lists, built to order</li>
+              <li>Onboarding for your team</li>
+              <li>We reply by email</li>
             </ul>
-            <button class="btn btn-glass full" data-plan-cta="enterprise">Talk to sales</button>
+            <button class="btn btn-glass full" data-plan-cta="enterprise">Tell us what you need</button>
           </article>
         </div>
 
         <div class="pricing-lower">
           <article class="glass kyb-panel">
-            <div class="panel-title-row"><h3>Pay as you go</h3><span class="pill pill-cyan">NO SUBSCRIPTION</span></div>
-            <ol class="kyb-steps">
-              <li><strong>₹999 · Report credit pack</strong><span>10 branded PDF reports or RFQ sheets. Credits never expire.</span></li>
-              <li><strong>Sourcing &amp; testing</strong><span>We route your RFQ to suppliers and NABL labs and compare quotes. Fee only on a successful order.</span></li>
-            </ol>
+            <div class="panel-title-row"><h3>Help with sourcing</h3><span class="pill pill-cyan">FREE FOR NOW</span></div>
+            <p class="micro-note">Tell us what you need and we will help you request comparable quotes from suppliers and testing labs. You can also download the RFQ sheet and send it to any supplier yourself.</p>
             <div class="kyb-status-row">
-              <button class="btn btn-glass small" id="buyCreditsBtn">Buy a credit pack</button>
-              <button class="btn btn-glass small" id="brokerageBtn">Get supplier quotes</button>
+              <button class="btn btn-primary small" id="brokerageBtn">Request a quote</button>
             </div>
           </article>
 
@@ -1414,7 +1411,7 @@
         <ul class="auth-benefits">
           <li><b>Unlimited simulations</b> to test as many metals as you like</li>
           <li><b>Closest Indian grade + ₹/kg</b> for every alloy you design</li>
-          <li><b>3 PDF reports &amp; 2 batch runs</b> every month, free</li>
+          <li><b>3 PDF reports or RFQ sheets</b> every month, free</li>
           <li><b>Failure Doctor &amp; Cost-Down Scanner</b></li>
           <li><b>Design challenge</b> with a public leaderboard</li>
         </ul>
@@ -1681,12 +1678,12 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.3.5"></script>
-  <script src="app.js?v=4.3.5"></script>
-  <script src="config.js?v=4.3.5"></script>
-  <script src="tools.js?v=4.3.5"></script>
-  <script src="growth.js?v=4.3.5"></script>
-  <script src="ai.js?v=4.3.5"></script>
-  <script src="admin.js?v=4.3.5"></script>
+  <script src="firebase-bridge.js?v=4.3.7"></script>
+  <script src="app.js?v=4.3.7"></script>
+  <script src="config.js?v=4.3.7"></script>
+  <script src="tools.js?v=4.3.7"></script>
+  <script src="growth.js?v=4.3.7"></script>
+  <script src="ai.js?v=4.3.7"></script>
+  <script src="admin.js?v=4.3.7"></script>
 </body>
 </html>

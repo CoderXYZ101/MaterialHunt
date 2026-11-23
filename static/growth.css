@@ -387,3 +387,5 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .rev-stars { color: var(--amber); letter-spacing: 2px; font-size: 14px; }
 .rev-comment { color: var(--text-soft); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
 .rev-stats strong small { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+.price-tag.soon { background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(245, 158, 11, .4); }
