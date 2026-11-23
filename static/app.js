@@ -345,6 +345,7 @@ function renderSession() {
   const loggedIn = Boolean(state.user);
   $('#loginBtn')?.classList.toggle('hidden', loggedIn);
   $('#ctaSignup')?.classList.toggle('hidden', loggedIn);
+  $('#heroCreate')?.classList.toggle('hidden', loggedIn);
   $('#inviteBtn')?.classList.toggle('hidden', !loggedIn);
   $('#userChip')?.classList.toggle('hidden', !loggedIn);
   window.dispatchEvent(new CustomEvent('mh:session', { detail: { user: state.user } }));
