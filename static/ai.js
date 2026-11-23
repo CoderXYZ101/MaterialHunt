@@ -149,13 +149,37 @@ Rules:
     return JSON.stringify(ref).slice(0, 4800);
   }
 
+  const coded = (code) => Object.assign(new Error(code), { code });
+  const LIMIT_NOTES = {
+    sign_in_required: 'Sign in (free) to unlock the full AI assistant. Until then you get the built-in answers.',
+    verify_required: 'Verify your email to unlock the full AI assistant. Until then you get the built-in answers.',
+    daily_limit: 'You have used today\'s live AI questions. The built-in assistant keeps working, and your limit resets at midnight India time. Pro members get a higher limit.',
+  };
+
+  /* common questions the built-in assistant answers well do not need to spend model tokens (used on busy days) */
+  function localFirst(text) {
+    if (!window.MH_CONFIG?.aiSummitMode) return false;
+    const lower = text.toLowerCase();
+    const req = T().parseRequirement(text);
+    if (/\b(vs|versus|compare|difference|better than)\b/.test(lower) && mentionedGrades(text).length === 2) return true;
+    return req.constraintCount >= 2;
+  }
+
   async function askProxy(question, onChunk) {
     if (attached) throw new Error('proxy-no-image');
     const history = messages.slice(-8).filter((m) => m.text).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: String(m.text).slice(0, 1500) }));
+    // the live model is for signed-in, verified members; the worker also enforces a daily limit server-side
+    const fb = window.MH_FIREBASE;
+    const user = fb?.auth?.currentUser;
+    if (!user || !state.user) throw coded('sign_in_required');
+    if (!state.user.email_verified) throw coded('verify_required');
+    const idToken = await user.getIdToken();
     const res = await fetch(window.MH_CONFIG.aiProxyUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
       body: JSON.stringify({ messages: history, reference: referenceFor(question), libraryIds: (T().GRADES || []).map((g) => g.id).join(', ') }),
     });
+    if (res.status === 401) throw coded('sign_in_required');
+    if (res.status === 429) throw coded('daily_limit');
     if (!res.ok || !res.body) throw new Error(`proxy ${res.status}`);
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -499,6 +523,7 @@ Rules:
     let parsed = null;
     try {
       if (aiOff) throw new Error('ai-off');
+      if (!attached && localFirst(text)) throw new Error('ai-off');
       final = await askModel(text, (partial) => { body.innerHTML = parseModelText(partial, true).html || '<span class="typing"><i></i><i></i><i></i></span>'; box.scrollTop = box.scrollHeight; });
       parsed = parseModelText(final, false);
       body.innerHTML = parsed.html;
@@ -513,7 +538,8 @@ Rules:
         final = 'Photo analysis unavailable.';
       } else {
         const local = localAnswer(text);
-        parsed = { html: local.html, followups: local.followups, actions: local.actions };
+        const note = LIMIT_NOTES[error.code];
+        parsed = { html: local.html + (note ? `<p class="micro-note">${esc(note)}</p>` : ''), followups: local.followups, actions: local.actions };
         final = local.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       }
       body.innerHTML = parsed.html;

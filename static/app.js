@@ -354,7 +354,8 @@ function renderSession() {
   const initials = org.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'MH';
   $('#userAvatar').textContent = initials;
   $('#userName').textContent = org;
-  $('#userTier').textContent = `${state.user.tier_name || 'Free'} plan${state.user.kyb_status === 'approved' ? ' · Verified business' : ''}`;
+  const until = state.user.trial_until ? ` until ${new Date(state.user.trial_until).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : '';
+  $('#userTier').textContent = `${state.user.tier_name || 'Free'} plan${until}${state.user.kyb_status === 'approved' ? ' · Verified business' : ''}`;
   if (state.gateActive) $('#vaultNav')?.classList.remove('hidden');
 }
 
@@ -4218,30 +4219,51 @@ function copyBenchmarkLink() {
 const BENCHMARKS = {
   'rocket-nozzle': {
     id: 'rocket-nozzle', title: 'Reusable Rocket Nozzle', tag: 'AEROSPACE · REUSABLE',
-    brief: 'A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.',
-    targetTempC: 3200, minBurstMPa: 80, maxDensity: 9.0, maxCostINR: 6000, minSafety: 1.2, bannedElements: [],
-    rules: ['Withstand 3,200 °C gas temperature', 'Hold 80 MPa chamber pressure', 'Density ≤ 9.0 g/cm³', 'Raw cost ≤ ₹6,000/kg', 'Safety factor ≥ 1.20'],
+    brief: 'A regeneratively cooled bell nozzle must survive 2,200°C combustion gas at 65 MPa chamber pressure (about 163 MPa wall stress). Metals only. Heavy tungsten and tantalum bust the weight limit, plain steel and titanium melt, so the winning alloy has to be tuned.',
+    targetTempC: 2200, minBurstMPa: 65, loadMpa: 162.5, maxDensity: 10.5, maxCostINR: 5500, minSafety: 1.25, bannedElements: [], metalsOnly: true,
+    environment: 'Oxidising / Steam',
+    tiers: [
+      { name: 'GOLD', label: 'Gold (ISRO-grade)', sf: 1.55, cost: 3500, dens: 9.2 },
+      { name: 'SILVER', label: 'Silver', sf: 1.40, cost: 4200, dens: 9.8 },
+      { name: 'BRONZE', label: 'Bronze', sf: 1.25, cost: 5500, dens: 10.5 },
+    ],
+    rules: ['Survive 2,200 °C without melting', 'Hold 65 MPa chamber pressure (163 MPa wall stress)', 'Density ≤ 10.5 g/cm³', 'Raw cost ≤ ₹5,500/kg', 'Safety factor ≥ 1.25', 'Metals only (no carbon, boron, silicon…)'],
     standards: 'AMS 5662 · ASTM B575 · IS 1570',
   },
   submersible: {
     id: 'submersible', title: 'Deep-Sea Submersible Hull', tag: 'MARINE · 11,000 M',
     brief: 'A pressure hull for full-ocean-depth dives must resist 110 MPa seawater pressure while keeping mass and corrosion under control.',
-    targetTempC: 4, minBurstMPa: 110, maxDensity: 8.2, maxCostINR: 5200, minSafety: 1.5, bannedElements: [], environment: 'Marine / Salt Spray',
-    rules: ['Hold 110 MPa external pressure', 'Seawater corrosion resistance', 'Density ≤ 8.2 g/cm³', 'Raw cost ≤ ₹5,200/kg', 'Safety factor ≥ 1.50'],
+    targetTempC: 4, minBurstMPa: 110, loadMpa: 627, maxDensity: 8.2, maxCostINR: 5200, minSafety: 1.5, bannedElements: [], metalsOnly: true, environment: 'Marine / Salt Spray',
+    tiers: [
+      { name: 'GOLD', label: 'Gold', sf: 1.86, cost: 3540, dens: 7.22 },
+      { name: 'SILVER', label: 'Silver', sf: 1.68, cost: 4370, dens: 7.71 },
+      { name: 'BRONZE', label: 'Bronze', sf: 1.5, cost: 5200, dens: 8.2 },
+    ],
+    rules: ['Hold 110 MPa external pressure (627 MPa wall stress)', 'Seawater corrosion resistance', 'Density ≤ 8.2 g/cm³', 'Raw cost ≤ ₹5,200/kg', 'Safety factor ≥ 1.50', 'Metals only'],
     standards: 'ASTM A240 · NORSOK M-001 · IS 6911',
   },
   'ev-enclosure': {
     id: 'ev-enclosure', title: 'EV Solid-State Battery Enclosure', tag: 'AUTOMOTIVE · EV',
     brief: 'A crash-safe battery enclosure must stay light, cheap and dimensionally stable while resisting a 2 MPa internal vent pressure.',
-    targetTempC: 60, minBurstMPa: 2, maxDensity: 3.0, maxCostINR: 900, minSafety: 1.5, bannedElements: [],
-    rules: ['Density ≤ 3.0 g/cm³', 'Raw cost ≤ ₹900/kg', 'Hold 2 MPa vent pressure', 'Safety factor ≥ 1.50'],
+    targetTempC: 60, minBurstMPa: 2, loadMpa: 200, maxDensity: 3.0, maxCostINR: 900, minSafety: 1.5, bannedElements: [], metalsOnly: true,
+    tiers: [
+      { name: 'GOLD', label: 'Gold', sf: 1.86, cost: 610, dens: 2.65 },
+      { name: 'SILVER', label: 'Silver', sf: 1.68, cost: 760, dens: 2.82 },
+      { name: 'BRONZE', label: 'Bronze', sf: 1.5, cost: 900, dens: 3.0 },
+    ],
+    rules: ['Density ≤ 3.0 g/cm³', 'Raw cost ≤ ₹900/kg', 'Hold 2 MPa vent pressure (200 MPa crash load)', 'Safety factor ≥ 1.50', 'Metals only'],
     standards: 'IS 16893 · AIS-156 · ASTM B209',
   },
   'turbine-blade': {
     id: 'turbine-blade', title: 'Hypersonic Turbine Blade', tag: 'AEROSPACE · 45,000 RPM',
     brief: 'A rotating blade sees 1,450°C gas, 45,000 RPM centrifugal load and 45 MPa cooling pressure. Creep and burst are both fatal.',
-    targetTempC: 1450, minBurstMPa: 45, maxDensity: 8.5, maxCostINR: 7000, minSafety: 1.2, bannedElements: [],
-    rules: ['Survive 1,450 °C gas temperature', 'Hold 45 MPa cooling pressure', 'Density ≤ 8.5 g/cm³', 'Raw cost ≤ ₹7,000/kg', 'Safety factor ≥ 1.20'],
+    targetTempC: 1450, minBurstMPa: 45, loadMpa: 472.5, maxDensity: 8.5, maxCostINR: 7000, minSafety: 1.2, bannedElements: [], metalsOnly: true,
+    tiers: [
+      { name: 'GOLD', label: 'Gold', sf: 1.49, cost: 4760, dens: 7.49 },
+      { name: 'SILVER', label: 'Silver', sf: 1.34, cost: 5880, dens: 7.99 },
+      { name: 'BRONZE', label: 'Bronze', sf: 1.2, cost: 7000, dens: 8.5 },
+    ],
+    rules: ['Survive 1,450 °C gas temperature', 'Hold 45 MPa cooling pressure (472 MPa centrifugal load)', 'Density ≤ 8.5 g/cm³', 'Raw cost ≤ ₹7,000/kg', 'Safety factor ≥ 1.20', 'Metals only'],
     standards: 'AMS 5544 · AMS 5950 · ASTM E139',
   },
   'bone-implant': {
@@ -4305,16 +4327,56 @@ function applyBenchmark(id, options = {}) {
   if (options.silent !== true) toast(`${benchmark.title} blueprint loaded.`, 'info', 2600);
 }
 
+const NON_METALS = ['H', 'He', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Si', 'P', 'S', 'Cl', 'Ar', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Te', 'I', 'Xe', 'At', 'Rn'];
+
+/* true safety factor: usable strength at temperature divided by the load the part carries */
+function benchmarkSafety(sim) {
+  const load = Number(sim.conditions?.load_mpa || 0);
+  const op = Number(sim.derived?.operating_strength_mpa || 0);
+  return load > 0 ? op / load : 0;
+}
+
+function benchmarkTier(benchmark, sim) {
+  if (!benchmark.tiers) return null;
+  const d = sim.derived;
+  const sf = benchmarkSafety(sim);
+  return benchmark.tiers.find((t) => sf >= t.sf && d.cost_per_kg <= t.cost && d.density_gcm3 <= t.dens) || null;
+}
+
+/* what is still missing for the next medal up */
+function benchmarkNextTierHint(benchmark, sim, current) {
+  if (!benchmark.tiers) return '';
+  const d = sim.derived;
+  const sf = benchmarkSafety(sim);
+  const order = benchmark.tiers.slice().reverse(); // BRONZE, SILVER, GOLD
+  const idx = current ? order.findIndex((t) => t.name === current.name) : -1;
+  const next = order[idx + 1];
+  if (!next) return 'Top tier reached.';
+  const gaps = [];
+  if (sf < next.sf) gaps.push(`safety factor ${sf.toFixed(2)} → ${next.sf.toFixed(2)}`);
+  if (d.cost_per_kg > next.cost) gaps.push(`cost ₹${fmt(d.cost_per_kg)} → ≤ ₹${fmt(next.cost)}/kg`);
+  if (d.density_gcm3 > next.dens) gaps.push(`density ${Number(d.density_gcm3).toFixed(2)} → ≤ ${next.dens} g/cm³`);
+  return gaps.length ? `For ${next.label}: ${gaps.join(', ')}.` : '';
+}
+
+function benchmarkScore(benchmark, sim, tier) {
+  const d = sim.derived;
+  const sf = benchmarkSafety(sim);
+  const base = { GOLD: 300, SILVER: 200, BRONZE: 100 }[tier?.name] || 0;
+  return Math.round(base + Math.min(sf, 3) * 10 + Math.max(0, benchmark.maxDensity - d.density_gcm3) * 5 + Math.max(0, (benchmark.maxCostINR - d.cost_per_kg) / 100));
+}
+
 function benchmarkVerdict(benchmark, sim) {
   const derived = sim.derived;
   const elements = (sim.composition?.elements || []).map((el) => el.symbol);
   const bannedHit = elements.filter((symbol) => (benchmark.bannedElements || []).includes(symbol));
+  const nonMetals = benchmark.metalsOnly ? elements.filter((symbol) => NON_METALS.includes(symbol)) : [];
   if (derived.is_melted || derived.aggregate_phase === 'GASEOUS / VAPORIZED') return 'MELT';
-  if (bannedHit.length) return 'BANNED';
+  if (bannedHit.length || nonMetals.length) return 'BANNED';
   if (derived.is_burst_condition || (derived.burst_pressure_pa / 1e6) < benchmark.minBurstMPa) return 'BURST';
   if (derived.density_gcm3 > benchmark.maxDensity) return 'OVERWEIGHT';
-  if (derived.cost_per_kg > benchmark.maxCostINR) return 'OVERWEIGHT';
-  if (1 - derived.utilization_ratio < benchmark.minSafety || derived.verdict === 'UNSAFE') return 'FRACTURE';
+  if (derived.cost_per_kg > benchmark.maxCostINR) return 'OVER BUDGET';
+  if (benchmarkSafety(sim) < benchmark.minSafety || derived.verdict === 'UNSAFE') return 'FRACTURE';
   return 'PASS';
 }
 
@@ -4326,27 +4388,29 @@ function renderBenchmarkResult(benchmark, sim) {
   set('#forgePressure', derived.pressure_label);
   set('#forgeMass', `${Number(derived.density_gcm3).toFixed(2)} g/cm³`);
   set('#forgeCost', `₹${fmt(derived.cost_per_kg)}`);
-  set('#forgeSafety', (1 - derived.utilization_ratio).toFixed(2));
+  set('#forgeSafety', `${benchmarkSafety(sim).toFixed(2)}×`);
   set('#forgeBurst', Number(derived.burst_pressure_pa / 1e6).toFixed(1));
   const card = $('#benchmarkVerdictCard');
-  if (card) card.className = `forge-verdict verdict-${verdict.toLowerCase()}`;
+  if (card) card.className = `forge-verdict verdict-${verdict === 'OVER BUDGET' ? 'overweight' : verdict.toLowerCase()}`;
   set('#benchmarkVerdict', verdict === 'PASS' ? 'PASS' : verdict);
   set('#benchmarkVerdictSub', {
     PASS: 'All blueprint constraints satisfied. Ready for validation.',
     MELT: 'The alloy reaches its liquidus before the service temperature.',
     BURST: 'Pressure containment fails below the required burst pressure.',
-    BANNED: `Banned elements present: ${((sim.composition?.elements || []).map((el) => el.symbol)).filter((s) => benchmark.bannedElements.includes(s)).join(', ')}.`,
-    OVERWEIGHT: derived.density_gcm3 > benchmark.maxDensity ? 'Density exceeds the blueprint limit.' : 'Raw material cost exceeds the blueprint limit.',
+    BANNED: benchmark.metalsOnly && ((sim.composition?.elements || []).some((el) => NON_METALS.includes(el.symbol))) ? `Metals only: remove ${((sim.composition?.elements || []).map((el) => el.symbol)).filter((s) => NON_METALS.includes(s)).join(', ')}.` : `Banned elements present: ${((sim.composition?.elements || []).map((el) => el.symbol)).filter((s) => benchmark.bannedElements.includes(s)).join(', ')}.`,
+    OVERWEIGHT: 'Density exceeds the blueprint limit.',
+    'OVER BUDGET': 'Raw material cost exceeds the blueprint limit.',
     FRACTURE: 'Safety factor is below the required minimum.',
   }[verdict]);
   const fixes = [];
   if (verdict === 'MELT') fixes.push(`Add W, Mo, Ta or Nb to raise the liquidus above ${fmt(benchmark.targetTempC)}°C.`);
   if (verdict === 'BURST') fixes.push('Raise Ni/Cr/Mo for strength, or increase wall section to cut hoop stress.');
-  if (verdict === 'OVERWEIGHT' && derived.density_gcm3 > benchmark.maxDensity) fixes.push('Replace W/Mo with Al/Ti to cut density.');
-  if (verdict === 'OVERWEIGHT' && derived.cost_per_kg > benchmark.maxCostINR) fixes.push('Cut Ni/Co/Mo and raise Fe/Al to cut cost.');
+  if (verdict === 'OVERWEIGHT') fixes.push('Too dense: swap some of the heavy metal (W, Ta, Re) for a lighter one (Nb, V, Ti).');
+  if (verdict === 'OVER BUDGET') fixes.push('Cut the expensive elements (Ta, Nb, Re, Hf) or blend with cheaper metals.');
   if (verdict === 'FRACTURE') fixes.push('Increase strength or reduce applied load until safety factor clears the minimum.');
-  if (verdict === 'BANNED') fixes.push(`Remove ${benchmark.bannedElements.join(', ')} from the composition.`);
-  if (verdict === 'PASS') fixes.push('Lock the heat-treatment spec and book a NABL validation coupon.');
+  if (verdict === 'BANNED') fixes.push(benchmark.metalsOnly ? 'This challenge allows metals only. Remove carbon, boron, silicon and other non-metals.' : `Remove ${benchmark.bannedElements.join(', ')} from the composition.`);
+  const tier = verdict === 'PASS' ? benchmarkTier(benchmark, sim) : null;
+  if (verdict === 'PASS') fixes.push(benchmark.tiers ? benchmarkNextTierHint(benchmark, sim, tier) : 'Lock the heat-treatment spec and book a NABL validation coupon.');
   const list = $('#benchmarkFixes');
   if (list) list.innerHTML = fixes.map((fix) => `<li>${escapeHtml(fix)}</li>`).join('');
   const status = $('#benchmarkStatus');
@@ -4358,7 +4422,12 @@ function renderBenchmarkResult(benchmark, sim) {
   if (fixButton) fixButton.disabled = verdict === 'PASS';
   const publish = $('#benchmarkPublish');
   if (publish) publish.disabled = verdict !== 'PASS';
-  state.forgeResult = { verdict };
+  const medal = $('#benchmarkMedal');
+  if (medal) {
+    medal.className = `forge-medal${tier ? ` medal-${tier.name.toLowerCase()}` : ' hidden'}`;
+    medal.innerHTML = tier ? `<span class="medal-disc"></span><div><b>${tier.label} pass</b><small>Score ${benchmarkScore(benchmark, sim, tier)}</small></div>` : '';
+  }
+  state.forgeResult = { verdict, tier: tier ? tier.name : null, sf: benchmarkSafety(sim), score: tier ? benchmarkScore(benchmark, sim, tier) : 0 };
 }
 
 async function runBenchmark() {
@@ -4371,7 +4440,9 @@ async function runBenchmark() {
   const env = $('#environmentSelect');
   if (env && benchmark.environment) env.value = benchmark.environment;
   const load = $('#loadSlider');
-  if (load) load.value = String(Math.min(2000, Math.max(50, benchmark.minBurstMPa * 3)));
+  if (load) load.value = String(Math.min(2000, benchmark.loadMpa || Math.max(50, benchmark.minBurstMPa * 3)));
+  const safetySlider = $('#safetySlider');
+  if (safetySlider) safetySlider.value = '1';
   updateRangeLabels();
   const status = $('#benchmarkStatus');
   if (status) { status.textContent = 'TESTING'; status.className = 'status-pill status-amber'; }
@@ -4888,7 +4959,7 @@ function bindExtraEvents() {
   $('#benchmarkSelect')?.addEventListener('change', (event) => applyBenchmark(event.target.value));
   $('#runBenchmark')?.addEventListener('click', runBenchmark);
   $('#benchmarkAutoFix')?.addEventListener('click', applyBenchmarkFix);
-  $('#benchmarkPublish')?.addEventListener('click', () => publishToDiscoveryRegistry(null));
+  $('#benchmarkPublish')?.addEventListener('click', () => (window.MH_CHALLENGE ? window.MH_CHALLENGE.submitFromForge() : publishToDiscoveryRegistry(null)));
   $('#openBenchmarkDesigner')?.addEventListener('click', () => {
     syncBenchmarkSlidersToJson();
     $('#benchmarkModal')?.classList.remove('hidden');

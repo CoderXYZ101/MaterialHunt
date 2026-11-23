@@ -16,6 +16,11 @@ window.MH_CONFIG = {
      When this is set it is used instead of Gemini. Leave empty to use the built-in assistant. */
   aiProxyUrl: 'https://materialhunt-ai.sasi-nayan24.workers.dev',
 
+  /* Busy-day mode (for example the tech summit): common questions (grade comparisons, alloy searches)
+     are answered by the built-in assistant so model tokens last longer. Daily limits per member are
+     edited live in Admin -> Promo codes -> "Assistant limits" (no redeploy needed). */
+  aiSummitMode: true,
+
   /* ---------- Payments ----------
      Fill in whichever options you have. Any option left empty is simply hidden.
 
@@ -34,6 +39,23 @@ window.MH_CONFIG = {
 
   /* Prices in INR (shown on the Pricing page and used at checkout). */
   prices: { pro: { month: 1499, year: 14990 }, team: { month: 4999, year: 49990 }, credits: 999 },
+
+  /* ---------- Rotating challenge ----------
+     challengePeriod: 'week' (Monday to Sunday, India time) or 'month'.
+     The challenge and its leaderboard change automatically each period, cycling through `rotation`.
+     To force a particular challenge for a period: featured: { '2026-W49': 'submersible' } */
+  challengePeriod: 'week',
+  rotation: ['rocket-nozzle', 'submersible', 'turbine-blade', 'ev-enclosure'],
+  featured: {},
+
+  /* ---------- Leaderboard prizes ----------
+     Shown on the benchmark page. The Admin page has an "Award Pro" button next to each winner
+     that grants the number of days below. Edit the text and days freely. */
+  awards: [
+    { place: '1st', prize: '1 month of Pro', days: 30 },
+    { place: '2nd', prize: '2 weeks of Pro', days: 14 },
+    { place: '3rd', prize: '1 week of Pro', days: 7 },
+  ],
 
   /* Where upgrade / sales enquiries are emailed from the site footer (optional). */
   supportEmail: '',

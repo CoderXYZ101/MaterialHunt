@@ -1005,156 +1005,265 @@ Chassis plate: 6061-T6, 6 kg`;
   }
 
   /* ------------------------------------------------------------------ */
-  /* Design challenge + live leaderboard                                 */
+  /* Rotating benchmark + live leaderboard                               */
+  /* The challenge changes every week (or month, see config.js). Each    */
+  /* period has its own leaderboard; last period's winners stay visible. */
   /* ------------------------------------------------------------------ */
-  const MISSION = {
-    title: 'Reusable rocket injector plate',
-    tempC: 1400, loadMpa: 60, maxCost: 2000, banned: ['Co'], safety: 1.2,
-  };
+  const TIER_NAMES = { GOLD: 'Gold', SILVER: 'Silver', BRONZE: 'Bronze' };
+  const IST_MS = 5.5 * 3600 * 1000;
+  const DAY = 86400000;
+  const RESET_SHIFT = 60000; // 1 minute
 
-  function scoreDesign(sim) {
-    const d = sim.derived;
-    const util = d.utilization_ratio || 99;
-    const headroom = clampN(1 / util, 0, 1.5);
-    const costPts = 30 * clampN((MISSION.maxCost - d.cost_per_kg) / MISSION.maxCost, 0, 1);
-    const lightPts = 30 * clampN((10 - d.density_gcm3) / 6, 0, 1);
-    return Math.round(40 * (headroom / 1.5) + costPts + lightPts);
+  /* period maths use IST wall-clock time so weeks start on Monday morning in India */
+  function periodInfo(offset = 0) {
+    const kind = window.MH_CONFIG?.challengePeriod === 'month' ? 'month' : 'week';
+    // the period rolls over at 11:59 PM IST on the last day (Sunday for weeks), one minute before midnight
+    const now = new Date(Date.now() + IST_MS + RESET_SHIFT);
+    let start; let end; let id; let index;
+    if (kind === 'month') {
+      const y = now.getUTCFullYear(); const m = now.getUTCMonth() + offset;
+      start = Date.UTC(y, m, 1); end = Date.UTC(y, m + 1, 1);
+      const s = new Date(start);
+      id = `${s.getUTCFullYear()}-M${String(s.getUTCMonth() + 1).padStart(2, '0')}`;
+      index = s.getUTCFullYear() * 12 + s.getUTCMonth();
+    } else {
+      const dayOfWeek = (now.getUTCDay() + 6) % 7; // Monday = 0
+      const monday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOfWeek) + offset * 7 * DAY;
+      start = monday; end = monday + 7 * DAY;
+      const thursday = new Date(monday + 3 * DAY);
+      const isoYear = thursday.getUTCFullYear();
+      const week = Math.floor((thursday.getTime() - Date.UTC(isoYear, 0, 1)) / (7 * DAY)) + 1;
+      id = `${isoYear}-W${String(week).padStart(2, '0')}`;
+      index = Math.floor(monday / (7 * DAY));
+    }
+    return { id, kind, startMs: start - IST_MS - RESET_SHIFT, endMs: end - IST_MS - RESET_SHIFT, index };
+  }
+
+  function benchIdFor(period) {
+    const cfg = window.MH_CONFIG || {};
+    if (cfg.featured && cfg.featured[period.id] && BENCHMARKS[cfg.featured[period.id]]) return cfg.featured[period.id];
+    const rotation = (cfg.rotation || ['rocket-nozzle', 'submersible', 'turbine-blade', 'ev-enclosure']).filter((x) => BENCHMARKS[x] && BENCHMARKS[x].tiers);
+    return rotation[((period.index % rotation.length) + rotation.length) % rotation.length] || 'rocket-nozzle';
+  }
+  const currentPeriod = () => periodInfo(0);
+  const currentBench = () => BENCHMARKS[benchIdFor(currentPeriod())];
+  const countdown = (ms) => {
+    const t = Math.max(0, ms);
+    const d = Math.floor(t / DAY); const h = Math.floor((t % DAY) / 3600000); const m = Math.floor((t % 3600000) / 60000);
+    return d > 0 ? `${d}d ${h}h` : `${h}h ${m}m`;
+  };
+  const periodLabel = (p) => (p.kind === 'month' ? 'This month' : 'This week');
+
+  function awardsText() {
+    const a = (window.MH_CONFIG && window.MH_CONFIG.awards) || [];
+    return a.map((x) => `<li><b>${esc(x.place)}</b> ${esc(x.prize)}</li>`).join('');
+  }
+
+  function benchHeaderHtml() {
+    const p = currentPeriod();
+    const b = currentBench();
+    const tierRows = b.tiers.slice().reverse().map((t) => `<tr class="tier-${t.name.toLowerCase()}"><td><span class="medal-dot medal-${t.name.toLowerCase()}"></span>${esc(t.label || TIER_NAMES[t.name])}</td><td>≥ ${t.sf.toFixed(2)}</td><td>≤ ${rupee(t.cost)}</td><td>≤ ${t.dens}</td></tr>`).join('');
+    return { p, b, html: `
+      <span class="panel-kicker">${esc(periodLabel(p).toUpperCase())} · RESETS ${p.kind === 'month' ? 'ON THE LAST DAY' : 'SUNDAY'} 11:59 PM IST · <span id="chCountdown">${esc(countdown(p.endMs - Date.now()))}</span> LEFT</span>
+      <h2>${esc(b.title)}</h2>
+      <p>${esc(b.brief)}</p>
+      <div class="tier-wrap"><table class="tier-table"><thead><tr><th>Medal</th><th>Safety factor</th><th>Cost/kg</th><th>Density</th></tr></thead><tbody>${tierRows}</tbody></table></div>` };
   }
 
   function challengeView() {
+    const { html } = benchHeaderHtml();
     return `
       <section class="view" id="view-challenge">
         <div class="section-head">
-          <div>
-            <span class="panel-kicker">DESIGN BENCHMARK</span>
-            <h2>${esc(MISSION.title)}</h2>
-            <p>Design an alloy that survives <b>${num(MISSION.tempC)}°C</b> at <b>${MISSION.loadMpa} MPa</b>, costs under <b>${rupee(MISSION.maxCost)}/kg</b>, and contains <b>zero cobalt</b>. Lighter and cheaper scores higher.</p>
-          </div>
+          <div id="chHeader">${html}</div>
           <button class="btn btn-glass" id="chCopy">Copy benchmark link</button>
         </div>
         <div class="challenge-layout">
           <article class="glass tool-form">
             <h3>How to enter</h3>
             <ol class="ch-steps">
-              <li>Press <b>Load mission conditions</b>. It sets ${num(MISSION.tempC)}°C and ${MISSION.loadMpa} MPa in the simulator.</li>
-              <li>Mix your alloy with the element sliders (no cobalt!).</li>
-              <li>Come back and press <b>Check &amp; submit my design</b>.</li>
+              <li>Press <b>Open the stress test</b>. It loads this week's blueprint in the Forge.</li>
+              <li>Mix your alloy with the element sliders, then press <b>Run Stress Test</b>.</li>
+              <li>Passing designs earn a medal. Press <b>Submit my current design</b> to enter the leaderboard.</li>
             </ol>
+            <p class="micro-note">Submitting a new design replaces your previous entry for this period. Your name and alloy are shown publicly. The leaderboard and the challenge reset automatically.</p>
+            ${awardsText() ? `<div class="ch-prizes"><b>Prizes for the period winners</b><ul>${awardsText()}</ul></div>` : ''}
             <div class="rfq-actions">
-              <button class="btn btn-primary" id="chLoad">Load mission conditions</button>
-              <button class="btn btn-glass" id="chSubmit">Check &amp; submit my design</button>
+              <button class="btn btn-primary" id="chLoad">Open the stress test</button>
+              <button class="btn btn-glass" id="chSubmit">Submit my current design</button>
             </div>
             <label class="field-label" for="chName">Display name on the leaderboard</label>
             <input id="chName" type="text" maxlength="40" placeholder="e.g. Team Vajra" />
             <div class="ch-check" id="chCheck"></div>
           </article>
-          <article class="glass leaderboard-card">
-            <div class="panel-title-row"><h3>Leaderboard</h3><span class="pill pill-emerald" id="chLive">RANKED</span></div>
-            <div class="lb-head"><span>#</span><span>Name</span><span>Alloy</span><span>₹/kg</span><span>Score</span></div>
-            <div id="chBoard" class="lb-body"><div class="empty-state"><strong>No entries yet</strong><span>Be the first on the board.</span></div></div>
-          </article>
+          <div class="ch-right">
+            <article class="glass leaderboard-card">
+              <div class="panel-title-row"><h3>Leaderboard</h3><span class="pill pill-emerald" id="chLive">RANKED</span></div>
+              <div class="lb-head"><span>#</span><span>Name</span><span>Alloy</span><span>SF</span><span>₹/kg</span><span>Score</span></div>
+              <div id="chBoard" class="lb-body"><div class="empty-state"><strong>No entries yet</strong><span>Be the first on the board.</span></div></div>
+            </article>
+            <article class="glass leaderboard-card" id="chPrevCard">
+              <div class="panel-title-row"><h3>Last period's winners</h3></div>
+              <div id="chPrev" class="lb-body"><div class="empty-state"><span>Loading…</span></div></div>
+            </article>
+          </div>
         </div>
       </section>`;
   }
 
-  function renderBoard(rows) {
-    const body = q('#chBoard');
-    if (!body) return;
-    if (!rows.length) { body.innerHTML = '<div class="empty-state"><strong>No entries yet</strong><span>Be the first on the board.</span></div>'; return; }
-    body.innerHTML = rows.map((r, i) => `
-      <div class="lb-row${state.user && r.uid === state.user.id ? ' me' : ''}">
-        <span class="lb-rank">${i + 1}</span><span class="lb-name">${esc(r.name)}</span>
-        <span class="lb-alloy">${esc(r.formula)}</span><span>${rupee(r.cost)}</span><b>${r.score}</b>
+  function rowsHtml(rows, limitRows) {
+    return rows.slice(0, limitRows).map((r, i) => `
+      <div class="lb-row${state.user && r.user_id === state.user.id ? ' me' : ''}">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-name"><span class="lb-av" data-av="${esc(r.user_id)}" data-nm="${esc(r.name)}"></span><button class="lb-person" data-person="${esc(r.user_id)}">${esc(r.name)}</button>${r.medal ? `<span class="medal-dot medal-${esc(String(r.medal).toLowerCase())}" title="${esc(TIER_NAMES[r.medal] || '')}"></span>` : ''}</span>
+        <span class="lb-alloy">${esc(r.formula)}</span><span>${r.sf ? Number(r.sf).toFixed(2) : '-'}</span><span>${rupee(r.cost)}</span><b>${r.score}</b>
       </div>`).join('');
   }
 
+  let boardRows = [];
+  function renderBoard(rows) {
+    boardRows = rows;
+    const body = q('#chBoard');
+    if (!body) return;
+    body.innerHTML = rows.length ? rowsHtml(rows, 25) : '<div class="empty-state"><strong>No entries yet</strong><span>Be the first on the board.</span></div>';
+    window.MH_PROFILE?.decorate?.(body);
+  }
+
+  const sortRows = (docs) => docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.score - a.score);
   let unsub = null;
+  let unsubPeriod = '';
+
+  async function loadPrevious() {
+    const body = q('#chPrev');
+    if (!body) return;
+    try {
+      await window.MH_FIREBASE?.initFirebase?.();
+      const db = window.MH_FIREBASE?.db;
+      if (!db) { body.innerHTML = '<div class="empty-state"><span>Not available offline.</span></div>'; return; }
+      const prev = periodInfo(-1);
+      const snap = await db.collection('challenge_entries').where('period', '==', prev.id).limit(100).get();
+      const rows = sortRows(snap.docs);
+      body.innerHTML = rows.length
+        ? `<p class="micro-note" style="padding:0 6px">${esc(BENCHMARKS[benchIdFor(prev)]?.title || '')}</p>${rowsHtml(rows, 3)}`
+        : '<div class="empty-state"><span>No finished period yet.</span></div>';
+      window.MH_PROFILE?.decorate?.(body);
+    } catch { body.innerHTML = '<div class="empty-state"><span>Could not load.</span></div>'; }
+  }
+
   async function startBoard() {
     const bridge = window.MH_FIREBASE;
-    if (unsub) return;
+    const period = currentPeriod();
+    // re-render the header in case the period rolled over while the page was open
+    const header = benchHeaderHtml();
+    const hEl = q('#chHeader');
+    if (hEl) hEl.innerHTML = header.html;
+    if (unsub && unsubPeriod === period.id) return;
+    if (unsub) { unsub(); unsub = null; }
+    unsubPeriod = period.id;
     let local = [];
-    try { local = JSON.parse(localStorage.getItem('mh_challenge_local') || '[]'); } catch { local = []; }
+    try { local = JSON.parse(localStorage.getItem('mh_challenge_local_' + period.id) || '[]'); } catch { local = []; }
     renderBoard(local);
+    loadPrevious();
     try {
       await bridge?.initFirebase?.();
       if (!bridge?.db) return;
-      unsub = bridge.db.collection('challenge_entries').orderBy('score', 'desc').limit(15).onSnapshot((snap) => {
-        const rows = snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
-        renderBoard(rows);
+      unsub = bridge.db.collection('challenge_entries').where('period', '==', period.id).limit(100).onSnapshot((snap) => {
+        renderBoard(sortRows(snap.docs));
       }, () => { q('#chLive')?.classList.add('hidden'); });
     } catch { /* offline board only */ }
   }
+  setInterval(() => {
+    const el = q('#chCountdown');
+    if (el) el.textContent = countdown(currentPeriod().endMs - Date.now());
+  }, 30000);
 
-  async function submitChallenge() {
-    const check = q('#chCheck');
-    const comp = typeof collectSimulationRequest === 'function' ? collectSimulationRequest().elements : {};
-    const request = { ...collectSimulationRequest(), temperature_c: MISSION.tempC, load_mpa: MISSION.loadMpa, safety_factor: MISSION.safety };
-    check.innerHTML = '<span class="ch-pending">Checking your design...</span>';
-    let sim;
-    try { sim = await api('/api/simulate', { method: 'POST', body: request }); } catch (err) { check.innerHTML = `<span class="ch-fail">${esc(err.message)}</span>`; return; }
+  let pendingSubmit = false;
+
+  async function submitFromForge() {
+    if (window.MH_COMMUNITY?.handle()) return;   // community challenge or draft
+    const b = currentBench();
+    const period = currentPeriod();
+    const result = state.forgeResult;
+    const sim = state.simulation;
+    if (!state.benchmark || state.benchmark.id !== b.id) { notify(`${periodLabel(period)}'s challenge is "${b.title}". Select it in the blueprint list first.`, 'warning', 5000); return; }
+    if (!result || result.verdict !== 'PASS' || !sim) { notify('Only passing designs can be submitted. Run the stress test first.', 'warning', 4000); return; }
+    if (!state.user) { pendingSubmit = true; notify('Create a free account to enter the leaderboard.', 'info', 4500); openAuth('register'); return; }
     const d = sim.derived;
-    const hasBanned = MISSION.banned.some((el) => (comp[el] || 0) > 0);
-    const survives = d.verdict !== 'MELTED' && d.verdict !== 'UNSAFE' && d.utilization_ratio <= 1;
-    const cheap = d.cost_per_kg <= MISSION.maxCost;
-    const items = [
-      [survives, `Survives ${num(MISSION.tempC)}°C at ${MISSION.loadMpa} MPa`, `${d.verdict}, ${Math.round(d.utilization_ratio * 100)}% of capacity used`],
-      [cheap, `Under ${rupee(MISSION.maxCost)}/kg`, `${rupee(Math.round(d.cost_per_kg))}/kg`],
-      [!hasBanned, 'Zero cobalt', hasBanned ? 'Remove Co from the mix' : 'No cobalt'],
-    ];
-    const pass = items.every((i) => i[0]);
-    const score = scoreDesign(sim);
-    check.innerHTML = `<ul>${items.map(([ok, t, s]) => `<li class="${ok ? 'ok' : 'no'}"><b>${ok ? '✓' : '✕'} ${esc(t)}</b><span>${esc(s)}</span></li>`).join('')}</ul>
-      <div class="ch-score">${pass ? `Valid design. Score <b>${score}</b>/100` : 'Not valid yet. Adjust your alloy and try again.'}</div>`;
-    if (!pass) return;
-    if (!state.user) { notify('Create a free account to put your name on the leaderboard.', 'info', 4500); window.MH_GROWTH?.setPendingSubmit?.(true); openAuth('register'); return; }
-    const name = (q('#chName').value || state.user.organization_name || 'Anonymous').trim().slice(0, 40);
-    const formula = sim.composition?.formula || 'custom';
-    const entry = { name, formula: String(formula).slice(0, 60), cost: Math.round(d.cost_per_kg), density: Number(d.density_gcm3.toFixed(2)), score };
+    const comp = Object.fromEntries(Object.entries(normalisedComposition()).map(([k, v]) => [k, Number(Number(v).toFixed(2))]));
+    const name = ((q('#chName')?.value || window.MH_PROFILE?.displayName?.() || state.user.organization_name || 'Anonymous') + '').trim().slice(0, 40) || 'Anonymous';
+    const entry = {
+      name, formula: String(humanFormula(comp, 4)).slice(0, 60), composition: comp, medal: result.tier || 'BRONZE', period: period.id, bench: b.id,
+      sf: Number(Number(result.sf).toFixed(2)), cost: Math.round(d.cost_per_kg), density: Number(Number(d.density_gcm3).toFixed(2)), score: result.score,
+    };
     const bridge = window.MH_FIREBASE;
     try {
       await bridge?.initFirebase?.();
-      if (bridge?.db && bridge.auth?.currentUser) {
-        const ref = bridge.db.collection('challenge_entries').doc(bridge.auth.currentUser.uid);
-        const existing = await ref.get();
-        if (existing.exists && existing.data().score >= score) {
-          notify(`You already have a score of ${existing.data().score}. Beat it to move up.`, 'info', 4500);
-          return;
-        }
-        await ref.set({ ...entry, user_id: bridge.auth.currentUser.uid, created_at: window.firebase.firestore.FieldValue.serverTimestamp() });
-        notify(`Submitted. Your score: ${score}.`, 'success', 4000);
-        window.MH_GROWTH?.track?.('challenge_submit', { score });
-        return;
+      const user = bridge?.auth?.currentUser;
+      if (!bridge?.db || !user) throw new Error('offline');
+      const ref = bridge.db.collection('challenge_entries').doc(`${period.id}_${user.uid}`);
+      const existing = await ref.get();
+      if (existing.exists && existing.data().score > entry.score) {
+        const keep = !window.confirm(`Your current entry scores ${existing.data().score}. This design scores ${entry.score}. Replace your entry with this one anyway?`);
+        if (keep) { notify('Kept your higher-scoring entry.', 'info', 3500); return; }
       }
-      throw new Error('offline');
+      await ref.set({ ...entry, user_id: user.uid, created_at: window.firebase.firestore.FieldValue.serverTimestamp() });
+      notify(`${TIER_NAMES[entry.medal]} medal entered the leaderboard with a score of ${entry.score}.`, 'success', 5000);
+      window.MH_GROWTH?.track?.('benchmark_submit', { score: entry.score, medal: entry.medal, bench: b.id });
+      setView('challenge');
     } catch (error) {
-      const list = JSON.parse(localStorage.getItem('mh_challenge_local') || '[]');
-      list.push({ uid: state.user.id, ...entry });
-      list.sort((a, b) => b.score - a.score);
-      localStorage.setItem('mh_challenge_local', JSON.stringify(list.slice(0, 15)));
+      const key = 'mh_challenge_local_' + period.id;
+      const list = JSON.parse(localStorage.getItem(key) || '[]').filter((x) => x.user_id !== state.user.id);
+      list.push({ user_id: state.user.id, ...entry });
+      list.sort((a, c) => c.score - a.score);
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 25)));
       renderBoard(list);
       notify('Saved on this device (live leaderboard unavailable).', 'warning', 4000);
     }
   }
 
+  async function submitCurrent() {
+    const check = q('#chCheck');
+    const b = currentBench();
+    applyBenchmark(b.id, { silent: true });
+    check.innerHTML = '<span class="ch-pending">Running the stress test on your current alloy...</span>';
+    await runBenchmark();
+    const r = state.forgeResult;
+    if (!r) { check.innerHTML = '<span class="ch-fail">Could not run the test. Try again.</span>'; return; }
+    const sim = state.simulation;
+    const lines = [
+      ['Survives the heat', r.verdict !== 'MELT', r.verdict === 'MELT' ? 'It melts at this temperature' : 'No melting'],
+      ['Metals only', r.verdict !== 'BANNED', r.verdict === 'BANNED' ? 'Remove carbon, boron, silicon…' : 'OK'],
+      ['Weight and cost', !['OVERWEIGHT', 'OVER BUDGET'].includes(r.verdict), `${Number(sim.derived.density_gcm3).toFixed(2)} g/cm³ · ${rupee(Math.round(sim.derived.cost_per_kg))}/kg`],
+      ['Safety factor', r.verdict !== 'FRACTURE' && r.verdict !== 'BURST', `${Number(r.sf).toFixed(2)}×`],
+    ];
+    check.innerHTML = `<ul>${lines.map(([t, ok, s]) => `<li class="${ok ? 'ok' : 'no'}"><b>${ok ? '✓' : '✕'} ${esc(t)}</b><span>${esc(s)}</span></li>`).join('')}</ul>
+      <div class="ch-score">${r.verdict === 'PASS' ? `Pass. <b>${esc(TIER_NAMES[r.tier] || '')}</b> medal · score <b>${r.score}</b>` : `Verdict: <b>${esc(r.verdict)}</b>. Adjust your alloy and try again.`}</div>`;
+    if (r.verdict === 'PASS') await submitFromForge();
+  }
+
   function wireChallenge() {
     q('#chLoad')?.addEventListener('click', () => {
-      state.composition = state.composition || {};
-      const setSlider = (id, value) => { const el = q(id); if (el) { el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); } };
-      setSlider('#temperatureSlider', MISSION.tempC);
-      setSlider('#loadSlider', MISSION.loadMpa);
-      setSlider('#safetySlider', MISSION.safety);
-      if (typeof updateCompositionUI === 'function') updateCompositionUI();
+      applyBenchmark(currentBench().id, { silent: true });
       setView('simulator');
-      notify(`Mission loaded: ${num(MISSION.tempC)}°C, ${MISSION.loadMpa} MPa. Mix your alloy, then return to submit.`, 'success', 5000);
+      setTimeout(() => q('#forgePanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+      notify('Blueprint loaded. Mix your alloy, then press Run Stress Test.', 'success', 4500);
     });
-    q('#chSubmit')?.addEventListener('click', submitChallenge);
+    q('#chSubmit')?.addEventListener('click', submitCurrent);
     q('#chCopy')?.addEventListener('click', () => {
       const url = `${location.origin}${location.pathname}?challenge=1`;
-      navigator.clipboard?.writeText(url).then(() => notify('Challenge link copied. Share it on WhatsApp or show it on screen.', 'success', 3500));
+      navigator.clipboard?.writeText(url).then(() => notify('Link copied. Share it on WhatsApp or show it on screen.', 'success', 3500));
     });
     const display = q('#chName');
-    if (display && state.user && !display.value) display.value = state.user.organization_name || '';
+    if (display && state.user && !display.value) display.value = window.MH_PROFILE?.displayName?.() || state.user.organization_name || '';
   }
+
+  window.addEventListener('mh:session', (e) => {
+    if (e.detail.user && pendingSubmit) {
+      pendingSubmit = false;
+      setTimeout(() => { setView('simulator'); q('#forgePanel')?.scrollIntoView({ behavior: 'smooth' }); notify('Welcome! Run the stress test and press Submit to leaderboard.', 'success', 5000); }, 700);
+    }
+  });
+  window.MH_CHALLENGE = { submitFromForge, periodInfo, currentPeriod, currentBench, benchIdFor, boardRows: () => boardRows };
 
   /* ------------------------------------------------------------------ */
   /* Mount views + banner                                                */
@@ -1176,7 +1285,8 @@ Chassis plate: 6061-T6, 6 kg`;
       banner.href = '#';
       banner.id = 'challengeBanner';
       banner.className = 'challenge-banner';
-      banner.innerHTML = `<span class="cb-tag">DESIGN BENCHMARK</span><span class="cb-text"><b>${esc(MISSION.title)}</b> · ${num(MISSION.tempC)}°C · ${MISSION.loadMpa} MPa · under ${rupee(MISSION.maxCost)}/kg · zero cobalt</span><span class="cb-go">Try the benchmark →</span>`;
+      const nb = currentBench(); const per = currentPeriod();
+      banner.innerHTML = `<span class="cb-tag">${esc(periodLabel(per).toUpperCase())}'S CHALLENGE</span><span class="cb-text"><b>${esc(nb.title)}</b> · ${num(nb.targetTempC)}°C · ${nb.minBurstMPa} MPa · ≤ ${nb.maxDensity} g/cm³ · ≤ ${rupee(nb.maxCostINR)}/kg · metals only</span><span class="cb-go">Try it →</span>`;
       banner.addEventListener('click', (e) => { e.preventDefault(); setView('challenge'); });
       sim.insertBefore(banner, sim.firstChild);
     }
@@ -1675,13 +1785,13 @@ Chassis plate: 6061-T6, 6 kg`;
     }
   };
 
-  window.MH_TOOLS = { GRADES, BY_ID, screeningReport, buildRfqPdf, findAlloys, parseRequirement, analyticDensity, vec, matchGrades, findGrade, describeMatch, applyGrade, openRfqSheet, diagnose, scanBom, scoreDesign, startBoard, lastMatch: null, GOALS };
+  window.MH_TOOLS = { GRADES, BY_ID, screeningReport, buildRfqPdf, findAlloys, parseRequirement, analyticDensity, vec, matchGrades, findGrade, describeMatch, applyGrade, openRfqSheet, diagnose, scanBom, startBoard, lastMatch: null, GOALS };
 
   const origSetView = window.setView;
   if (typeof origSetView === 'function') {
     window.setView = function patchedSetView(view, scroll) {
       origSetView(view, scroll);
-      if (view === 'challenge') { startBoard(); const n = q('#chName'); if (n && state.user && !n.value) n.value = state.user.organization_name || ''; }
+      if (view === 'challenge') { startBoard(); window.dispatchEvent(new CustomEvent('mh:view', { detail: { view } })); const n = q('#chName'); if (n && state.user && !n.value) n.value = state.user.organization_name || ''; }
     };
   }
 

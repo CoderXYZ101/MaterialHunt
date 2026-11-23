@@ -20,6 +20,12 @@
   let users = [];
   let reviews = [];
   let revFilter = 'new';
+  let promos = [];
+  let winners = { cur: [], prev: [], curId: '', prevId: '' };
+  let awarded = {};
+  let aiLimits = { free: 15, pro: 60 };
+  let cchal = [];
+  let cwin = {};
   let tab = 'requests';
   let filter = 'new';
   let search = '';
@@ -84,6 +90,7 @@
         reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         render();
       }, (err) => { loadError = err.message; render(); });
+      loadExtras();
       await loadUsers();
     } catch (err) { loadError = err.message; started = false; render(); }
   }
@@ -141,10 +148,13 @@
       <div class="admin-tabs">
         <button class="${tab === 'requests' ? 'active' : ''}" data-tab="requests">Requests${newCount ? ` <i>${newCount}</i>` : ''}</button>
         <button class="${tab === 'reviews' ? 'active' : ''}" data-tab="reviews">Reviews${newReviews ? ` <i>${newReviews}</i>` : ''}</button>
+        <button class="${tab === 'winners' ? 'active' : ''}" data-tab="winners">Winners</button>
+        <button class="${tab === 'community' ? 'active' : ''}" data-tab="community">Community${cchal.some((c) => c.status === 'pending') ? ' •' : ''}</button>
+        <button class="${tab === 'promos' ? 'active' : ''}" data-tab="promos">Promo codes</button>
         <button class="${tab === 'users' ? 'active' : ''}" data-tab="users">Customers</button>
       </div>
-      ${tab === 'reviews' ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
-      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : usersHtml()}`;
+      ${['reviews', 'winners', 'promos', 'community'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
+      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : usersHtml()}`;
   }
 
   function requestsHtml() {
@@ -222,6 +232,175 @@
     }).join('')}</div>`;
   }
 
+  /* ------------------------- winners (top 3 per period) ------------------------- */
+  const awardCfg = () => (window.MH_CONFIG && window.MH_CONFIG.awards) || [];
+
+  async function loadExtras() {
+    try {
+      const C = window.MH_CHALLENGE;
+      if (C) {
+        const cur = C.periodInfo(0); const prev = C.periodInfo(-1);
+        winners.curId = cur.id; winners.prevId = prev.id;
+        const pull = async (id) => {
+          const snap = await db().collection('challenge_entries').where('period', '==', id).limit(100).get();
+          return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.score - a.score).slice(0, 3);
+        };
+        [winners.cur, winners.prev] = await Promise.all([pull(cur.id), pull(prev.id)]);
+      }
+      const a = await db().collection('awards').get();
+      awarded = {};
+      a.docs.forEach((d) => { awarded[d.id] = d.data(); });
+      const cc = await db().collection('community_challenges').limit(100).get();
+      cchal = cc.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+      const lim = await db().collection('settings').doc('ai').get();
+      if (lim.exists) aiLimits = { free: Number(lim.data().free) || 15, pro: Number(lim.data().pro) || 60 };
+      const pr = await db().collection('promos').get();
+      promos = pr.docs.map((d) => ({ code: d.id, ...d.data() })).sort((x, y) => String(y.created_at?.toMillis ? y.created_at.toMillis() : 0).localeCompare(String(x.created_at?.toMillis ? x.created_at.toMillis() : 0)));
+      render();
+    } catch (err) { loadError = err.message; render(); }
+  }
+
+  function winnerBlock(title, benchId, list, periodId, canAward) {
+    const cfg = awardCfg();
+    const bench = benchId && typeof BENCHMARKS !== 'undefined' ? BENCHMARKS[benchId] : null;
+    if (!list.length) return `<div class="admin-card glass"><b>${esc(title)}</b><p class="admin-notes">No entries yet.</p></div>`;
+    return `<div class="admin-card glass"><header><b>${esc(title)}</b><span class="admin-org">${esc(periodId)}${bench ? ` · ${esc(bench.title)}` : ''}</span></header>
+      ${list.map((r, i) => {
+        const prize = canAward ? cfg[i] : null;
+        const key = `${periodId}_${i + 1}`;
+        const done = awarded[key];
+        return `<div class="winner-row"><span class="lb-rank">${i + 1}</span>
+          <span><b>${esc(r.name)}</b> <span class="medal-dot medal-${esc(String(r.medal || '').toLowerCase())}"></span><br><small class="admin-org">${esc(r.formula)} · SF ${Number(r.sf).toFixed(2)} · ₹${Number(r.cost).toLocaleString('en-IN')} · score ${r.score}</small></span>
+          ${prize ? (done ? `<span class="admin-status">Awarded ${esc(done.days)} days</span>` : `<button class="btn btn-primary small" data-award="${esc(key)}|${esc(r.user_id)}|${prize.days}">Award ${esc(prize.prize)}</button>`) : ''}
+          <button class="text-btn" data-copy="${esc(r.user_id)}">Copy ID</button></div>`;
+      }).join('')}</div>`;
+  }
+
+  function winnersHtml() {
+    const C = window.MH_CHALLENGE;
+    if (!C) return '<div class="empty-state"><span>Open the benchmark page once, then return here.</span></div>';
+    return `<p class="micro-note">Top 3 per period receive the prizes set in config.js. Each prize can be awarded only once. Awarding adds Pro days to the winner's account.</p>
+      <div class="admin-list">${winnerBlock('Finished period (award these)', C.benchIdFor(C.periodInfo(-1)), winners.prev, winners.prevId, true)}${winnerBlock('This period (live, awarded after it ends)', C.benchIdFor(C.periodInfo(0)), winners.cur, winners.curId, false)}</div>`;
+  }
+
+  async function award(token) {
+    const [key, userId, days] = token.split('|');
+    const n = Number(days);
+    const uref = db().collection('users').doc(userId);
+    const snap = await uref.get();
+    const ms = (t) => (t && t.toDate ? t.toDate().getTime() : 0);
+    const base = Math.max(Date.now(), ms(snap.data()?.pro_until));
+    const until = window.firebase.firestore.Timestamp.fromDate(new Date(base + n * 86400000));
+    await uref.update({ pro_until: until, award_note: key });
+    const [period, rank] = key.split('_');
+    await db().collection('awards').doc(key).set({ period, rank: Number(rank), user_id: userId, days: n, created_at: FV().serverTimestamp(), by: window.MH_FIREBASE.auth.currentUser.uid });
+    awarded[key] = { days: n };
+    notify(`Awarded ${n} days of Pro.`, 'success', 3500);
+    render();
+  }
+
+  /* ------------------------- promo codes ------------------------- */
+  function randomCode() {
+    const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    const bytes = new Uint8Array(10);
+    crypto.getRandomValues(bytes);
+    return `MH-${Array.from(bytes).map((b) => alphabet[b % alphabet.length]).join('')}`;
+  }
+
+  function promosHtml() {
+    return `<div class="admin-card glass"><b>Assistant limits (live AI questions per member per day)</b>
+      <p class="admin-notes">Enforced by the database. Lower these on a busy day so the free AI allowance lasts; the built-in assistant keeps working after the limit. Resets at midnight India time.</p>
+      <div class="promo-form"><input id="limFree" type="number" min="1" max="500" value="${aiLimits.free}" /><span>free members</span>
+        <input id="limPro" type="number" min="1" max="1000" value="${aiLimits.pro}" /><span>Pro members</span>
+        <button class="btn btn-primary small" id="limSave">Save limits</button></div></div>
+      ${promosHtmlCodes()}`;
+  }
+
+  /* ------------------------- community challenges ------------------------- */
+  const cms = (t) => (t && t.toMillis ? t.toMillis() : 0);
+
+  function communityHtml() {
+    if (!cchal.length) return '<div class="empty-state"><strong>No community challenges yet</strong></div>';
+    const order = { pending: 0, live: 1, closed: 2, rejected: 3 };
+    const list = cchal.slice().sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
+    return `<p class="micro-note">Approve a challenge only if it is sensible and safe for a school audience. Its creator already passed it in the Forge (reference alloy shown). Prizes only count after you mark the challenge funded, which you do once the creator's payment has reached you.</p>
+      <div class="admin-list">${list.map((c) => {
+        const ended = c.status === 'closed' || (c.status === 'live' && cms(c.ends_at) < Date.now());
+        const w = cwin[c.id];
+        return `<div class="admin-card glass ${c.status === 'rejected' || c.status === 'closed' ? 'done' : ''}"><header><b>${esc(c.title)}</b><span class="admin-org">by ${esc(c.owner_name)} · ${esc(c.status)}</span><span class="admin-time">${c.status === 'live' ? `ends ${new Date(cms(c.ends_at)).toLocaleDateString('en-IN')}` : ''}</span></header>
+          <p class="admin-notes">${esc(c.brief)}</p>
+          <p class="admin-notes">${Number(c.temp).toLocaleString('en-IN')} °C · ${c.burst} MPa · wall ${c.load} MPa · ≤ ${c.max_density} g/cm³ · ≤ ₹${Number(c.max_cost).toLocaleString('en-IN')} · SF ≥ ${c.min_sf} · ${c.metals_only ? 'metals only' : 'any element'}${c.banned ? ` · banned ${esc(c.banned)}` : ''} · ${esc(c.environment)}<br>Creator's solution: <b>${esc(c.ref_formula)}</b> (SF ${Number(c.ref_sf).toFixed(2)}) · prize: ${c.prize_days ? `${c.prize_days} days Pro × 3, ${c.funded ? 'FUNDED' : 'not yet paid'}` : 'none'} · creator ID <code>${esc(c.owner)}</code></p>
+          <div class="admin-actions">
+            ${c.status === 'pending' ? `<select id="ccDays-${esc(c.id)}" class="field-select small"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select>
+              <button class="btn btn-primary small" data-cc="approve" data-id="${esc(c.id)}">Approve</button><button class="btn btn-ghost small" data-cc="reject" data-id="${esc(c.id)}">Reject</button>` : ''}
+            ${c.status === 'live' ? `<button class="btn btn-ghost small" data-cc="close" data-id="${esc(c.id)}">Close now</button>` : ''}
+            ${c.prize_days && c.status !== 'rejected' ? `<button class="btn btn-glass small" data-cc="fund" data-id="${esc(c.id)}">${c.funded ? 'Mark not paid' : 'Mark as paid'}</button>` : ''}
+            ${c.status !== 'pending' && c.status !== 'rejected' ? `<button class="btn btn-glass small" data-cc="winners" data-id="${esc(c.id)}">Top 3</button>` : ''}
+          </div>
+          ${w ? (w.map((r, i) => {
+            const key = `${c.id}_${i + 1}`;
+            const done = awarded[key];
+            const can = c.prize_days && c.funded && ended;
+            return `<div class="winner-row"><span class="lb-rank">${i + 1}</span><span><b>${esc(r.name)}</b><br><small class="admin-org">${esc(r.formula)} · SF ${Number(r.sf).toFixed(2)} · ₹${Number(r.cost).toLocaleString('en-IN')} · score ${r.score}</small></span>
+              ${done ? `<span class="admin-status">Awarded ${esc(done.days)} days</span>` : can ? `<button class="btn btn-primary small" data-award="${esc(key)}|${esc(r.user_id)}|${c.prize_days}">Award ${c.prize_days} days Pro</button>` : `<small class="admin-org">${c.prize_days ? (c.funded ? 'after it ends' : 'not funded') : 'no prize'}</small>`}
+              <button class="text-btn" data-copy="${esc(r.user_id)}">Copy ID</button></div>`;
+          }).join('') || '<p class="admin-notes">No entries.</p>') : ''}
+        </div>`;
+      }).join('')}</div>`;
+  }
+
+  async function communityAction(t) {
+    const id = t.dataset.id;
+    const c = cchal.find((x) => x.id === id);
+    if (!c) return;
+    const ref = db().collection('community_challenges').doc(id);
+    if (t.dataset.cc === 'approve') {
+      const days = Number(q(`#ccDays-${id}`)?.value) || 14;
+      const ends = window.firebase.firestore.Timestamp.fromDate(new Date(Date.now() + days * 86400000));
+      await ref.update({ status: 'live', ends_at: ends });
+      c.status = 'live'; c.ends_at = ends;
+      notify('Challenge is live.', 'success', 3000);
+    } else if (t.dataset.cc === 'reject') {
+      const note = (window.prompt('Reason for the creator (optional, they will see it):') || '').slice(0, 200);
+      await ref.update(note ? { status: 'rejected', admin_note: note } : { status: 'rejected' });
+      c.status = 'rejected'; c.admin_note = note;
+    } else if (t.dataset.cc === 'close') {
+      await ref.update({ status: 'closed' });
+      c.status = 'closed';
+    } else if (t.dataset.cc === 'fund') {
+      await ref.update({ funded: !c.funded });
+      c.funded = !c.funded;
+    } else if (t.dataset.cc === 'winners') {
+      const snap = await db().collection('community_entries').where('challenge', '==', id).limit(100).get();
+      cwin[id] = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+    render();
+  }
+
+  function promosHtmlCodes() {
+    return `<div class="admin-card glass"><b>Create a promo code</b>
+      <p class="admin-notes">Codes are random and long on purpose. They exist only in your database, not in the website, and each person can redeem one code.</p>
+      <div class="promo-form"><input id="promoLabel" type="text" maxlength="60" placeholder="Label, e.g. Tech summit" />
+        <input id="promoDays" type="number" min="1" max="365" value="2" title="Days of Pro" /><span>days</span>
+        <input id="promoMax" type="number" min="1" max="100000" value="500" title="Maximum uses" /><span>uses</span>
+        <button class="btn btn-primary small" id="promoCreate">Generate code</button></div></div>
+      <div class="admin-list">${promos.length ? promos.map((c) => `<div class="admin-card glass ${c.active ? '' : 'done'}"><header><code class="promo-code">${esc(c.code)}</code><span class="admin-org">${esc(c.label || '')}</span><span class="admin-time">${Number(c.uses || 0)} / ${Number(c.max_uses || 0)} used · ${Number(c.days || 0)} days</span></header>
+        <div class="admin-actions"><button class="btn btn-glass small" data-copy="${esc(c.code)}">Copy code</button>
+          <button class="btn btn-ghost small" data-promo-toggle="${esc(c.code)}">${c.active ? 'Turn off' : 'Turn on'}</button>
+          <button class="btn btn-ghost small" data-promo-del="${esc(c.code)}">Delete</button></div></div>`).join('') : '<div class="empty-state"><strong>No codes yet</strong><span>Generate one above.</span></div>'}</div>`;
+  }
+
+  async function createPromo() {
+    const days = Math.max(1, Math.min(365, Number(q('#promoDays').value) || 2));
+    const max = Math.max(1, Math.min(100000, Number(q('#promoMax').value) || 100));
+    const label = (q('#promoLabel').value || '').trim().slice(0, 60);
+    const code = randomCode();
+    await db().collection('promos').doc(code).set({ days, max_uses: max, uses: 0, active: true, label, created_at: FV().serverTimestamp() });
+    promos.unshift({ code, days, max_uses: max, uses: 0, active: true, label });
+    notify(`Code ${code} created. Copy it now.`, 'success', 5000);
+    render();
+  }
+
   function usersHtml() {
     let list = users.slice().sort((a, b) => String(b.email).localeCompare(String(a.email)));
     if (search) list = list.filter((u) => [u.email, u.displayName, u.org, u.uid].some((v) => String(v || '').toLowerCase().includes(search)));
@@ -252,12 +431,31 @@
   }
 
   async function onClick(e) {
-    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy]');
+    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,[data-cc]');
     if (!t) return;
     try {
       if (t.dataset.tab) { tab = t.dataset.tab; search = ''; render(); }
       else if (t.dataset.filter) { filter = t.dataset.filter; render(); }
       else if (t.dataset.revfilter) { revFilter = t.dataset.revfilter; render(); }
+      else if (t.dataset.award) { await award(t.dataset.award); }
+      else if (t.dataset.promoToggle) {
+        const pr = promos.find((x) => x.code === t.dataset.promoToggle);
+        await db().collection('promos').doc(pr.code).update({ active: !pr.active });
+        pr.active = !pr.active; render();
+      } else if (t.dataset.promoDel) {
+        if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Sure?'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Delete'; } }, 3000); return; }
+        await db().collection('promos').doc(t.dataset.promoDel).delete();
+        promos = promos.filter((x) => x.code !== t.dataset.promoDel); render();
+      } else if (t.id === 'promoCreate') { await createPromo(); }
+      else if (t.dataset.cc) { await communityAction(t); }
+      else if (t.id === 'limSave') {
+        const free = Math.max(1, Math.min(500, Number(q('#limFree').value) || 15));
+        const pro = Math.max(1, Math.min(1000, Number(q('#limPro').value) || 60));
+        await db().collection('settings').doc('ai').set({ free, pro });
+        aiLimits = { free, pro };
+        notify(`Limits saved: ${free} free, ${pro} Pro per day.`, 'success', 3500);
+        render();
+      }
       else if (t.dataset.revmark) {
         await db().collection('feedback').doc(t.dataset.revmark).update({ status: t.dataset.status, triaged_at: FV().serverTimestamp() });
         const rv = reviews.find((x) => x.id === t.dataset.revmark);

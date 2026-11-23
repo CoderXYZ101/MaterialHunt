@@ -20,13 +20,68 @@ service cloud.firestore {
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.tier == 'free'
         && request.resource.data.role == 'member'
-        && request.resource.data.kyb_status == 'pending';
+        && request.resource.data.kyb_status == 'pending'
+        && !('promo_code' in request.resource.data)
+        && !('pro_until' in request.resource.data);
+      // a member may only edit harmless profile fields; plan, role, verification, promo and award fields are locked
       allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.tier == resource.data.tier
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.kyb_status == resource.data.kyb_status;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'org', 'org_id']);
+      // activating a redeemed promo code: one time, and only for the code on this user's own redemption record
+      allow update: if signedIn() && request.auth.uid == uid
+        && !('promo_code' in resource.data)
+        && exists(/databases/$(database)/documents/redemptions/$(uid))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['promo_code', 'promo_at', 'promo_days'])
+        && request.resource.data.promo_code == get(/databases/$(database)/documents/redemptions/$(uid)).data.code
+        && request.resource.data.promo_at == request.time
+        && request.resource.data.promo_days == get(/databases/$(database)/documents/promos/$(request.resource.data.promo_code)).data.days;
       allow update: if isAdmin();
       allow delete: if false;
+    }
+
+    // Promo codes live only here (created by an admin). Clients can never read or list them.
+    match /promos/{code} {
+      allow list, create, delete: if isAdmin();
+      allow get: if isAdmin()
+        || (signedIn()
+          && exists(/databases/$(database)/documents/redemptions/$(request.auth.uid))
+          && get(/databases/$(database)/documents/redemptions/$(request.auth.uid)).data.code == code);
+      allow update: if isAdmin()
+        || (signedIn()
+          && resource.data.active == true
+          && resource.data.uses < resource.data.max_uses
+          && existsAfter(/databases/$(database)/documents/redemptions/$(request.auth.uid))
+          && !exists(/databases/$(database)/documents/redemptions/$(request.auth.uid))
+          && getAfter(/databases/$(database)/documents/redemptions/$(request.auth.uid)).data.code == code
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses'])
+          && request.resource.data.uses == resource.data.uses + 1);
+    }
+
+    // One redemption per account, and only for a code that exists, is active and has uses left.
+    match /redemptions/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['code', 'created_at'])
+        && request.resource.data.code is string
+        && request.resource.data.created_at == request.time
+        && exists(/databases/$(database)/documents/promos/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/promos/$(request.resource.data.code)).data.active == true
+        && get(/databases/$(database)/documents/promos/$(request.resource.data.code)).data.uses < get(/databases/$(database)/documents/promos/$(request.resource.data.code)).data.max_uses;
+      allow update, delete: if false;
+    }
+
+    // Public profile. Readable by signed-in members only (photos are never public).
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['display_name', 'bio', 'org', 'avatar', 'show_avatar', 'updated_at'])
+        && request.resource.data.display_name is string && request.resource.data.display_name.size() > 0 && request.resource.data.display_name.size() <= 40
+        && request.resource.data.bio is string && request.resource.data.bio.size() <= 200
+        && request.resource.data.org is string && request.resource.data.org.size() <= 80
+        && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 30000
+        && request.resource.data.show_avatar is bool
+        && request.resource.data.updated_at == request.time;
+      allow delete: if signedIn() && request.auth.uid == uid;
     }
 
     // One public, non-personal record per account. Only used to count sign-ups.
@@ -154,26 +209,120 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
     }
 
-    // Public design-challenge leaderboard. One entry per user (document id = uid) that can only improve.
-    match /challenge_entries/{uid} {
+    // Public benchmark leaderboard. One entry per user per period (document id = period + "_" + uid).
+    // A new design overwrites the previous entry for that period.
+    match /challenge_entries/{entryId} {
       allow read: if true;
-      allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['name', 'formula', 'cost', 'density', 'score', 'user_id', 'created_at'])
-        && request.resource.data.user_id == uid
+      allow create, update: if signedIn()
+        && entryId == request.resource.data.period + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['name', 'formula', 'composition', 'medal', 'sf', 'cost', 'density', 'score', 'user_id', 'created_at', 'period', 'bench'])
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.period.matches('^[0-9]{4}-(W[0-9]{2}|M[0-9]{2})$')
+        && request.resource.data.bench is string && request.resource.data.bench.size() <= 30
         && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
         && request.resource.data.formula is string && request.resource.data.formula.size() <= 60
-        && request.resource.data.score is number && request.resource.data.score >= 0 && request.resource.data.score <= 100
-        && request.resource.data.cost is number && request.resource.data.density is number
+        && request.resource.data.composition is map
+        && request.resource.data.medal in ['GOLD', 'SILVER', 'BRONZE']
+        && request.resource.data.sf is number && request.resource.data.cost is number && request.resource.data.density is number
+        && request.resource.data.score is number && request.resource.data.score >= 0 && request.resource.data.score <= 600
         && request.resource.data.created_at == request.time;
-      allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['name', 'formula', 'cost', 'density', 'score', 'user_id', 'created_at'])
-        && request.resource.data.user_id == uid
-        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
-        && request.resource.data.formula is string && request.resource.data.formula.size() <= 60
-        && request.resource.data.score is number && request.resource.data.score <= 100
-        && request.resource.data.score > resource.data.score
-        && request.resource.data.created_at == request.time;
+      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    // Daily limit on live AI questions. The assistant's server (Cloudflare Worker) counts each question here
+    // using the member's own login, so this rule is what enforces the limit. Limits come from settings/ai
+    // (editable by an admin, so they can be tightened on a busy day without redeploying).
+    function aiCap() {
+      let cfg = exists(/databases/$(database)/documents/settings/ai) ? get(/databases/$(database)/documents/settings/ai).data : {};
+      let u = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let pro = u.get('tier', 'free') != 'free'
+        || u.get('pro_until', request.time) > request.time
+        || (u.get('promo_at', null) != null && request.time < u.promo_at + duration.value(u.get('promo_days', 0), 'd'));
+      return pro ? cfg.get('pro', 60) : cfg.get('free', 15);
+    }
+
+    match /ai_usage/{usageId} {
+      allow read: if signedIn() && usageId.matches('^' + request.auth.uid + '_[0-9]{8}$');
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && usageId.matches('^' + request.auth.uid + '_[0-9]{8}$')
+        && request.resource.data.keys().hasOnly(['uid', 'count'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.count == 1;
+      allow update: if signedIn()
+        && request.auth.token.email_verified == true
+        && usageId.matches('^' + request.auth.uid + '_[0-9]{8}$')
+        && request.resource.data.keys().hasOnly(['uid', 'count'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.count == resource.data.count + 1
+        && request.resource.data.count <= aiCap();
       allow delete: if false;
+    }
+
+    // Site-wide settings (for example the daily AI limits). Anyone can read; only an admin can change.
+    match /settings/{name} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Community challenges: any verified member can propose one; an admin must approve it before it is public.
+    // The creator may offer Pro days to the top 3; they only count once an admin marks the challenge funded
+    // (MaterialHunt never moves money between members).
+    match /community_challenges/{cid} {
+      allow read: if resource.data.status in ['live', 'closed']
+        || (signedIn() && resource.data.owner == request.auth.uid)
+        || isAdmin();
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['owner', 'owner_name', 'title', 'brief', 'temp', 'burst', 'load', 'max_density', 'max_cost', 'min_sf', 'banned', 'metals_only', 'environment', 'prize_days', 'funded', 'status', 'ref_formula', 'ref_sf', 'created_at'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.funded == false
+        && request.resource.data.owner_name is string && request.resource.data.owner_name.size() <= 40
+        && request.resource.data.title is string && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 50
+        && request.resource.data.brief is string && request.resource.data.brief.size() >= 10 && request.resource.data.brief.size() <= 240
+        && request.resource.data.temp is number && request.resource.data.temp >= -273 && request.resource.data.temp <= 4500
+        && request.resource.data.burst is number && request.resource.data.burst >= 0 && request.resource.data.burst <= 5000
+        && request.resource.data.load is number && request.resource.data.load >= 0 && request.resource.data.load <= 5000
+        && request.resource.data.max_density is number && request.resource.data.max_density > 0 && request.resource.data.max_density <= 25
+        && request.resource.data.max_cost is number && request.resource.data.max_cost > 0 && request.resource.data.max_cost <= 100000
+        && request.resource.data.min_sf is number && request.resource.data.min_sf >= 1 && request.resource.data.min_sf <= 5
+        && request.resource.data.banned is string && request.resource.data.banned.size() <= 40
+        && request.resource.data.metals_only is bool
+        && request.resource.data.environment is string && request.resource.data.environment.size() <= 40
+        && request.resource.data.prize_days in [0, 3, 7, 14]
+        && request.resource.data.ref_formula is string && request.resource.data.ref_formula.size() <= 60
+        && request.resource.data.ref_sf is number
+        && request.resource.data.created_at == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ends_at', 'funded', 'admin_note']);
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.owner == request.auth.uid && resource.data.status == 'pending');
+    }
+
+    // One entry per member per community challenge; a new design overwrites the old one.
+    match /community_entries/{entryId} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && request.auth.token.email_verified == true
+        && entryId == request.resource.data.challenge + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['challenge', 'user_id', 'name', 'formula', 'composition', 'sf', 'cost', 'density', 'score', 'created_at'])
+        && request.resource.data.user_id == request.auth.uid
+        && exists(/databases/$(database)/documents/community_challenges/$(request.resource.data.challenge))
+        && get(/databases/$(database)/documents/community_challenges/$(request.resource.data.challenge)).data.status == 'live'
+        && get(/databases/$(database)/documents/community_challenges/$(request.resource.data.challenge)).data.ends_at > request.time
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.formula is string && request.resource.data.formula.size() <= 60
+        && request.resource.data.composition is map
+        && request.resource.data.sf is number && request.resource.data.cost is number && request.resource.data.density is number
+        && request.resource.data.score is number && request.resource.data.score >= 0 && request.resource.data.score <= 600
+        && request.resource.data.created_at == request.time;
+      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    // Record of prizes handed out (admin only).
+    match /awards/{awardId} {
+      allow read, write: if isAdmin();
     }
 
     match /admin/{document=**} {

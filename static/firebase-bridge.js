@@ -838,7 +838,12 @@
 
   function toAppUser(fbUser, profile) {
     const p = profile || {};
-    const tier = TIER_NAMES[p.tier] ? p.tier : 'free';
+    const ms = (t) => (t && t.toDate ? t.toDate().getTime() : (t ? new Date(t).getTime() : 0)) || 0;
+    const promoUntil = p.promo_at && p.promo_days ? ms(p.promo_at) + Number(p.promo_days) * 86400000 : 0;
+    const trialUntil = Math.max(promoUntil, ms(p.pro_until));
+    let tier = TIER_NAMES[p.tier] ? p.tier : 'free';
+    const trial = tier === 'free' && trialUntil > Date.now();
+    if (trial) tier = 'pro';
     const email = fbUser.email || p.email || '';
     return {
       id: fbUser.uid,
@@ -850,6 +855,7 @@
       role: p.role === 'admin' ? 'admin' : 'member',
       kyb_status: p.kyb_status || 'pending',
       billing_status: tier === 'free' ? 'FREE' : 'ACTIVE',
+      trial_until: trial ? new Date(trialUntil).toISOString() : null,
       billing_enterprise_access: false,
       email_verified: Boolean(fbUser.emailVerified),
       referral_code: String(fbUser.uid).slice(0, 8),

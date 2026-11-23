@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.4.1" />
+  <link rel="stylesheet" href="growth.css?v=4.6.2" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -442,12 +442,12 @@
             <div>
               <span class="panel-kicker">PRODUCT FORGE · STRESS-TEST BENCHMARKS</span>
               <h3>Forge a real part. Survive its worst day.</h3>
-              <p class="panel-sub">Pick an engineering blueprint, tune the chemistry, then run the live stress test. Verdicts are PASS, MELT, BURST or OVERWEIGHT.</p>
+              <p class="panel-sub">Pick an engineering blueprint, tune the chemistry, then run the live stress test. Verdicts are PASS, MELT, BURST, OVERWEIGHT or OVER BUDGET. Passing designs earn a medal.</p>
             </div>
             <div class="forge-head-actions">
               <label class="sr-only" for="benchmarkSelect">Blueprint</label>
               <select id="benchmarkSelect" class="field-select">
-                <option value="rocket-nozzle">Reusable Rocket Nozzle — 3,200°C + 80 MPa</option>
+                <option value="rocket-nozzle">Reusable Rocket Nozzle — 2,200°C + 65 MPa</option>
                 <option value="submersible">Deep-Sea Submersible Hull — 110 MPa + seawater</option>
                 <option value="ev-enclosure">EV Solid-State Battery Enclosure</option>
                 <option value="turbine-blade">Hypersonic Turbine Blade — 1,450°C + 45,000 RPM</option>
@@ -462,7 +462,7 @@
             <div class="forge-blueprint">
               <span class="forge-chip" id="benchmarkTag">AEROSPACE  <button class="btn btn-ghost small" id="genChallenge">Generate Challenge</button> · REUSABLE</span>
               <h4 id="benchmarkTitle">Reusable Rocket Nozzle</h4>
-              <p id="benchmarkBrief">A regeneratively cooled bell nozzle must survive 3,200°C combustion gas and 80 MPa chamber pressure without melting or bursting.</p>
+              <p id="benchmarkBrief">A regeneratively cooled bell nozzle must survive 2,200°C combustion gas at 65 MPa chamber pressure. Metals only.</p>
               <ul class="forge-rules" id="benchmarkRules"></ul>
               <div class="forge-standards" id="benchmarkStandards"></div>
               <div class="forge-share">
@@ -473,11 +473,11 @@
             <div class="forge-telemetry">
               <div class="telemetry-head"><span class="panel-kicker">LIVE TELEMETRY</span><span class="status-pill status-cyan" id="benchmarkStatus">STANDBY</span></div>
               <div class="telemetry-grid">
-                <div><span>Service temperature</span><strong id="forgeTemp">25°C</strong><small id="benchmarkTempReq">target 3,200°C</small></div>
-                <div><span>Chamber pressure</span><strong id="forgePressure">101 kPa</strong><small id="benchmarkPressureReq">target 80 MPa</small></div>
-                <div><span>Mass / density</span><strong id="forgeMass">—</strong><small id="benchmarkMassReq">max 8.9 g/cm³</small></div>
-                <div><span>Cost / kg</span><strong id="forgeCost">—</strong><small id="benchmarkCostReq">max ₹6,000</small></div>
-                <div><span>Safety factor</span><strong id="forgeSafety">—</strong><small id="benchmarkSafetyReq">min 1.20</small></div>
+                <div><span>Service temperature</span><strong id="forgeTemp">25°C</strong><small id="benchmarkTempReq">target 2,200°C</small></div>
+                <div><span>Chamber pressure</span><strong id="forgePressure">101 kPa</strong><small id="benchmarkPressureReq">target 65 MPa</small></div>
+                <div><span>Mass / density</span><strong id="forgeMass">—</strong><small id="benchmarkMassReq">max 10.5 g/cm³</small></div>
+                <div><span>Cost / kg</span><strong id="forgeCost">—</strong><small id="benchmarkCostReq">max ₹5,500</small></div>
+                <div><span>Safety factor</span><strong id="forgeSafety">—</strong><small id="benchmarkSafetyReq">min 1.25</small></div>
                 <div><span>Burst ratio</span><strong id="forgeBurst">—</strong><small id="benchmarkBurstReq">must stay below 1.00</small></div>
               </div>
             </div>
@@ -485,9 +485,10 @@
               <span class="panel-kicker">MISSION VERDICT</span>
               <strong id="benchmarkVerdict">READY</strong>
               <p id="benchmarkVerdictSub">Select a blueprint and run the stress test.</p>
+              <div class="forge-medal hidden" id="benchmarkMedal"></div>
               <ul class="forge-fixes" id="benchmarkFixes"></ul>
               <button class="btn btn-primary full small" id="benchmarkAutoFix" disabled>⚡ Apply AI Fix</button>
-              <button class="btn btn-glass full small" id="benchmarkPublish" disabled>Post Result to Discovery Registry</button>
+              <button class="btn btn-glass full small" id="benchmarkPublish" disabled>Submit to leaderboard</button>
             </div>
           </div>
         </article>
@@ -1129,6 +1130,13 @@
           </article>
         </div>
 
+        <div class="promo-row glass">
+          <div><b>Have a promo code?</b><small>Tech summit and event visitors: enter your code for free Pro days. You need a verified account.</small></div>
+          <input id="promoInput" type="text" placeholder="Enter code" autocomplete="off" spellcheck="false" />
+          <button class="btn btn-primary small" id="promoBtn">Redeem</button>
+          <p class="promo-msg" id="promoMsg" aria-live="polite"></p>
+        </div>
+
         <div class="pricing-lower">
           <article class="glass kyb-panel">
             <div class="panel-title-row"><h3>Help with sourcing</h3><span class="pill pill-cyan">FREE FOR NOW</span></div>
@@ -1685,14 +1693,17 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.4.1"></script>
-  <script src="app.js?v=4.4.1"></script>
-  <script src="config.js?v=4.4.1"></script>
-  <script src="tools.js?v=4.4.1"></script>
-  <script src="growth.js?v=4.4.1"></script>
-  <script src="ai.js?v=4.4.1"></script>
-  <script src="admin.js?v=4.4.1"></script>
-  <script src="designs.js?v=4.4.1"></script>
-  <script src="notifications.js?v=4.4.1"></script>
+  <script src="firebase-bridge.js?v=4.6.2"></script>
+  <script src="app.js?v=4.6.2"></script>
+  <script src="config.js?v=4.6.2"></script>
+  <script src="tools.js?v=4.6.2"></script>
+  <script src="growth.js?v=4.6.2"></script>
+  <script src="ai.js?v=4.6.2"></script>
+  <script src="admin.js?v=4.6.2"></script>
+  <script src="designs.js?v=4.6.2"></script>
+  <script src="profile.js?v=4.6.2"></script>
+  <script src="promo.js?v=4.6.2"></script>
+  <script src="community.js?v=4.6.2"></script>
+  <script src="notifications.js?v=4.6.2"></script>
 </body>
 </html>
