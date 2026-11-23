@@ -1702,7 +1702,7 @@ async function submitFeedback(event) {
   }
   const message = $('#feedbackMessage')?.value.trim() || '';
   if (!message) {
-    if (error) error.textContent = 'Tell us at least one sentence so the triage is useful.';
+    if (error) error.textContent = 'Tell us at least one sentence so we can act on it.';
     return;
   }
   try {
@@ -1710,10 +1710,10 @@ async function submitFeedback(event) {
       method: 'POST',
       body: { rating: state.feedbackRating, category: $('#feedbackCategory')?.value || 'General', message },
     });
-    if (thanks) { thanks.classList.remove('hidden'); thanks.textContent = 'Thank you — logged with a timestamp in the admin audit trail.'; }
+    if (thanks) { thanks.classList.remove('hidden'); thanks.textContent = 'Thank you. We have received your feedback.'; }
     setStarRating(0);
     $('#feedbackMessage').value = '';
-    toast('Feedback delivered to the admin vault.', 'success');
+    toast('Thank you, your feedback was sent.', 'success');
     setTimeout(() => { thanks?.classList.add('hidden'); closeFeedback(); }, 2400);
   } catch (err) {
     if (error) error.textContent = err.message;
@@ -2653,7 +2653,7 @@ function setInlineRating(rating) {
 
 async function submitInlineFeedback() {
   if (!state.user) {
-    toast('Sign in to send feedback to the founder triage queue.', 'warning');
+    toast('Sign in to send us your feedback.', 'warning');
     openAuth('login');
     return;
   }
@@ -2676,7 +2676,7 @@ async function submitInlineFeedback() {
     const status = $('#inlineFeedbackStatus');
     if (status) status.textContent = `Feedback logged at ${new Date().toLocaleTimeString('en-IN')} · ${state.inlineRating}★`;
     $('#inlineFeedbackMessage').value = '';
-    toast('Feedback delivered to the founder vault.', 'success');
+    toast('Thank you, your feedback was sent.', 'success');
   } catch (err) {
     toast(err.message, 'error');
   } finally {

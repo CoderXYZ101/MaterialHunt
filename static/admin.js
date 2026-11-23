@@ -18,6 +18,8 @@
   const MONEY_KINDS = ['upgrade', 'payment', 'kyb'];
   let leads = [];
   let users = [];
+  let reviews = [];
+  let revFilter = 'new';
   let tab = 'requests';
   let filter = 'new';
   let search = '';
@@ -78,6 +80,10 @@
         render();
         updateBadge();
       }, (err) => { loadError = err.message; render(); });
+      db().collection('feedback').orderBy('created_at', 'desc').limit(200).onSnapshot((snap) => {
+        reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        render();
+      }, (err) => { loadError = err.message; render(); });
       await loadUsers();
     } catch (err) { loadError = err.message; started = false; render(); }
   }
@@ -123,6 +129,7 @@
     if (!isAdmin()) { root.innerHTML = '<div class="empty-state"><strong>Admins only</strong><span>Sign in with an admin account.</span></div>'; return; }
     const newCount = leads.filter(isNew).length;
     const paid = users.filter((u) => u.tier && u.tier !== 'free').length;
+    const newReviews = reviews.filter((r) => !r.status || r.status === 'Open').length;
     root.innerHTML = `
       ${loadError ? `<div class="ai-note warn"><b>Could not load data.</b> ${esc(loadError)} Check that you deployed the latest Firestore rules and that your user document has role = admin.</div>` : ''}
       <div class="admin-stats">
@@ -133,10 +140,11 @@
       </div>
       <div class="admin-tabs">
         <button class="${tab === 'requests' ? 'active' : ''}" data-tab="requests">Requests${newCount ? ` <i>${newCount}</i>` : ''}</button>
+        <button class="${tab === 'reviews' ? 'active' : ''}" data-tab="reviews">Reviews${newReviews ? ` <i>${newReviews}</i>` : ''}</button>
         <button class="${tab === 'users' ? 'active' : ''}" data-tab="users">Customers</button>
       </div>
-      <input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />
-      ${tab === 'requests' ? requestsHtml() : usersHtml()}`;
+      ${tab === 'reviews' ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
+      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : usersHtml()}`;
   }
 
   function requestsHtml() {
@@ -184,6 +192,36 @@
     </article>`;
   }
 
+  const stars = (n) => '★'.repeat(Math.max(0, Math.min(5, Number(n) || 0))) + '☆'.repeat(5 - Math.max(0, Math.min(5, Number(n) || 0)));
+
+  function reviewsHtml() {
+    const rated = reviews.filter((r) => Number(r.rating) > 0);
+    const avg = rated.length ? (rated.reduce((a, r) => a + Number(r.rating), 0) / rated.length) : 0;
+    let list = reviews;
+    if (revFilter === 'new') list = list.filter((r) => !r.status || r.status === 'Open');
+    const chips = ['new', 'all'].map((f) => `<button class="${revFilter === f ? 'active' : ''}" data-revfilter="${f}">${f === 'new' ? 'Unread' : 'Everything'}</button>`).join('');
+    const head = `<div class="admin-stats rev-stats">
+      <div class="glass"><span>Average rating</span><strong>${rated.length ? avg.toFixed(1) : '-'}<small> / 5</small></strong></div>
+      <div class="glass"><span>Rated reviews</span><strong>${rated.length}</strong></div>
+      <div class="glass"><span>All comments</span><strong>${reviews.length}</strong></div>
+      <div class="glass"><span>Unread</span><strong>${reviews.filter((r) => !r.status || r.status === 'Open').length}</strong></div></div>`;
+    if (!list.length) return `${head}<div class="admin-filter">${chips}</div><div class="empty-state"><strong>${revFilter === 'new' ? 'No unread reviews' : 'No reviews yet'}</strong><span>Reviews from signed-in users appear here instantly.</span></div>`;
+    return `${head}<div class="admin-filter">${chips}</div><div class="admin-list">${list.map((r) => {
+      const u = users.find((x) => x.uid === r.user_id);
+      const read = r.status && r.status !== 'Open';
+      const subject = 'Thanks for your MaterialHunt feedback';
+      const body = `Hi ${u ? String(u.org || u.displayName || '').split(' ')[0] : 'there'},\n\nThank you for your feedback. `;
+      return `<article class="admin-card glass ${read ? 'done' : ''}">
+        <header><span class="admin-kind">${esc(r.category || 'General')}</span><b class="rev-stars">${stars(r.rating)}</b>
+          <span class="admin-org">${u ? esc(u.email) : esc(short(r.user_id))}</span><span class="admin-time">${esc(when(r.created_at))}</span>${read ? `<span class="admin-status">${esc(r.status)}</span>` : ''}</header>
+        <p class="admin-notes rev-comment">${esc(r.comment)}</p>
+        <div class="admin-actions">
+          ${u ? `<a class="btn btn-glass small" target="_blank" rel="noopener" href="${gmail(u.email, subject, body)}">Reply</a>` : ''}
+          ${read ? `<button class="btn btn-ghost small" data-revmark="${r.id}" data-status="Open">Mark unread</button>` : `<button class="btn btn-primary small" data-revmark="${r.id}" data-status="Read">Mark as read</button>`}
+        </div></article>`;
+    }).join('')}</div>`;
+  }
+
   function usersHtml() {
     let list = users.slice().sort((a, b) => String(b.email).localeCompare(String(a.email)));
     if (search) list = list.filter((u) => [u.email, u.displayName, u.org, u.uid].some((v) => String(v || '').toLowerCase().includes(search)));
@@ -212,11 +250,18 @@
   }
 
   async function onClick(e) {
-    const t = e.target.closest('[data-tab],[data-filter],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy]');
+    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy]');
     if (!t) return;
     try {
       if (t.dataset.tab) { tab = t.dataset.tab; search = ''; render(); }
       else if (t.dataset.filter) { filter = t.dataset.filter; render(); }
+      else if (t.dataset.revfilter) { revFilter = t.dataset.revfilter; render(); }
+      else if (t.dataset.revmark) {
+        await db().collection('feedback').doc(t.dataset.revmark).update({ status: t.dataset.status, triaged_at: FV().serverTimestamp() });
+        const rv = reviews.find((x) => x.id === t.dataset.revmark);
+        if (rv) rv.status = t.dataset.status;
+        render();
+      }
       else if (t.dataset.copy) { await navigator.clipboard?.writeText(t.dataset.copy); notify('User ID copied.', 'success', 1500); }
       else if (t.dataset.approve) {
         t.disabled = true;

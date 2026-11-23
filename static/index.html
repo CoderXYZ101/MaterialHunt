@@ -10,7 +10,7 @@
   <title>MaterialHunt — Test a metal before you build with it</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.3.3" />
+  <link rel="stylesheet" href="growth.css?v=4.3.4" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -1036,7 +1036,7 @@
             <button type="button" class="star-btn" data-star="4" aria-label="4 stars">★</button>
             <button type="button" class="star-btn" data-star="5" aria-label="5 stars">★</button>
           </div>
-          <textarea id="inlineFeedbackMessage" rows="3" placeholder="What should the founder team know?"></textarea>
+          <textarea id="inlineFeedbackMessage" rows="3" placeholder="What should we know?"></textarea>
           <div class="inline-actions">
             <select id="inlineFeedbackCategory" class="field-select">
               <option>Prediction Quality</option>
@@ -1049,7 +1049,7 @@
             </select>
             <button class="btn btn-primary" id="submitInlineFeedback">Send feedback</button>
           </div>
-          <p class="micro-note" id="inlineFeedbackStatus">Ratings flow into the founder vault triage queue with a timestamp.</p>
+          <p class="micro-note" id="inlineFeedbackStatus">Your rating and comments are sent privately to our team. Thank you.</p>
         </article>
       </section>
 
@@ -1483,10 +1483,10 @@
   <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
   <aside class="feedback-drawer glass" id="feedbackDrawer" aria-label="Feedback drawer">
     <div class="drawer-head">
-      <div><span class="panel-kicker">FOUNDER FEEDBACK LOOP</span><h3>How is the hunt?</h3></div>
+      <div><span class="panel-kicker">YOUR FEEDBACK</span><h3>How is the hunt?</h3></div>
       <button class="modal-close" id="feedbackClose" aria-label="Close feedback">×</button>
     </div>
-    <p class="drawer-sub">Your 0–5 star rating and bug reports go straight to the founder vault triage queue.</p>
+    <p class="drawer-sub">Your 0–5 star rating and comments are sent privately to our team.</p>
     <form id="feedbackForm">
       <div class="star-row" id="starRow" role="radiogroup" aria-label="Star rating">
         <button type="button" class="star-btn" data-star="0" aria-label="0 stars">0</button>
@@ -1509,9 +1509,9 @@
       </select>
       <label class="field-label" for="feedbackMessage">What should we know?</label>
       <textarea id="feedbackMessage" rows="4" placeholder="Tell us what worked, what broke, or what to build next…"></textarea>
-      <button class="btn btn-primary full" type="submit">Send to triage</button>
+      <button class="btn btn-primary full" type="submit">Send feedback</button>
       <p class="form-error" id="feedbackError"></p>
-      <p class="feedback-thanks hidden" id="feedbackThanks">Thank you — logged with a timestamp in the admin audit trail.</p>
+      <p class="feedback-thanks hidden" id="feedbackThanks">Thank you. We have received your feedback.</p>
     </form>
   </aside>
 
@@ -1681,12 +1681,12 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.3.3"></script>
-  <script src="app.js?v=4.3.3"></script>
-  <script src="config.js?v=4.3.3"></script>
-  <script src="tools.js?v=4.3.3"></script>
-  <script src="growth.js?v=4.3.3"></script>
-  <script src="ai.js?v=4.3.3"></script>
-  <script src="admin.js?v=4.3.3"></script>
+  <script src="firebase-bridge.js?v=4.3.4"></script>
+  <script src="app.js?v=4.3.4"></script>
+  <script src="config.js?v=4.3.4"></script>
+  <script src="tools.js?v=4.3.4"></script>
+  <script src="growth.js?v=4.3.4"></script>
+  <script src="ai.js?v=4.3.4"></script>
+  <script src="admin.js?v=4.3.4"></script>
 </body>
 </html>

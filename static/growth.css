@@ -382,3 +382,8 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 /* assistant header: close and new-chat buttons sit side by side */
 .drawer-tools .modal-close { position: static; flex-shrink: 0; }
 .drawer-tools { flex-shrink: 0; }
+
+/* ---------- reviews ---------- */
+.rev-stars { color: var(--amber); letter-spacing: 2px; font-size: 14px; }
+.rev-comment { color: var(--text-soft); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
+.rev-stats strong small { font-size: 12px; color: var(--muted); font-weight: 500; }
