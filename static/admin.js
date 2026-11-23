@@ -243,10 +243,12 @@
     const u = users.find((x) => x.uid === uid);
     if (u) u.tier = tier;
   }
-  async function markLead(id, status) {
-    await db().collection('rfq_leads').doc(id).update({ status, handled_at: FV().serverTimestamp(), handled_by: window.MH_FIREBASE.auth.currentUser.uid });
+  async function markLead(id, status, note) {
+    const update = { status, handled_at: FV().serverTimestamp(), handled_by: window.MH_FIREBASE.auth.currentUser.uid };
+    if (note) update.admin_note = String(note).trim().slice(0, 300);
+    await db().collection('rfq_leads').doc(id).update(update);
     const l = leads.find((x) => x.id === id);
-    if (l) l.status = status;
+    if (l) { l.status = status; if (note) l.admin_note = update.admin_note; }
   }
 
   async function onClick(e) {
@@ -278,7 +280,12 @@
         await markLead(t.dataset.kybok, 'approved');
         notify('Business verified. The badge now shows on their account.', 'success', 4500);
         updateBadge(); render();
-      } else if (t.dataset.mark) { await markLead(t.dataset.mark, t.dataset.status); updateBadge(); render(); }
+      } else if (t.dataset.mark) {
+        let note = '';
+        if (t.dataset.status === 'rejected') note = window.prompt('Reason to show the customer (optional). Do not include private details:', '') || '';
+        await markLead(t.dataset.mark, t.dataset.status, note);
+        updateBadge(); render();
+      }
       else if (t.dataset.kyb) {
         await db().collection('users').doc(t.dataset.kyb).update({ kyb_status: t.dataset.state });
         const u = users.find((x) => x.uid === t.dataset.kyb);

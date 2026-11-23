@@ -399,3 +399,24 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .design-meta { font-size: 11.5px; color: var(--muted); }
 .design-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .design-rename { background: var(--panel-soft); border: 1px solid var(--cyan); border-radius: 8px; color: var(--text); padding: 6px 10px; font-size: 14px; min-width: 200px; }
+
+/* ---------- notifications ---------- */
+.notif-btn { position: relative; }
+.notif-badge { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: var(--rose); color: #fff; font-size: 10px; font-weight: 800; display: grid; place-items: center; }
+.notif-panel { position: fixed; top: 84px; right: 16px; width: min(380px, calc(100vw - 24px)); max-height: 70vh; overflow: hidden; z-index: 95; display: flex; flex-direction: column; background: var(--panel-solid); border: 1px solid var(--border-strong); border-radius: 16px; box-shadow: var(--shadow); }
+.notif-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.notif-list { overflow-y: auto; display: grid; }
+.notif-item { display: flex; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+.notif-item.fresh { background: var(--cyan-soft); }
+.notif-item b { font-size: 13px; }
+.notif-item p { margin: 3px 0 4px; font-size: 12.5px; color: var(--text-soft); line-height: 1.5; }
+.notif-item small { color: var(--muted); font-size: 11px; }
+.notif-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; background: var(--amber); }
+.notif-item.tone-good .notif-dot { background: var(--emerald); }
+.notif-item.tone-bad .notif-dot { background: var(--rose); }
+
+/* ---------- logo in the footer ---------- */
+.ef-mark { background: none; padding: 0; overflow: hidden; }
+.ef-mark img { width: 100%; height: 100%; display: block; border-radius: 11px; }
+.ef-copy { display: inline-flex; align-items: center; gap: 8px; }
+.ef-copy img { border-radius: 5px; }
