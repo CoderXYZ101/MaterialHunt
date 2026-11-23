@@ -513,3 +513,7 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .stall .stall-foot { position: fixed; left: 5vw; right: 5vw; bottom: 3vh; display: flex; justify-content: space-between; font-size: clamp(14px, 2vw, 26px); opacity: .9; }
 .stall .stall-x { position: fixed; top: 2vh; right: 2vw; }
 .share-card-preview { max-width: 100%; border-radius: 12px; margin: 10px 0; }
+
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.photo-tile { padding: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.photo-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }

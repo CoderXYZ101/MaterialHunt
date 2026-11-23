@@ -27,6 +27,8 @@
   let offer = { active: false, code: '', text: '' };
   let cchal = [];
   let reports = [];
+  let photos = [];
+  let showChecked = false;
   let repView = {};
   let cwin = {};
   let tab = 'requests';
@@ -152,13 +154,14 @@
         <button class="${tab === 'requests' ? 'active' : ''}" data-tab="requests">Requests${newCount ? ` <i>${newCount}</i>` : ''}</button>
         <button class="${tab === 'reviews' ? 'active' : ''}" data-tab="reviews">Reviews${newReviews ? ` <i>${newReviews}</i>` : ''}</button>
         <button class="${tab === 'winners' ? 'active' : ''}" data-tab="winners">Winners</button>
+        <button class="${tab === 'photos' ? 'active' : ''}" data-tab="photos">Photos${photosToCheck().length ? ` (${photosToCheck().length})` : ''}</button>
         <button class="${tab === 'reports' ? 'active' : ''}" data-tab="reports">Reports${reports.some((r) => r.status === 'new') ? ' •' : ''}</button>
         <button class="${tab === 'community' ? 'active' : ''}" data-tab="community">Community${cchal.some((c) => c.status === 'pending') ? ' •' : ''}</button>
         <button class="${tab === 'promos' ? 'active' : ''}" data-tab="promos">Promo codes</button>
         <button class="${tab === 'users' ? 'active' : ''}" data-tab="users">Customers</button>
       </div>
-      ${['reviews', 'winners', 'promos', 'community', 'reports'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
-      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : tab === 'reports' ? reportsHtml() : usersHtml()}`;
+      ${['reviews', 'winners', 'promos', 'community', 'reports', 'photos'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
+      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : tab === 'reports' ? reportsHtml() : tab === 'photos' ? photosHtml() : usersHtml()}`;
   }
 
   function requestsHtml() {
@@ -257,6 +260,8 @@
       try {
         const rp = await db().collection('reports').limit(100).get();
         reports = rp.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+        const pf = await db().collection('profiles').limit(400).get();
+        photos = pf.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.avatar).sort((a, b) => (b.updated_at?.toMillis ? b.updated_at.toMillis() : 0) - (a.updated_at?.toMillis ? a.updated_at.toMillis() : 0));
         const pz = await db().collection('prizes').limit(300).get();
         pz.docs.forEach((d) => { awarded[d.id] = { days: d.data().days, claimed: d.data().claimed }; });
       } catch { /* rules not deployed yet */ }
@@ -401,6 +406,33 @@
   /* ------------------------- reports (photos and misuse) ------------------------- */
   const REASONS = { photo: 'Inappropriate photo', name_or_bio: 'Inappropriate name or bio', harassment: 'Harassment or abuse', other: 'Something else' };
 
+  /* ------------------------- daily photo check by hand ------------------------- */
+  const photoKey = (p) => `${p.uid}:${String(p.avatar).length}:${String(p.avatar).slice(-24)}`;
+  const checkedMap = () => { try { return JSON.parse(localStorage.getItem('mh_photo_ok') || '{}'); } catch { return {}; } };
+  const photosToCheck = () => { const m = checkedMap(); return photos.filter((p) => !m[photoKey(p)]); };
+
+  function photosHtml() {
+    const m = checkedMap();
+    const list = showChecked ? photos : photosToCheck();
+    return `<p class="micro-note">Photos are checked automatically, then you look at them here once a day. "Looks fine" hides a photo from this list (on this device only). "Remove" deletes it and stops that member adding photos again. Only members who switched "show my photo" on have it visible to others.</p>
+      <p><button class="btn btn-ghost small" id="phAll">${showChecked ? 'Show only unchecked' : 'Show already checked too'}</button> <span class="admin-org">${photosToCheck().length} to check · ${photos.length} photos in total</span></p>
+      <div class="photo-grid">${list.length ? list.map((p) => `<div class="photo-tile glass"><img src="${esc(p.avatar)}" alt="" /><b>${esc(p.display_name || 'Member')}</b><small class="admin-org">${p.show_avatar ? 'shown on leaderboard' : 'private'}${m[photoKey(p)] ? ' · checked' : ''}</small>
+        <div class="admin-actions"><button class="btn btn-glass small" data-ph="ok" data-id="${esc(p.uid)}">Looks fine</button><button class="btn btn-primary small" data-ph="remove" data-id="${esc(p.uid)}">Remove</button></div></div>`).join('') : '<div class="empty-state"><strong>Nothing to check</strong><span>New photos will appear here.</span></div>'}</div>`;
+  }
+
+  async function photoAction(t) {
+    const p = photos.find((x) => x.uid === t.dataset.id);
+    if (!p) return;
+    if (t.dataset.ph === 'ok') {
+      const m = checkedMap(); m[photoKey(p)] = Date.now(); localStorage.setItem('mh_photo_ok', JSON.stringify(m));
+    } else if (t.dataset.ph === 'remove') {
+      await db().collection('profiles').doc(p.uid).update({ avatar: '', show_avatar: false, photo_blocked: true });
+      photos = photos.filter((x) => x.uid !== p.uid);
+      notify('Photo removed and photos blocked for that member.', 'success', 3500);
+    }
+    render();
+  }
+
   function reportsHtml() {
     if (!reports.length) return '<div class="empty-state"><strong>No reports</strong><span>Reports about profiles will appear here.</span></div>';
     const list = reports.slice().sort((a, b) => (a.status === 'new' ? 0 : 1) - (b.status === 'new' ? 0 : 1));
@@ -516,7 +548,7 @@
   }
 
   async function onClick(e) {
-    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],#prizeRun');
+    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],[data-ph],#phAll,#prizeRun');
     if (!t) return;
     try {
       if (t.dataset.tab) { tab = t.dataset.tab; search = ''; render(); }
@@ -534,6 +566,8 @@
       } else if (t.id === 'promoCreate') { await createPromo(); }
       else if (t.dataset.cc) { await communityAction(t); }
       else if (t.dataset.rp) { await reportAction(t); }
+      else if (t.dataset.ph) { await photoAction(t); }
+      else if (t.id === 'phAll') { showChecked = !showChecked; render(); }
       else if (t.id === 'prizeRun') { await runPrizeJob(t); }
       else if (t.id === 'offerOn') {
         const code = (q('#offerCode').value || '').toUpperCase().replace(/\s+/g, '');

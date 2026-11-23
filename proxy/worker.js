@@ -304,7 +304,7 @@ async function handleAvatar(request, env, headers) {
   const bytes = Array.from(raw, (c) => c.charCodeAt(0));
   const verdict = await visionVerdict(env, bytes);
   if (verdict === 'unsafe') return reply(422, { error: 'unsafe' }, headers);
-  if (verdict !== 'safe') return reply(503, { error: 'check_unavailable' }, headers);
+  // if the checker could not decide, the photo is accepted and appears in the admin Photos tab for the daily hand check
 
   const res = await fetch(`${fsRoot(env)}/profiles/${uid}?updateMask.fieldPaths=avatar`, {
     method: 'PATCH', headers: { Authorization: `Bearer ${bot}`, 'Content-Type': 'application/json' },
