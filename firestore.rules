@@ -91,7 +91,7 @@ service cloud.firestore {
     // only the submitter or an admin can read it back. Immutable once created.
     match /rfq_leads/{leadId} {
       allow create: if request.resource.data.keys().hasAll(['kind', 'name', 'organization', 'email', 'created_at'])
-        && request.resource.data.kind in ['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo']
+        && request.resource.data.kind in ['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo', 'payment']
         && request.resource.data.name is string && request.resource.data.name.size() <= 120
         && request.resource.data.organization is string && request.resource.data.organization.size() <= 160
         && request.resource.data.email is string

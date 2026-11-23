@@ -21,9 +21,10 @@
     paymentLinks: { pro_month: '', pro_year: '', team_month: '', team_year: '', credits: '' },
     prices: { pro: { month: 1499, year: 14990 }, team: { month: 4999, year: 49990 }, credits: 999 },
     limits: {
-      guest: { sim: 3, bom: 1, report: 0, batch: 0 },       // per day: sim, bom; report/batch: not available
-      free: { report: 3, batch: 2 },                         // per month
+      guest: { sim: 3, bom: 1, report: 0, batch: 0, ai: 5 },  // per day: sim, bom, ai; report/batch: not available
+      free: { report: 3, batch: 2, ai: 40 },                  // reports/batch per month, ai per day
     },
+    payments: { razorpayKeyId: '', upiId: '', payeeName: 'MaterialHunt' },
     supportEmail: '',
   }, window.MH_CONFIG || {});
 
@@ -83,7 +84,7 @@
   function readUsage() {
     let u = {};
     try { u = JSON.parse(localStorage.getItem(usageKey()) || '{}'); } catch { u = {}; }
-    if (u.day !== today()) { u.day = today(); u.sim = 0; u.bom = 0; }
+    if (u.day !== today()) { u.day = today(); u.sim = 0; u.bom = 0; u.ai = 0; }
     if (u.month !== month()) { u.month = month(); u.report = 0; u.batch = 0; }
     return u;
   }
@@ -93,7 +94,7 @@
     tier() { return state.user ? (state.user.tier || 'free') : 'guest'; },
     isPaid() { return PAID.includes(PLAN.tier()); },
     verified() { return Boolean(state.user?.email_verified); },
-    bucket(kind) { return { sim: 'sim', bom: 'bom', pdf: 'report', rfq: 'report', batch: 'batch' }[kind]; },
+    bucket(kind) { return { sim: 'sim', bom: 'bom', ai: 'ai', pdf: 'report', rfq: 'report', batch: 'batch' }[kind]; },
     limit(kind) {
       const b = PLAN.bucket(kind);
       const t = PLAN.tier();
@@ -127,6 +128,7 @@
 
   const KIND_COPY = {
     sim: ['You have used your free runs for today', 'Create a free account for unlimited simulations.'],
+    ai: ['Keep the conversation going', 'Create a free account to keep chatting with the assistant, and save your history.'],
     bom: ['Scan more parts lists with a free account', 'Create a free account to keep using the Cost-Down Scanner.'],
     pdf: ['Create a free account to download reports', 'Free accounts get 3 PDF reports a month.'],
     rfq: ['Create a free account to generate RFQs', 'Free accounts get 3 RFQ / PDF reports a month, with the full NABL test sheet.'],
@@ -140,7 +142,7 @@
   }
   function gateLimit(kind) {
     if (PLAN.tier() === 'guest') { gateSignup(kind); return; }
-    const label = PLAN.bucket(kind) === 'batch' ? 'batch runs' : 'reports';
+    const label = { batch: 'batch runs', ai: 'assistant questions (today)' }[PLAN.bucket(kind)] || 'reports';
     showGate({ title: `You have used this month's free ${label}`, text: 'Upgrade to Pro for unlimited reports, RFQ sheets and batch runs.', primary: ['See Pro', () => openUpgrade('pro')], secondary: ['Not now', null] });
     track('gate_upgrade', { kind });
   }
@@ -213,11 +215,105 @@
     return billing === 'year' ? `${rupee(p.year)} / year` : `${rupee(p.month)} / month`;
   }
 
+  function planAmount(plan) {
+    if (plan === 'credits') return CONFIG.prices.credits;
+    if (plan === 'enterprise') return 0;
+    return CONFIG.prices[plan]?.[billing] || 0;
+  }
+
+  function loadExternal(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+      const el = document.createElement('script');
+      el.src = src; el.async = true; el.onload = resolve; el.onerror = () => reject(new Error('Could not load the payment window'));
+      document.head.appendChild(el);
+    });
+  }
+
+  function upiLink(amount, note) {
+    const pay = CONFIG.payments || {};
+    const params = new URLSearchParams({ pa: pay.upiId, pn: pay.payeeName || 'MaterialHunt', am: String(amount), cu: 'INR', tn: note });
+    return `upi://pay?${params.toString()}`;
+  }
+
+  function paymentOptions(plan) {
+    const pay = CONFIG.payments || {};
+    const link = CONFIG.paymentLinks[`${plan}_${billing}`] || CONFIG.paymentLinks[plan] || '';
+    return { razorpay: Boolean(pay.razorpayKeyId), link, upi: Boolean(pay.upiId) };
+  }
+
+  async function recordPayment(plan, details, who, ref, method) {
+    const info = PLAN_COPY[plan] || PLAN_COPY.pro;
+    return window.MH_FIREBASE?.saveLead?.({
+      kind: 'payment', name: who.name, organization: who.org, email: who.email,
+      request_type: `${info.name} (${plan === 'credits' ? 'one-time' : billing}) via ${method}`,
+      notes: `Payment ref: ${ref}. Amount INR ${details.amount}. Verify in payments dashboard, then set users/{uid}.tier.`, plan, billing, amount_inr: details.amount,
+    });
+  }
+
+  function showPaid(modal, plan, close) {
+    const info = PLAN_COPY[plan] || PLAN_COPY.pro;
+    q('.tool-modal', modal).innerHTML = `<button class="modal-close" data-x aria-label="Close">×</button>
+      <span class="panel-kicker">PAYMENT RECEIVED</span><h2>Thank you.</h2>
+      <p>We are confirming your payment and will activate <b>${esc(info.name)}</b> on your account shortly, usually within a few hours. You will get an email when it is live.</p>
+      <div class="rfq-actions"><button class="btn btn-primary" data-x2>Done</button></div>`;
+    q('[data-x]', modal).onclick = close; q('[data-x2]', modal).onclick = close;
+  }
+
+  function showPaymentStep(modal, plan, who, close) {
+    const info = PLAN_COPY[plan] || PLAN_COPY.pro;
+    const amount = planAmount(plan);
+    const opts = paymentOptions(plan);
+    const details = { amount };
+    const card = q('.tool-modal', modal);
+    const upiNote = `MaterialHunt ${info.name}`;
+    card.innerHTML = `<button class="modal-close" data-x aria-label="Close">×</button>
+      <span class="panel-kicker">CHECKOUT</span><h2>Pay ${rupee(amount)}</h2>
+      <p class="micro-note">${esc(info.name)} · ${plan === 'credits' ? 'one-time' : billing === 'year' ? 'one year' : 'one month'} · ${rupee(amount)}</p>
+      <div class="pay-options">
+        ${opts.razorpay ? `<button class="pay-option" id="payRazor"><b>Card, UPI, netbanking, wallets</b><small>Secure popup by Razorpay</small></button>` : ''}
+        ${opts.link ? `<button class="pay-option" id="payLink"><b>Pay on a secure page</b><small>Opens in a new tab</small></button>` : ''}
+        ${opts.upi ? `<div class="pay-option static"><b>Pay with UPI</b><small>Pay to <code>${esc(CONFIG.payments.upiId)}</code> from any UPI app</small>
+          <div class="rfq-actions"><a class="btn btn-glass small" id="payUpiApp" href="${esc(upiLink(amount, upiNote))}">Open UPI app</a><button class="btn btn-ghost small" id="payUpiCopy" type="button">Copy UPI ID</button></div>
+          <label class="field-label" for="payUtr">After paying, enter the UPI reference (UTR)</label>
+          <input id="payUtr" type="text" placeholder="12-digit UTR / transaction ID" inputmode="numeric" />
+          <button class="btn btn-primary small" id="payUpiDone" type="button">I have paid</button></div>` : ''}
+      </div>
+      <p class="form-error" id="payError"></p>`;
+    q('[data-x]', modal).onclick = close;
+    q('#payRazor', card)?.addEventListener('click', async () => {
+      try {
+        await loadExternal('https://checkout.razorpay.com/v1/checkout.js');
+        const rzp = new window.Razorpay({
+          key: CONFIG.payments.razorpayKeyId, amount: Math.round(amount * 100), currency: 'INR', name: 'MaterialHunt',
+          description: `${info.name} (${plan === 'credits' ? 'one-time' : billing})`, prefill: { name: who.name, email: who.email },
+          notes: { plan, billing, uid: state.user?.id || '' }, theme: { color: '#22D3EE' },
+          handler: async (res) => { await recordPayment(plan, details, who, res.razorpay_payment_id, 'Razorpay'); track('payment_success', { plan, method: 'razorpay' }); showPaid(modal, plan, close); },
+        });
+        rzp.on('payment.failed', (res) => { q('#payError', card).textContent = res?.error?.description || 'Payment failed. You can try again.'; });
+        rzp.open();
+        track('payment_start', { plan, method: 'razorpay' });
+      } catch (err) { q('#payError', card).textContent = err.message; }
+    });
+    q('#payLink', card)?.addEventListener('click', () => { window.open(opts.link, '_blank', 'noopener'); track('payment_start', { plan, method: 'link' }); });
+    q('#payUpiCopy', card)?.addEventListener('click', () => { navigator.clipboard?.writeText(CONFIG.payments.upiId); notify('UPI ID copied.', 'success', 2000); });
+    q('#payUpiApp', card)?.addEventListener('click', () => track('payment_start', { plan, method: 'upi' }));
+    q('#payUpiDone', card)?.addEventListener('click', async () => {
+      const utr = (q('#payUtr', card).value || '').trim();
+      if (!/^[A-Za-z0-9]{8,24}$/.test(utr)) { q('#payError', card).textContent = 'Enter the UPI reference number from your payment app.'; return; }
+      await recordPayment(plan, details, who, utr, 'UPI');
+      track('payment_success', { plan, method: 'upi' });
+      showPaid(modal, plan, close);
+    });
+  }
+
   function openUpgrade(plan = 'pro') {
     const info = PLAN_COPY[plan] || PLAN_COPY.pro;
     let modal = q('#upgradeModal');
     if (!modal) { modal = document.createElement('div'); modal.id = 'upgradeModal'; modal.className = 'modal-backdrop hidden'; document.body.appendChild(modal); }
     const u = state.user || {};
+    const opts = paymentOptions(plan);
+    const canPay = plan !== 'enterprise' && (opts.razorpay || opts.link || opts.upi);
     modal.innerHTML = `<div class="auth-modal glass tool-modal" role="dialog" aria-modal="true"><button class="modal-close" data-x aria-label="Close">×</button>
       <span class="panel-kicker">${plan === 'enterprise' ? 'TALK TO SALES' : 'UPGRADE'}</span>
       <h2>${esc(info.name)}</h2><p class="micro-note">${esc(info.blurb)}</p>
@@ -227,11 +323,11 @@
           <div><label class="field-label" for="upName">Your name</label><input id="upName" type="text" value="${esc(u.organization_name || '')}" required /></div>
           <div><label class="field-label" for="upOrg">Organisation</label><input id="upOrg" type="text" required /></div>
         </div>
-        <label class="field-label" for="upEmail">Work email</label><input id="upEmail" type="email" value="${esc(u.email || '')}" required />
+        <label class="field-label" for="upEmail">Email</label><input id="upEmail" type="email" value="${esc(u.email || '')}" required />
         <label class="field-label" for="upNote">Anything we should know? (optional)</label><input id="upNote" type="text" placeholder="e.g. team size, parts you buy, timeline" />
-        <button class="btn btn-primary full" type="submit">${plan === 'enterprise' ? 'Request a call' : 'Continue'}</button>
+        <button class="btn btn-primary full" type="submit">${plan === 'enterprise' ? 'Request a call' : canPay ? 'Continue to payment' : 'Request this plan'}</button>
         <p class="form-error" id="upError"></p>
-        <p class="micro-note">No payment is taken on this form. ${CONFIG.paymentLinks[`${plan}_${billing}`] || CONFIG.paymentLinks[plan] ? 'You will be taken to secure checkout next.' : 'We email a secure payment link within one business day.'}</p>
+        <p class="micro-note">${canPay ? 'You will choose how to pay on the next step.' : 'We will email you a secure payment link within one business day.'}</p>
       </form></div>`;
     modal.classList.remove('hidden');
     const close = () => modal.classList.add('hidden');
@@ -242,15 +338,15 @@
       const val = (id) => q(id, modal).value.trim();
       const email = val('#upEmail');
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { q('#upError', modal).textContent = 'Enter a valid email address.'; return; }
+      const who = { name: val('#upName'), org: val('#upOrg'), email };
       const res = await window.MH_FIREBASE?.saveLead?.({
-        kind: 'upgrade', name: val('#upName'), organization: val('#upOrg'), email,
+        kind: 'upgrade', name: who.name, organization: who.org, email,
         request_type: `${info.name} (${plan === 'credits' ? 'one-time' : billing})`, notes: val('#upNote'), plan, billing,
       });
       track('upgrade_request', { plan, billing });
-      const link = CONFIG.paymentLinks[`${plan}_${billing}`] || CONFIG.paymentLinks[plan];
-      if (link) { window.open(link, '_blank', 'noopener'); close(); return; }
+      if (canPay) { showPaymentStep(modal, plan, who, close); return; }
       q('.tool-modal', modal).innerHTML = `<button class="modal-close" data-x aria-label="Close">×</button>
-        <span class="panel-kicker">REQUEST RECEIVED</span><h2>Thank you${val('#upName') ? `, ${esc(val('#upName').split(' ')[0])}` : ''}.</h2>
+        <span class="panel-kicker">REQUEST RECEIVED</span><h2>Thank you${who.name ? `, ${esc(who.name.split(' ')[0])}` : ''}.</h2>
         <p>${res?.ok ? 'We will email you within one business day' : 'We saved this on your device. Please retry shortly,'} to confirm ${esc(info.name)} and send ${plan === 'enterprise' ? 'a call invite' : 'a secure payment link'}.</p>
         <div class="rfq-actions"><button class="btn btn-primary" data-x2>Done</button></div>`;
       q('[data-x]', modal).onclick = close; q('[data-x2]', modal).onclick = close;

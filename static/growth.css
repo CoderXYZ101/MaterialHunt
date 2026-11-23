@@ -275,3 +275,51 @@
 .ai-why { margin: 2px 0 0; padding-left: 18px; font-size: 12px; color: var(--amber); line-height: 1.6; }
 .ai-result-actions { display: flex; gap: 8px; margin-top: 4px; }
 @media (max-width: 900px) { .ai-design-results { grid-template-columns: 1fr; } }
+
+/* ---------- assistant v2 ---------- */
+.copilot-drawer { width: min(440px, 100vw); }
+.drawer-tools { display: flex; align-items: center; gap: 6px; }
+.copilot-msg { max-width: 100%; }
+.copilot-msg .chat-body { font-size: 13px; line-height: 1.65; color: var(--text-soft); }
+.copilot-msg .chat-body p { margin: 0 0 8px; }
+.copilot-msg .chat-body ul, .copilot-msg .chat-body ol { margin: 4px 0 8px; padding-left: 18px; }
+.copilot-msg .chat-body code { font-family: var(--font-mono); font-size: 11.5px; background: var(--panel-soft); padding: 1px 5px; border-radius: 5px; }
+.copilot-msg.user .chat-body { color: var(--text); }
+.chat-thumb { display: block; max-width: 160px; border-radius: 10px; margin-top: 8px; border: 1px solid var(--border); }
+.chat-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 4px 0 8px; }
+.chat-table th, .chat-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.chat-table th { color: var(--cyan); font-size: 10.5px; }
+.chat-extras { display: grid; gap: 8px; margin-top: 8px; }
+.chat-actions, .chat-followups { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-followups .copilot-chip { font-size: 11px; padding: 6px 10px; text-align: left; }
+.chat-tools { display: flex; justify-content: flex-end; }
+.typing { display: inline-flex; gap: 4px; padding: 6px 0; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); opacity: .4; animation: typingdot 1s infinite ease-in-out; }
+.typing i:nth-child(2) { animation-delay: .15s; }
+.typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes typingdot { 50% { opacity: 1; transform: translateY(-3px); } }
+.copilot-input-row { display: flex; align-items: flex-end; gap: 6px; }
+.copilot-input-row textarea {
+  flex: 1; resize: none; min-height: 38px; max-height: 130px; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4;
+  background: var(--panel-soft); border: 1px solid var(--border); color: var(--text); font-family: inherit;
+}
+.copilot-input-row textarea:focus { outline: none; border-color: var(--cyan); }
+.copilot-input-row .icon-btn { flex-shrink: 0; }
+#copilotMic.listening { color: var(--rose); border-color: var(--rose); animation: vbpulse 1s infinite; }
+.copilot-attach { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); }
+.copilot-attach img { width: 38px; height: 38px; object-fit: cover; border-radius: 8px; }
+.copilot-attach span { flex: 1; }
+
+/* ---------- payment ---------- */
+.pay-options { display: grid; gap: 10px; margin-top: 12px; }
+.pay-option {
+  text-align: left; padding: 14px 16px; border-radius: 13px; border: 1px solid var(--border); background: var(--panel-soft);
+  color: var(--text); display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft); }
+.pay-option b { font-size: 14px; }
+.pay-option small { color: var(--muted); font-size: 12px; }
+.pay-option.static { cursor: default; }
+.pay-option.static input { width: 100%; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 9px 12px; font-size: 13px; margin-bottom: 8px; }
+.pay-option code { font-family: var(--font-mono); color: var(--cyan); }
+#copilotChips { display: none; }

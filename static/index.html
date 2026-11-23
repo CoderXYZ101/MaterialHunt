@@ -10,7 +10,7 @@
   <title>MaterialHunt — Test a metal before you build with it</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.0.0" />
+  <link rel="stylesheet" href="growth.css?v=4.1.0" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -1134,12 +1134,12 @@
           </article>
 
           <article class="glass compliance-panel">
-            <div class="panel-title-row"><h3>Good to know</h3><span class="pill pill-emerald">TRANSPARENT</span></div>
+            <div class="panel-title-row"><h3>Built for real purchasing decisions</h3></div>
             <div class="compliance-facts">
-              <div><span>Estimates</span><strong>Screening-grade, not certified test data</strong></div>
-              <div><span>Prices</span><strong>Indicative ranges, confirm with a supplier</strong></div>
-              <div><span>Guardrail</span><strong>Restricted elements blocked without clearance</strong></div>
-              <div><span>Your data</span><strong>Never sold. Delete on request</strong></div>
+              <div><span>Grades</span><strong>ASTM / IS / EN designations</strong></div>
+              <div><span>Prices</span><strong>Indian stockist ranges in ₹/kg</strong></div>
+              <div><span>Lab-ready</span><strong>NABL test list on every RFQ</strong></div>
+              <div><span>Safety</span><strong>Restricted-element guardrail built in</strong></div>
             </div>
           </article>
         </div>
@@ -1362,7 +1362,7 @@
       <div class="ef-col ef-compliance">
         <span class="ef-title">Trust posture</span>
         <div class="ef-badges">
-          <span>SCREENING-GRADE ESTIMATES</span>
+          <span>LAB-READY OUTPUTS</span>
           <span>DUAL-USE GUARDRAIL</span>
           <span>DPDP-AWARE DATA HANDLING</span>
         </div>
@@ -1371,7 +1371,7 @@
     </div>
     <div class="ef-bottom">
       <span>© <span id="footerYear">2026</span> MATERIALHUNT Inc. · All rights reserved.</span>
-      <span>Estimates are for screening only and are not certified test results.</span>
+      <span>Engineering estimates. Confirm critical specifications with your supplier or an accredited lab.</span>
       <span class="ef-offline"><i class="dot dot-emerald"></i> <span class="mh-counter" data-counter-copy="footer">Verified members joining</span></span>
     </div>
   </footer>
@@ -1642,28 +1642,43 @@
     <span class="copilot-fab-label">AI Co-Pilot</span>
   </button>
   
-  <aside class="copilot-drawer glass" id="copilotDrawer" aria-label="AI Co-Pilot Helper">
+  <aside class="copilot-drawer glass" id="copilotDrawer" aria-label="MaterialHunt Assistant">
     <div class="drawer-head">
-      <div><span class="panel-kicker">CONTEXT-AWARE</span><h3>AI Co-Pilot Helper</h3></div>
-      <button class="modal-close" id="copilotClose" aria-label="Close co-pilot">×</button>
+      <div><span class="panel-kicker">ASK ANYTHING</span><h3>MaterialHunt Assistant</h3></div>
+      <div class="drawer-tools">
+        <button class="icon-btn tiny" id="copilotNew" title="Start a new chat" aria-label="New chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="modal-close" id="copilotClose" aria-label="Close assistant">×</button>
+      </div>
     </div>
     <div class="copilot-context" id="copilotContext"></div>
-    <div class="copilot-messages" id="copilotMessages"></div>
+    <div class="copilot-messages" id="copilotMessages" aria-live="polite"></div>
     <div class="copilot-chips" id="copilotChips"></div>
+    <div class="copilot-attach hidden" id="copilotAttachPreview"></div>
     <form class="copilot-input-row" id="copilotForm">
-      <input id="copilotInput" type="text" maxlength="400" placeholder="Ask anything: why did it melt, how do I cut cost…" autocomplete="off" />
-      <button class="btn btn-primary small" type="submit">Ask</button>
+      <button type="button" class="icon-btn tiny" id="copilotAttach" title="Attach a photo of a part" aria-label="Attach photo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15 9"/></svg>
+      </button>
+      <input type="file" id="copilotFile" accept="image/*" class="hidden" />
+      <textarea id="copilotInput" rows="1" maxlength="4000" placeholder="Ask anything…" autocomplete="off"></textarea>
+      <button type="button" class="icon-btn tiny" id="copilotMic" title="Speak your question" aria-label="Voice input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
+      <button class="btn btn-primary small" type="submit" id="copilotSend">Send</button>
     </form>
-    <p class="micro-note">Answers use the current alloy, temperature, pressure and benchmark. Screening advice is not a certified test report.</p>
+    <p class="micro-note">Knows your current alloy and conditions. Enter to send, Shift+Enter for a new line.</p>
   </aside>
 
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.0.0"></script>
-  <script src="app.js?v=4.0.0"></script>
-  <script src="tools.js?v=4.0.0"></script>
-  <script src="growth.js?v=4.0.0"></script>
+  <script src="firebase-bridge.js?v=4.1.0"></script>
+  <script src="app.js?v=4.1.0"></script>
+  <script src="config.js?v=4.1.0"></script>
+  <script src="tools.js?v=4.1.0"></script>
+  <script src="growth.js?v=4.1.0"></script>
+  <script src="ai.js?v=4.1.0"></script>
 </body>
 </html>
