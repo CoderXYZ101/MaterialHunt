@@ -15,13 +15,13 @@ const DEFAULT_ORIGINS = 'https://materialhunt-2026.web.app,https://materialhunt-
 // so a list keeps the assistant alive. You can put your own first with a MODEL variable
 // (one name, or several separated by commas).
 const DEFAULT_MODELS = [
-  '@cf/google/gemma-4-26b-a4b-it',
-  '@cf/meta/llama-3.2-3b-instruct',
   '@cf/mistralai/mistral-small-3.1-24b-instruct',
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/meta/llama-3.2-3b-instruct',
   '@cf/ibm-granite/granite-4.0-h-micro',
-  '@cf/meta/llama-3.1-8b-instruct-fp8',
 ];
+// Note: "thinking" models (for example Gemma 4) are left out on purpose. They spend the whole
+// token budget reasoning and return no answer text.
 
 const RULES = `You are the MaterialHunt Assistant: a practical materials, manufacturing and sourcing engineer for Indian engineers, student teams, makers, fabricators and buyers.
 Answer ANY question the user asks. Materials, design, machining, welding, 3D printing, corrosion, failure analysis, procurement, costs and standards are your specialty, but you can also help with general, study and writing questions.
