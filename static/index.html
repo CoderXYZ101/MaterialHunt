@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.7.5" />
+  <link rel="stylesheet" href="growth.css?v=4.8.2" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -143,10 +143,22 @@
               <div class="lattice-controls" id="latticeControls">
                 <label for="structureSelect">Unit cell</label>
                 <select id="structureSelect" class="mini-select">
+                  <option value="AUTO" selected>Auto (from mix)</option>
                   <option value="BCC">BCC</option>
                   <option value="FCC">FCC</option>
                   <option value="HCP">HCP</option>
                 </select>
+              </div>
+              <div class="shape-colors hidden" id="shapeColors" aria-label="Specimen colour">
+                <span>Colour</span>
+                <button type="button" class="sc-swatch sc-auto" data-sc="" title="Default steel colour">Auto</button>
+                <button type="button" class="sc-swatch" data-sc="#c97b4a" style="--c:#c97b4a" title="Copper"></button>
+                <button type="button" class="sc-swatch" data-sc="#e3b341" style="--c:#e3b341" title="Gold"></button>
+                <button type="button" class="sc-swatch" data-sc="#4aa3e0" style="--c:#4aa3e0" title="Titanium blue"></button>
+                <button type="button" class="sc-swatch" data-sc="#3ddc97" style="--c:#3ddc97" title="Emerald"></button>
+                <button type="button" class="sc-swatch" data-sc="#e0566b" style="--c:#e0566b" title="Crimson"></button>
+                <button type="button" class="sc-swatch" data-sc="#9b7bff" style="--c:#9b7bff" title="Violet"></button>
+                <input type="color" id="shapeColorInput" value="#93a9c4" title="Pick any colour" aria-label="Pick any colour" />
               </div>
               <div class="viewport-legend" id="heroLegend"></div>
               <div class="viewport-readout">
@@ -1694,18 +1706,18 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.7.5"></script>
-  <script src="app.js?v=4.7.5"></script>
-  <script src="config.js?v=4.7.5"></script>
-  <script src="tools.js?v=4.7.5"></script>
-  <script src="growth.js?v=4.7.5"></script>
-  <script src="ai.js?v=4.7.5"></script>
-  <script src="admin.js?v=4.7.5"></script>
-  <script src="designs.js?v=4.7.5"></script>
-  <script src="profile.js?v=4.7.5"></script>
-  <script src="promo.js?v=4.7.5"></script>
-  <script src="community.js?v=4.7.5"></script>
-  <script src="showcase.js?v=4.7.5"></script>
-  <script src="notifications.js?v=4.7.5"></script>
+  <script src="firebase-bridge.js?v=4.8.2"></script>
+  <script src="app.js?v=4.8.2"></script>
+  <script src="config.js?v=4.8.2"></script>
+  <script src="tools.js?v=4.8.2"></script>
+  <script src="growth.js?v=4.8.2"></script>
+  <script src="ai.js?v=4.8.2"></script>
+  <script src="admin.js?v=4.8.2"></script>
+  <script src="designs.js?v=4.8.2"></script>
+  <script src="profile.js?v=4.8.2"></script>
+  <script src="promo.js?v=4.8.2"></script>
+  <script src="community.js?v=4.8.2"></script>
+  <script src="showcase.js?v=4.8.2"></script>
+  <script src="notifications.js?v=4.8.2"></script>
 </body>
 </html>

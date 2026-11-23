@@ -842,6 +842,10 @@
     const promoUntil = p.promo_at && p.promo_days ? ms(p.promo_at) + Number(p.promo_days) * 86400000 : 0;
     const trialUntil = Math.max(promoUntil, ms(p.pro_until));
     let tier = TIER_NAMES[p.tier] ? p.tier : 'free';
+    // a paid plan ends by itself when its paid term ends (plan_until is set when an admin approves a payment)
+    const planUntil = ms(p.plan_until);
+    let planExpired = false;
+    if (tier !== 'free' && planUntil && planUntil < Date.now()) { tier = 'free'; planExpired = true; }
     const trial = tier === 'free' && trialUntil > Date.now();
     if (trial) tier = 'pro';
     const email = fbUser.email || p.email || '';
@@ -855,7 +859,8 @@
       role: p.role === 'admin' ? 'admin' : 'member',
       kyb_status: p.kyb_status || 'pending',
       billing_status: tier === 'free' ? 'FREE' : 'ACTIVE',
-      trial_until: trial ? new Date(trialUntil).toISOString() : null,
+      trial_until: trial ? new Date(trialUntil).toISOString() : (tier !== 'free' && planUntil ? new Date(planUntil).toISOString() : null),
+      plan_expired: planExpired,
       billing_enterprise_access: false,
       email_verified: Boolean(fbUser.emailVerified),
       referral_code: String(fbUser.uid).slice(0, 8),

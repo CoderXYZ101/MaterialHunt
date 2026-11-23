@@ -182,7 +182,7 @@
     const approveBtns = l.kind === 'kyb' && u
       ? `<button class="btn btn-primary small" data-kybok="${l.id}" data-uid="${esc(u.uid)}">Verify business</button>`
       : (money && want && u && want !== 'enterprise'
-        ? `<button class="btn btn-primary small" data-approve="${l.id}" data-uid="${esc(u.uid)}" data-tier="${want}">Approve ${planName(want)}</button>`
+        ? `<button class="btn btn-primary small" data-approve="${l.id}" data-uid="${esc(u.uid)}" data-tier="${want}" data-billing="${esc(l.billing === 'year' ? 'year' : 'month')}">Approve ${planName(want)} (${l.billing === 'year' ? '1 year' : '1 month'})</button>`
         : '');
     const needAccount = money && !u ? '<span class="admin-warn">No account with this email yet. Ask them to sign up first.</span>' : '';
     return `<article class="admin-card glass ${done ? 'done' : ''}">
@@ -534,10 +534,20 @@
   /* ------------------------------------------------------------------ */
   /* Actions                                                              */
   /* ------------------------------------------------------------------ */
-  async function setTier(uid, tier) {
-    await db().collection('users').doc(uid).update({ tier, tier_set_at: FV().serverTimestamp() });
+  /* days: how long the paid term lasts. The plan ends by itself after it; renewing before it ends adds the days on top. 0 or empty = no end date. */
+  async function setTier(uid, tier, days) {
+    const ref = db().collection('users').doc(uid);
+    const update = { tier, tier_set_at: FV().serverTimestamp() };
+    if (tier === 'free' || !days) update.plan_until = FV().delete();
+    else {
+      const cur = (await ref.get()).data() || {};
+      const curMs = cur.plan_until?.toMillis ? cur.plan_until.toMillis() : 0;
+      const base = cur.tier === tier && curMs > Date.now() ? curMs : Date.now();
+      update.plan_until = window.firebase.firestore.Timestamp.fromMillis(base + Number(days) * 86400000);
+    }
+    await ref.update(update);
     const u = users.find((x) => x.uid === uid);
-    if (u) u.tier = tier;
+    if (u) { u.tier = tier; if (update.plan_until && update.plan_until.toMillis) u.plan_until = update.plan_until; else delete u.plan_until; }
   }
   async function markLead(id, status, note) {
     const update = { status, handled_at: FV().serverTimestamp(), handled_by: window.MH_FIREBASE.auth.currentUser.uid };
@@ -597,7 +607,7 @@
       else if (t.dataset.copy) { await navigator.clipboard?.writeText(t.dataset.copy); notify('User ID copied.', 'success', 1500); }
       else if (t.dataset.approve) {
         t.disabled = true;
-        await setTier(t.dataset.uid, t.dataset.tier);
+        await setTier(t.dataset.uid, t.dataset.tier, t.dataset.billing === 'year' ? 366 : 31);
         await markLead(t.dataset.approve, 'approved');
         const l = leads.find((x) => x.id === t.dataset.approve);
         notify(`${planName(t.dataset.tier)} approved for ${l?.email || 'customer'}. Use "Email them" to let them know.`, 'success', 4500);
@@ -628,7 +638,16 @@
   async function onChange(e) {
     const sel = e.target.closest('[data-tier-uid]');
     if (!sel) return;
-    try { await setTier(sel.dataset.tierUid, sel.value); notify(`Plan changed to ${planName(sel.value)}.`, 'success', 2500); render(); }
+    try {
+      let days = 0;
+      if (sel.value !== 'free') {
+        const ans = window.prompt(`How many days of ${planName(sel.value)} access? (31 = one month, 366 = one year, empty = no end date)`, '31');
+        if (ans === null) { render(); return; }
+        days = Math.max(0, Math.min(3650, Number(ans) || 0));
+      }
+      await setTier(sel.dataset.tierUid, sel.value, days);
+      notify(`Plan changed to ${planName(sel.value)}${days ? ` for ${days} days` : ''}.`, 'success', 2500); render();
+    }
     catch (err) { notify(err.message || 'Could not change the plan.', 'error', 5000); }
   }
 

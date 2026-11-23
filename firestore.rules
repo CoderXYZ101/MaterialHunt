@@ -300,7 +300,7 @@ service cloud.firestore {
     function aiCap() {
       let cfg = exists(/databases/$(database)/documents/settings/ai) ? get(/databases/$(database)/documents/settings/ai).data : {};
       let u = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      let pro = u.get('tier', 'free') != 'free'
+      let pro = (u.get('tier', 'free') != 'free' && u.get('plan_until', request.time) >= request.time)
         || u.get('pro_until', request.time) > request.time
         || (u.get('promo_at', null) != null && request.time < u.promo_at + duration.value(u.get('promo_days', 0), 'd'));
       return pro ? cfg.get('pro', 60) : cfg.get('free', 15);

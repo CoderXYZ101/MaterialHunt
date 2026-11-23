@@ -40,6 +40,8 @@ const state = {
   persona: 'Aerospace',
   composition: { Fe: 70, Cr: 18, Ni: 8, Mo: 2, C: 2, Ti: 0, Al: 0 },
   structure: 'BCC',
+  structureMode: 'AUTO',
+  shapeColor: '',
   mode: 'lattice',
   screenItems: [],
   lastScreen: null,
@@ -117,7 +119,8 @@ function elementMeta(symbol) {
 }
 
 function periodicRow(symbol) {
-  return (state.periodic || []).find((row) => row.symbol === symbol) || null;
+  const table = Array.isArray(state.periodic) ? state.periodic : (state.periodic?.periodic_table || []);
+  return table.find((row) => row.symbol === symbol) || null;
 }
 
 function aggregatePhaseFor(elements, temperature, pressurePa = null) {
@@ -357,6 +360,10 @@ function renderSession() {
   const until = state.user.trial_until ? ` until ${new Date(state.user.trial_until).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : '';
   $('#userTier').textContent = `${state.user.tier_name || 'Free'} plan${until}${state.user.kyb_status === 'approved' ? ' · Verified business' : ''}`;
   if (state.gateActive) $('#vaultNav')?.classList.remove('hidden');
+  if (state.user.plan_expired && !sessionStorage.getItem('mh_plan_ended')) {
+    sessionStorage.setItem('mh_plan_ended', '1');
+    toast('Your paid plan has ended. Renew from the Pricing page to keep Pro features.', 'warning', 8000);
+  }
 }
 
 async function handleLogin(event) {
@@ -609,7 +616,30 @@ function renderElementSliders() {
   }).join('');
 }
 
+/* Rule of thumb for the crystal structure of a mix: each element votes with its usual room-temperature structure,
+   weighted by how much of it there is. Iron with enough nickel or manganese turns austenitic (FCC), as in stainless steel. */
+const NATURAL_STRUCTURE = {
+  BCC: ['Fe', 'Cr', 'V', 'Nb', 'Ta', 'Mo', 'W', 'Mn', 'Li', 'Na', 'K', 'Ba'],
+  FCC: ['Al', 'Ni', 'Cu', 'Ag', 'Au', 'Pt', 'Pd', 'Pb', 'Ir', 'Rh', 'Ca', 'Sr', 'Th'],
+  HCP: ['Ti', 'Zr', 'Hf', 'Mg', 'Zn', 'Cd', 'Co', 'Be', 'Re', 'Ru', 'Os', 'Sc', 'Y', 'Tl'],
+};
+function predictStructure(norm) {
+  const votes = { BCC: 0, FCC: 0, HCP: 0 };
+  const stabiliser = (norm.Ni || 0) + (norm.Mn || 0) * 0.5 + (norm.Cu || 0) * 0.4;
+  Object.entries(norm).forEach(([sym, pct]) => {
+    let kind = Object.keys(NATURAL_STRUCTURE).find((k) => NATURAL_STRUCTURE[k].includes(sym)) || 'BCC';
+    if (sym === 'Fe' && stabiliser >= 8) kind = 'FCC';
+    if (sym === 'Co' && (norm.Ni || 0) >= 15) kind = 'FCC';
+    votes[kind] += pct;
+  });
+  return Object.keys(votes).sort((a, b) => votes[b] - votes[a])[0];
+}
+function syncStructure() {
+  if (state.structureMode === 'AUTO') state.structure = predictStructure(normalisedComposition());
+}
+
 function updateCompositionUI() {
+  syncStructure();
   const normalized = normalisedComposition();
   const formulaEl = $('#simFormula');
   if (formulaEl) formulaEl.textContent = humanFormula(normalized, 9);
@@ -1362,7 +1392,7 @@ function collectSimulationRequest() {
     load_mpa: Number($('#loadSlider')?.value || 250),
     safety_factor: Number($('#safetySlider')?.value || 1.5),
     hazard_verified: Boolean($('#hazardVerify')?.checked),
-    structure: state.structure,
+    structure: (syncStructure(), state.structure),
     environment_density_kgm3: Number(state.mediumDensity || 1.225),
     pressure_pa: pressurePaFromUI(),
     velocity_kmh: Number($('#velocitySlider')?.value || 0),
@@ -1588,6 +1618,7 @@ function renderBlockedSimulation(detail) {
 
 function updateSceneFromState() {
   if (!state.scene) return;
+  syncStructure();
   const normalized = normalisedComposition();
   const elements = Object.entries(normalized).map(([symbol, pct]) => {
     const meta = elementMeta(symbol);
@@ -2874,10 +2905,11 @@ class MaterialScene {
   }
 
   unitCellPositions() {
-    const s = 2.35;
+    const k = this.cellScale || 1;
+    const s = 2.35 * k;
     const half = s / 2;
     if (this.structure === 'HCP') {
-      const radius = 1.38;
+      const radius = 1.38 * k;
       const height = radius * 1.633;
       const positions = [];
       for (let level = -1; level <= 1; level += 2) {
@@ -2914,21 +2946,39 @@ class MaterialScene {
     if (!this.composition.length) {
       this.composition = [{ symbol: 'Fe', pct: 70, color: '#7FB3FF', radius: 126 }, { symbol: 'Cr', pct: 18, color: '#46E0C0', radius: 128 }, { symbol: 'Ni', pct: 12, color: '#B388FF', radius: 124 }];
     }
+    // the cell grows or shrinks with the average atom size of the mix (Vegard's law, simplified)
+    const totalPct = this.composition.reduce((sum, el) => sum + Math.max(0.001, Number(el.pct)), 0);
+    const avgRadius = this.composition.reduce((sum, el) => sum + Math.max(0.001, Number(el.pct)) * (Number(el.radius) || 126), 0) / totalPct;
+    this.cellScale = clamp(avgRadius / 130, 0.82, 1.3);
+    // size mismatch between the atoms distorts the lattice (as in high-entropy alloys)
+    const mismatch = Math.sqrt(this.composition.reduce((sum, el) => {
+      const c = Math.max(0.001, Number(el.pct)) / totalPct;
+      return sum + c * (1 - (Number(el.radius) || 126) / avgRadius) ** 2;
+    }, 0));
     const data = this.unitCellPositions();
-    const totalWeight = this.composition.reduce((sum, el) => sum + Math.max(0.001, Number(el.pct)), 0);
-    const pickElement = () => {
-      let roll = Math.random() * totalWeight;
-      for (const el of this.composition) {
-        roll -= Math.max(0.001, Number(el.pct));
-        if (roll <= 0) return el;
-      }
-      return this.composition[0];
-    };
+
+    // the same mix always draws the same lattice: a seeded shuffle, with exact shares of each element
+    let seed = 2166136261;
+    `${this.structure}|${this.composition.map((el) => `${el.symbol}${Number(el.pct).toFixed(1)}`).sort().join(',')}`.split('').forEach((ch) => { seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619); });
+    const rand = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const slots = data.positions.length;
+    const share = this.composition.map((el) => ({ el, exact: Math.max(0.001, Number(el.pct)) / totalPct * slots }));
+    share.forEach((x) => { x.n = Math.floor(x.exact); });
+    share.forEach((x) => { if (x.n === 0 && x.exact >= 0.3) x.n = 1; });
+    let assigned = share.reduce((sum, x) => sum + x.n, 0);
+    while (assigned < slots) { share.sort((a, b) => (b.exact - b.n) - (a.exact - a.n)); share[0].n += 1; assigned += 1; }
+    while (assigned > slots) { share.sort((a, b) => b.n - a.n); share[0].n -= 1; assigned -= 1; }
+    const bag = [];
+    share.forEach((x) => { for (let i = 0; i < x.n; i += 1) bag.push(x.el); });
+    for (let i = bag.length - 1; i > 0; i -= 1) { const j = Math.floor(rand() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    const amp = clamp(mismatch * 9, 0, 0.3);
+    data.positions.forEach((p) => { if (amp > 0) p.add(new THREE.Vector3((rand() - 0.5) * 2 * amp, (rand() - 0.5) * 2 * amp, (rand() - 0.5) * 2 * amp)); });
+    this.latticeInfo = { cell: this.cellScale, mismatch, structure: this.structure };
 
     const sphereGeometry = new THREE.SphereGeometry(1, 26, 20);
     const materialMap = new Map();
     data.positions.forEach((position, index) => {
-      const el = this.composition.length > 1 ? pickElement() : this.composition[0];
+      const el = bag[index] || this.composition[0];
       const key = el.symbol;
       if (!materialMap.has(key)) {
         const color = new THREE.Color(el.color || '#7FB3FF');
@@ -2941,7 +2991,7 @@ class MaterialScene {
       }
       const entry = materialMap.get(key);
       const mesh = new THREE.Mesh(sphereGeometry, entry.material);
-      const atomRadius = 0.10 + (Number(el.radius) || 126) / 1200;
+      const atomRadius = clamp(0.205 * ((Number(el.radius) || 126) / 126) ** 1.6, 0.14, 0.33);
       mesh.scale.setScalar(atomRadius);
       mesh.position.copy(position);
       mesh.userData.base = position.clone();
@@ -3043,6 +3093,8 @@ class MaterialScene {
         uStress: { value: 0.25 },
         uTemp: { value: 25 },
         uTime: { value: 0 },
+        uBase: { value: new THREE.Color(0x1a5cc7) },
+        uCustom: { value: 0 },
       },
       vertexShader: `
         uniform float uStress;
@@ -3062,13 +3114,15 @@ class MaterialScene {
         uniform float uStress;
         uniform float uTemp;
         uniform float uTime;
+        uniform vec3 uBase;
+        uniform float uCustom;
         varying vec3 vPos;
         varying vec3 vNrm;
         void main() {
           float g = exp(-pow(vPos.x / 1.45, 2.0));
           float heat = clamp((uTemp + 200.0) / 1100.0, 0.0, 1.0);
           float s = clamp(uStress * 0.9 + g * uStress * 0.6 + heat * 0.34, 0.0, 1.0);
-          vec3 cold = vec3(0.10, 0.36, 0.78);
+          vec3 cold = mix(vec3(0.10, 0.36, 0.78), uBase, uCustom);
           vec3 mid = vec3(0.98, 0.56, 0.12);
           vec3 hot = vec3(1.0, 0.10, 0.12);
           vec3 col = mix(cold, mid, smoothstep(0.0, 0.55, s));
@@ -3277,12 +3331,22 @@ class MaterialScene {
     this.setShape(mode === 'tensile' ? 'dogbone' : mode);
   }
 
+  /* a hex colour (or empty for the default) for the nozzle, blade, sphere and dogbone */
+  setCustomColor(hex) {
+    this.customColor = /^#[0-9a-f]{6}$/i.test(hex || '') ? new THREE.Color(hex) : null;
+    if (this.tensileMaterial) {
+      this.tensileMaterial.uniforms.uCustom.value = this.customColor ? 1 : 0;
+      if (this.customColor) this.tensileMaterial.uniforms.uBase.value.copy(this.customColor);
+    }
+    this.applyPhaseVisual();
+  }
+
   applyPhaseVisual() {
     const liquid = this.phase === 'LIQUID';
     const gas = this.phase === 'GASEOUS / VAPORIZED';
     const hot = this.blackbodyColor(this.temperature);
     if (this.specimenMaterial) {
-      const base = new THREE.Color(0x93A9C4);
+      const base = this.customColor ? this.customColor.clone() : new THREE.Color(0x93A9C4);
       const heatMix = clamp((this.temperature + 60) / 1200, 0, 1);
       this.specimenMaterial.color.copy(base).lerp(hot, Math.min(0.82, heatMix * 0.85));
       this.specimenMaterial.emissive.copy(hot);
@@ -3393,7 +3457,7 @@ class MaterialScene {
     this.temperature = Number(temperature) || 25;
     this.stress = Number(stress) || 0;
     const nextStructure = ['BCC', 'FCC', 'HCP'].includes(structure) ? structure : this.structure;
-    const signature = `${nextStructure}|${(elements || []).map((el) => `${el.symbol}${Number(el.pct).toFixed(1)}`).sort().join(',')}`;
+    const signature = `${nextStructure}|${(elements || []).map((el) => `${el.symbol}${Number(el.pct).toFixed(1)}${el.color || ''}${el.radius || ''}`).sort().join(',')}`;
     if (signature !== this.lastSignature) {
       this.lastSignature = signature;
       this.composition = (elements || []).map((el) => ({ ...el }));
@@ -3656,6 +3720,7 @@ function updateModeUI() {
   const title = $('#heroViewerTitle');
   if (title) title.textContent = titles[state.mode] || titles.lattice;
   $('#latticeControls')?.classList.toggle('hidden', state.mode !== 'lattice');
+  $('#shapeColors')?.classList.toggle('hidden', state.mode === 'lattice');
   if (state.scene) {
     state.scene.setMode(state.mode);
     updateSceneFromState();
@@ -3869,8 +3934,20 @@ function bindEvents() {
     state.scene?.resetSpecimen();
     toast('Specimen rebuilt and fracture state cleared.', 'success', 2200);
   });
+  /* colour of the nozzle, blade, sphere and dogbone */
+  const applyShapeColor = (hex) => {
+    state.shapeColor = hex || '';
+    try { localStorage.setItem('mh_shape_color', state.shapeColor); } catch { /* storage unavailable */ }
+    state.scene?.setCustomColor(state.shapeColor);
+    $$('#shapeColors .sc-swatch').forEach((b) => b.classList.toggle('on', (b.dataset.sc || '') === state.shapeColor));
+    if (state.shapeColor) { const inp = $('#shapeColorInput'); if (inp) inp.value = state.shapeColor; }
+  };
+  $$('#shapeColors .sc-swatch').forEach((b) => b.addEventListener('click', () => applyShapeColor(b.dataset.sc || '')));
+  $('#shapeColorInput')?.addEventListener('input', (event) => applyShapeColor(event.target.value));
+  try { const saved = localStorage.getItem('mh_shape_color'); if (saved) setTimeout(() => applyShapeColor(saved), 600); } catch { /* storage unavailable */ }
   $('#structureSelect')?.addEventListener('change', (event) => {
-    state.structure = event.target.value;
+    state.structureMode = event.target.value === 'AUTO' ? 'AUTO' : 'MANUAL';
+    if (state.structureMode === 'MANUAL') state.structure = event.target.value;
     updateCompositionUI();
     scheduleSimulation(500);
   });

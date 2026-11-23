@@ -517,3 +517,11 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
 .photo-tile { padding: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .photo-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+
+/* ---------- specimen colour picker ---------- */
+.shape-colors { position: absolute; top: 48px; left: 13px; display: flex; align-items: center; gap: 6px; font-size: 8.5px; text-transform: uppercase; letter-spacing: .08em; color: rgba(203,213,225,.75); background: rgba(7,11,20,.5); padding: 4px 7px; border-radius: 8px; z-index: 3; }
+.shape-colors .sc-swatch { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); background: var(--c, transparent); cursor: pointer; padding: 0; }
+.shape-colors .sc-swatch.sc-auto { width: auto; border-radius: 9px; padding: 0 7px; font-size: 8.5px; color: #e2e8f0; background: rgba(148,163,184,.25); }
+.shape-colors .sc-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px rgba(34,211,238,.7); }
+.shape-colors input[type=color] { width: 22px; height: 20px; border: 0; padding: 0; background: none; cursor: pointer; }
+@media (max-width: 720px) { .shape-colors { top: 44px; max-width: calc(100% - 24px); flex-wrap: wrap; } }
