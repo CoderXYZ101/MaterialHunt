@@ -4735,7 +4735,7 @@ async function submitRfq(event) {
   }
   await saveLead(lead);
   $('#rfqThanks')?.classList.remove('hidden');
-  toast('Procurement request saved. A quote will follow by email.', 'success', 5200);
+  toast('Thank you. Your request has been received and we will be in touch by email.', 'success', 5200);
   setTimeout(() => $('#rfqModal')?.classList.add('hidden'), 1600);
 }
 
@@ -5299,8 +5299,8 @@ function renderMetalPricing() {
   
   container.innerHTML = `
     <div class="pricing-header">
-      <span class="pricing-title">Live Metal Prices — ${new Date().toLocaleTimeString('en-IN')}</span>
-      <span class="pricing-source"><span class="live-dot"></span>LME + SHFE + Indian Spot (simulated)</span>
+      <span class="pricing-title">Reference metal prices</span>
+      <span class="pricing-source">Indicative values for budgeting. Not a live market feed.</span>
     </div>
     <div class="pricing-table">
       <table>
@@ -5308,10 +5308,8 @@ function renderMetalPricing() {
           <tr>
             <th>Element</th>
             <th>Name</th>
-            <th>LME</th>
-            <th>SHFE</th>
-            <th>Indian Spot (₹/kg)</th>
-            <th>24h Change</th>
+            <th>Global reference</th>
+            <th>India (₹/kg)</th>
           </tr>
         </thead>
         <tbody>
@@ -5320,14 +5318,13 @@ function renderMetalPricing() {
               <td><strong>${p.symbol}</strong></td>
               <td>${p.name}</td>
               <td>${Number(p.lme).toLocaleString()} ${p.unit}</td>
-              <td>${Number(p.shfe).toLocaleString()} ${p.unit}</td>
               <td>₹${Number(p.indian).toLocaleString()}/kg</td>
-              <td class="change-${p.change.startsWith('+') ? 'up' : 'down'}">${p.change}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     </div>
+    <p class="micro-note" style="padding:12px 16px 4px">Confirm current rates with your supplier before ordering.</p>
   `;
 }
 
@@ -5343,8 +5340,6 @@ const SUPPLIERS = [
   { id: 's8', name: 'Sandvik Materials', location: 'Sandviken, Sweden', verified: true, preferred: true, caps: ['Sanicro 25', 'Safurex', 'Kanthal APM'], type: 'Mill' },
   { id: 's9', name: 'Höganäs AB', location: 'Höganäs, Sweden', verified: true, preferred: false, caps: ['AM Powder', 'MIM Powder', '316L', 'Inconel 718'], type: 'Powder' },
   { id: 's10', name: 'Carpenter Additive', location: 'Athens, AL, USA', verified: true, preferred: true, caps: ['AM Powder', 'Ni718', 'Ti64', 'AlSi10Mg'], type: 'Powder' },
-  { id: 's11', name: 'NABL Lab - Chennai Testing', location: 'Chennai, India', verified: true, preferred: false, caps: ['Tensile', 'Fatigue', 'Creep', 'Corrosion', 'Fracture'], type: 'Lab' },
-  { id: 's12', name: 'NABL Lab - Delhi Calibration', location: 'New Delhi, India', verified: true, preferred: true, caps: ['Dimensional', 'NDT', 'Metallography', 'Chemical'], type: 'Lab' },
 ];
 
 function renderSupplierMarketplace() {
@@ -5360,22 +5355,18 @@ function renderSupplierMarketplace() {
           <div class="supplier-location">${s.location}</div>
         </div>
         <div>
-          ${s.verified ? '<span class="supplier-badge verified">VERIFIED</span>' : ''}
-          ${s.preferred ? '<span class="supplier-badge preferred">PREFERRED</span>' : ''}
         </div>
       </div>
       <div class="supplier-caps">
         ${s.caps.map(c => `<span class="supplier-cap">${c}</span>`).join('')}
       </div>
       <div class="supplier-actions">
-        <button class="btn btn-primary small" data-rfq-supplier="${s.id}">Request Quote</button>
-        <button class="btn btn-glass small" data-contact-supplier="${s.id}">Contact</button>
+        <button class="btn btn-primary small" data-rfq-supplier="${s.id}">Ask for a quote</button>
       </div>
     </div>
   `).join('');
   
   container.querySelectorAll('[data-rfq-supplier]').forEach(btn => btn.addEventListener('click', () => openRfqForSupplier(btn.dataset.rfqSupplier)));
-  container.querySelectorAll('[data-contact-supplier]').forEach(btn => btn.addEventListener('click', () => contactSupplier(btn.dataset.contactSupplier)));
 }
 
 function openRfqForSupplier(id) {
@@ -5385,7 +5376,7 @@ function openRfqForSupplier(id) {
   const alloyField = $('#rfqAlloy');
   if (alloyField) alloyField.value = Object.entries(normalisedComposition()).map(([sym, pct]) => `${sym}:${Number(pct).toFixed(1)}`).join(', ');
   const notesField = $('#rfqNotes');
-  if (notesField) notesField.value = `Preferred supplier: ${s.name} (${s.location})`;
+  if (notesField) notesField.value = `Suggested supplier: ${s.name} (${s.location})`;
   toast(`RFQ prepared for ${s.name}`, 'success');
 }
 
