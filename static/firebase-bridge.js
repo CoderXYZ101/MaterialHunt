@@ -1022,7 +1022,7 @@
     Object.entries(lead || {}).forEach(([k, v]) => {
       if (['string', 'number', 'boolean'].includes(typeof v)) clean[k] = typeof v === 'string' ? v.slice(0, 600) : v;
     });
-    if (!['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo', 'payment'].includes(clean.kind)) clean.kind = 'rfq';
+    if (!['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo', 'payment', 'kyb'].includes(clean.kind)) clean.kind = 'rfq';
     clean.name = String(clean.name || clean.email || 'Visitor').slice(0, 120);
     clean.organization = String(clean.organization || '-').slice(0, 160);
     clean.email = String(clean.email || '').slice(0, 160);

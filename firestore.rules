@@ -91,7 +91,7 @@ service cloud.firestore {
     // only the submitter or an admin can read it back. Immutable once created.
     match /rfq_leads/{leadId} {
       allow create: if request.resource.data.keys().hasAll(['kind', 'name', 'organization', 'email', 'created_at'])
-        && request.resource.data.kind in ['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo', 'payment']
+        && request.resource.data.kind in ['rfq', 'lab_test', 'upgrade', 'waitlist', 'demo', 'payment', 'kyb']
         && request.resource.data.name is string && request.resource.data.name.size() <= 120
         && request.resource.data.organization is string && request.resource.data.organization.size() <= 160
         && request.resource.data.email is string
@@ -103,7 +103,10 @@ service cloud.firestore {
             || request.resource.data.user_id == ''
             || (signedIn() && request.resource.data.user_id == request.auth.uid));
       allow read: if signedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
-      allow update, delete: if false;
+      // admins can mark a request handled / approved / rejected (nothing else can change)
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'handled_at', 'handled_by']);
+      allow delete: if false;
     }
 
     // Feedback.

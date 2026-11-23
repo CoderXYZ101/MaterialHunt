@@ -68,6 +68,7 @@
           <span class="user-meta">
             <strong id="userName">Member</strong>
             <small id="userTier">Free</small>
+            <a href="#" class="kyb-link hidden" id="kybLink">Get verified</a>
           </span>
           <button class="icon-btn tiny" id="logoutBtn" title="Sign out" aria-label="Sign out">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/></svg>
@@ -1081,7 +1082,7 @@
             <button class="btn btn-glass full" data-plan-cta="free">Create free account</button>
           </article>
           <article class="glass price-card featured">
-            <span class="price-tag">MOST POPULAR</span>
+            <span class="price-tag">RECOMMENDED</span>
             <span class="price-tier">PRO</span>
             <strong class="price-value" id="proPrice">₹1,499</strong>
             <span class="price-cycle" id="proCycle">per month · cancel anytime</span>
@@ -1131,6 +1132,12 @@
               <button class="btn btn-glass small" id="buyCreditsBtn">Buy a credit pack</button>
               <button class="btn btn-glass small" id="brokerageBtn">Get supplier quotes</button>
             </div>
+          </article>
+
+          <article class="glass kyb-panel">
+            <div class="panel-title-row"><h3>Verified business badge</h3><span class="pill pill-emerald">FREE</span></div>
+            <p class="micro-note">Show buyers and suppliers that your company, college or team is real. We check the details you send and may ask for one document. Verified accounts get a badge next to their name.</p>
+            <div class="kyb-status-row"><button class="btn btn-primary small" id="kybBtn">Apply for the badge</button></div>
           </article>
 
           <article class="glass compliance-panel">
@@ -1680,5 +1687,6 @@
   <script src="tools.js?v=4.1.0"></script>
   <script src="growth.js?v=4.1.0"></script>
   <script src="ai.js?v=4.1.0"></script>
+  <script src="admin.js?v=4.2.0"></script>
 </body>
 </html>

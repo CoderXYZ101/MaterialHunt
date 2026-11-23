@@ -282,10 +282,6 @@ function toggleTheme() {
 }
 
 function setView(view, scroll = true) {
-  if (view === 'admin' && !state.gateActive) {
-    toast('The founder vault needs the secret gate parameter.', 'warning');
-    return;
-  }
   state.view = view;
   document.body.dataset.activeView = view;
   $$('.view').forEach((section) => section.classList.toggle('active', section.id === `view-${view}`));
@@ -357,7 +353,7 @@ function renderSession() {
   const initials = org.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'MH';
   $('#userAvatar').textContent = initials;
   $('#userName').textContent = org;
-  $('#userTier').textContent = `${state.user.tier_name || 'Free'} plan`;
+  $('#userTier').textContent = `${state.user.tier_name || 'Free'} plan${state.user.kyb_status === 'approved' ? ' · Verified business' : ''}`;
   if (state.gateActive) $('#vaultNav')?.classList.remove('hidden');
 }
 

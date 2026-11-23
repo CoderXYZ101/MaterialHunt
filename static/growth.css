@@ -323,3 +323,55 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .pay-option.static input { width: 100%; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 9px 12px; font-size: 13px; margin-bottom: 8px; }
 .pay-option code { font-family: var(--font-mono); color: var(--cyan); }
 #copilotChips { display: none; }
+
+/* ---------- admin ---------- */
+#adminBtn { position: relative; }
+.admin-badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--rose); color: #fff; font-size: 10px; font-weight: 800; }
+.admin-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.admin-stats > div { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.admin-stats span { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.admin-stats strong { font-size: 26px; letter-spacing: -.03em; }
+.admin-tabs, .admin-filter { display: flex; gap: 6px; margin-bottom: 12px; }
+.admin-tabs button, .admin-filter button { background: var(--panel-soft); border: 1px solid var(--border); color: var(--muted); padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 650; }
+.admin-tabs button.active, .admin-filter button.active { background: var(--cyan-soft); color: var(--text); border-color: rgba(34, 211, 238, .4); }
+.admin-tabs i { font-style: normal; background: var(--rose); color: #fff; border-radius: 999px; padding: 1px 6px; font-size: 10px; margin-left: 4px; }
+.admin-search { width: 100%; max-width: 460px; margin-bottom: 12px; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 10px 14px; font-size: 13px; }
+.admin-list { display: grid; gap: 10px; }
+.admin-card { padding: 14px 16px; display: grid; gap: 8px; }
+.admin-card.done { opacity: .6; }
+.admin-card header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-kind { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: var(--cyan-soft); color: var(--cyan); }
+.admin-kind.kind-payment { background: var(--emerald-soft); color: var(--emerald); }
+.admin-kind.kind-upgrade { background: var(--amber-soft); color: var(--amber); }
+.admin-org, .admin-time { color: var(--muted); font-size: 12px; }
+.admin-time { margin-left: auto; }
+.admin-status { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--emerald); }
+.admin-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-meta span { font-size: 11.5px; padding: 3px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-soft); color: var(--text-soft); }
+.admin-notes { margin: 0; font-size: 12.5px; color: var(--muted); }
+.admin-user { margin: 0; font-size: 12px; color: var(--muted); word-break: break-all; }
+.admin-user code, .admin-table code { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); }
+.admin-warn { font-size: 12px; color: var(--amber); }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-table-wrap { overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.admin-table th { text-align: left; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.admin-table td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.admin-table td span { color: var(--muted); font-size: 11.5px; }
+.admin-table select { background: var(--panel-soft); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 8px; }
+@media (max-width: 760px) { .admin-stats { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- verified business ---------- */
+.kyb-link { display: block; font-size: 10.5px; color: var(--cyan); margin-top: 1px; }
+.kyb-link:hover { text-decoration: underline; }
+
+/* ---------- top bar: never overlap, scroll the nav instead ---------- */
+.topbar { gap: 14px; }
+.main-nav { flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; margin-left: 4px; }
+.main-nav::-webkit-scrollbar { display: none; }
+.main-nav .nav-link { white-space: nowrap; flex-shrink: 0; }
+.top-actions { flex-shrink: 0; margin-left: 0; }
+.brand { flex-shrink: 0; }
+@media (max-width: 1280px) { #offlineBadge { display: none; } .brand-sub { display: none; } }
+@media (max-width: 1000px) { .user-meta small, .kyb-link { display: none; } .btn-cta { padding: 8px 12px; font-size: 12px; } }
+@media (max-width: 760px) { .topbar { flex-wrap: wrap; } .main-nav { order: 3; flex-basis: 100%; } .brand-copy { display: none; } }

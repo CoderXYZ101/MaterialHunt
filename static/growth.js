@@ -429,6 +429,68 @@
   window.addEventListener('mh:session', (e) => { renderVerify(e.detail.user); renderPricing(); renderRunHint(); });
 
   /* ------------------------------------------------------------------ */
+  /* Verified business (KYB) application                                  */
+  /* ------------------------------------------------------------------ */
+  const kybKey = () => `mh_kyb_requested_${state.user?.id || 'x'}`;
+
+  function renderKybLink() {
+    const link = q('#kybLink');
+    if (!link) return;
+    const u = state.user;
+    if (!u || u.kyb_status === 'approved') { link.classList.add('hidden'); return; }
+    link.classList.remove('hidden');
+    link.textContent = localStorage.getItem(kybKey()) ? 'Verification pending' : 'Get verified';
+  }
+
+  function openKyb() {
+    if (!state.user) { openAuth('register'); notify('Create a free account first, then apply for the badge.', 'info', 4000); return; }
+    if (state.user.kyb_status === 'approved') { notify('Your business is already verified.', 'success', 3000); return; }
+    let modal = q('#kybModal');
+    if (!modal) { modal = document.createElement('div'); modal.id = 'kybModal'; modal.className = 'modal-backdrop hidden'; document.body.appendChild(modal); }
+    const u = state.user;
+    modal.innerHTML = `<div class="auth-modal glass tool-modal" role="dialog" aria-modal="true"><button class="modal-close" data-x aria-label="Close">×</button>
+      <span class="panel-kicker">VERIFIED BUSINESS BADGE</span><h2>Verify your business</h2>
+      <p class="micro-note">Free. We check what you send and may email you for one document. Once approved, a Verified badge appears next to your name.</p>
+      <form class="auth-form" id="kybForm">
+        <label class="field-label" for="kybOrg">Business, college or team name</label><input id="kybOrg" type="text" value="${esc(u.organization_name || '')}" required />
+        <div class="field-two-col">
+          <div><label class="field-label" for="kybReg">Registration or ID number</label><input id="kybReg" type="text" placeholder="GST, CIN, Udyam, college ID…" required /></div>
+          <div><label class="field-label" for="kybRole">Your role</label><input id="kybRole" type="text" placeholder="e.g. Founder, Team lead" required /></div>
+        </div>
+        <label class="field-label" for="kybWeb">Website or LinkedIn page</label><input id="kybWeb" type="text" placeholder="https://…" />
+        <label class="guardrail-check"><input type="checkbox" id="kybAuth" required /><span><strong>I am authorised to represent this organisation.</strong></span></label>
+        <button class="btn btn-primary full" type="submit">Send for verification</button>
+        <p class="form-error" id="kybError"></p>
+      </form></div>`;
+    modal.classList.remove('hidden');
+    const close = () => modal.classList.add('hidden');
+    q('[data-x]', modal).onclick = close;
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+    q('#kybForm', modal).onsubmit = async (e) => {
+      e.preventDefault();
+      const val = (id) => q(id, modal).value.trim();
+      const res = await window.MH_FIREBASE?.saveLead?.({
+        kind: 'kyb', name: u.organization_name || u.email, organization: val('#kybOrg'), email: u.email,
+        request_type: 'Business verification', notes: `Reg no: ${val('#kybReg')} | Role: ${val('#kybRole')} | Web: ${val('#kybWeb') || 'n/a'}`,
+      });
+      track('kyb_request');
+      localStorage.setItem(kybKey(), '1');
+      renderKybLink();
+      q('.tool-modal', modal).innerHTML = `<button class="modal-close" data-x aria-label="Close">×</button>
+        <span class="panel-kicker">SENT</span><h2>Thanks, we have your details.</h2>
+        <p>${res?.ok ? 'We will review them and email you if we need anything else.' : 'We saved this on your device. Please retry shortly.'} The badge appears automatically once approved.</p>
+        <div class="rfq-actions"><button class="btn btn-primary" data-x2>Done</button></div>`;
+      q('[data-x]', modal).onclick = close; q('[data-x2]', modal).onclick = close;
+    };
+  }
+  window.openKyb = openKyb;
+  window.addEventListener('mh:session', renderKybLink);
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#kybLink')) { e.preventDefault(); openKyb(); }
+    if (e.target.closest('#kybBtn')) openKyb();
+  });
+
+  /* ------------------------------------------------------------------ */
   /* Invite / share                                                       */
   /* ------------------------------------------------------------------ */
   function openInvite() {
