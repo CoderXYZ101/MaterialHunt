@@ -24,7 +24,10 @@
   let winners = { cur: [], prev: [], curId: '', prevId: '' };
   let awarded = {};
   let aiLimits = { free: 15, pro: 60 };
+  let offer = { active: false, code: '', text: '' };
   let cchal = [];
+  let reports = [];
+  let repView = {};
   let cwin = {};
   let tab = 'requests';
   let filter = 'new';
@@ -149,12 +152,13 @@
         <button class="${tab === 'requests' ? 'active' : ''}" data-tab="requests">Requests${newCount ? ` <i>${newCount}</i>` : ''}</button>
         <button class="${tab === 'reviews' ? 'active' : ''}" data-tab="reviews">Reviews${newReviews ? ` <i>${newReviews}</i>` : ''}</button>
         <button class="${tab === 'winners' ? 'active' : ''}" data-tab="winners">Winners</button>
+        <button class="${tab === 'reports' ? 'active' : ''}" data-tab="reports">Reports${reports.some((r) => r.status === 'new') ? ' •' : ''}</button>
         <button class="${tab === 'community' ? 'active' : ''}" data-tab="community">Community${cchal.some((c) => c.status === 'pending') ? ' •' : ''}</button>
         <button class="${tab === 'promos' ? 'active' : ''}" data-tab="promos">Promo codes</button>
         <button class="${tab === 'users' ? 'active' : ''}" data-tab="users">Customers</button>
       </div>
-      ${['reviews', 'winners', 'promos', 'community'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
-      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : usersHtml()}`;
+      ${['reviews', 'winners', 'promos', 'community', 'reports'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
+      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : tab === 'reports' ? reportsHtml() : usersHtml()}`;
   }
 
   function requestsHtml() {
@@ -250,8 +254,16 @@
       const a = await db().collection('awards').get();
       awarded = {};
       a.docs.forEach((d) => { awarded[d.id] = d.data(); });
+      try {
+        const rp = await db().collection('reports').limit(100).get();
+        reports = rp.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+        const pz = await db().collection('prizes').limit(300).get();
+        pz.docs.forEach((d) => { awarded[d.id] = { days: d.data().days, claimed: d.data().claimed }; });
+      } catch { /* rules not deployed yet */ }
       const cc = await db().collection('community_challenges').limit(100).get();
       cchal = cc.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+      const off = await db().collection('settings').doc('public_promo').get();
+      if (off.exists) offer = { active: Boolean(off.data().active), code: off.data().code || '', text: off.data().text || '' };
       const lim = await db().collection('settings').doc('ai').get();
       if (lim.exists) aiLimits = { free: Number(lim.data().free) || 15, pro: Number(lim.data().pro) || 60 };
       const pr = await db().collection('promos').get();
@@ -271,7 +283,7 @@
         const done = awarded[key];
         return `<div class="winner-row"><span class="lb-rank">${i + 1}</span>
           <span><b>${esc(r.name)}</b> <span class="medal-dot medal-${esc(String(r.medal || '').toLowerCase())}"></span><br><small class="admin-org">${esc(r.formula)} · SF ${Number(r.sf).toFixed(2)} · ₹${Number(r.cost).toLocaleString('en-IN')} · score ${r.score}</small></span>
-          ${prize ? (done ? `<span class="admin-status">Awarded ${esc(done.days)} days</span>` : `<button class="btn btn-primary small" data-award="${esc(key)}|${esc(r.user_id)}|${prize.days}">Award ${esc(prize.prize)}</button>`) : ''}
+          ${prize ? (done ? `<span class="admin-status">${done.claimed === false ? 'Prize sent, not claimed yet' : 'Awarded'} · ${esc(done.days)} days</span>` : `<button class="btn btn-primary small" data-award="${esc(key)}|${esc(r.user_id)}|${prize.days}">Award ${esc(prize.prize)}</button>`) : ''}
           <button class="text-btn" data-copy="${esc(r.user_id)}">Copy ID</button></div>`;
       }).join('')}</div>`;
   }
@@ -279,7 +291,8 @@
   function winnersHtml() {
     const C = window.MH_CHALLENGE;
     if (!C) return '<div class="empty-state"><span>Open the benchmark page once, then return here.</span></div>';
-    return `<p class="micro-note">Top 3 per period receive the prizes set in config.js. Each prize can be awarded only once. Awarding adds Pro days to the winner's account.</p>
+    return `<p class="micro-note">Only the top 3 of each leaderboard win. Prizes are issued automatically after each period ends (the winner claims them in their notifications). The Award buttons are a manual backup.</p>
+      <p><button class="btn btn-glass small" id="prizeRun">Check for prizes now</button></p>
       <div class="admin-list">${winnerBlock('Finished period (award these)', C.benchIdFor(C.periodInfo(-1)), winners.prev, winners.prevId, true)}${winnerBlock('This period (live, awarded after it ends)', C.benchIdFor(C.periodInfo(0)), winners.cur, winners.curId, false)}</div>`;
   }
 
@@ -313,7 +326,7 @@
       <div class="promo-form"><input id="limFree" type="number" min="1" max="500" value="${aiLimits.free}" /><span>free members</span>
         <input id="limPro" type="number" min="1" max="1000" value="${aiLimits.pro}" /><span>Pro members</span>
         <button class="btn btn-primary small" id="limSave">Save limits</button></div></div>
-      ${promosHtmlCodes()}`;
+      ${offerHtml()}${promosHtmlCodes()}`;
   }
 
   /* ------------------------- community challenges ------------------------- */
@@ -323,7 +336,7 @@
     if (!cchal.length) return '<div class="empty-state"><strong>No community challenges yet</strong></div>';
     const order = { pending: 0, live: 1, closed: 2, rejected: 3 };
     const list = cchal.slice().sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
-    return `<p class="micro-note">Approve a challenge only if it is sensible and safe for a school audience. Its creator already passed it in the Forge (reference alloy shown). Prizes only count after you mark the challenge funded, which you do once the creator's payment has reached you.</p>
+    return `<p class="micro-note">Approve a challenge only if it is sensible and appropriate for a public audience that includes students. Its creator already passed it in the Forge (reference alloy shown). Prizes only count after you mark the challenge funded, which you do once the creator's payment has reached you.</p>
       <div class="admin-list">${list.map((c) => {
         const ended = c.status === 'closed' || (c.status === 'live' && cms(c.ends_at) < Date.now());
         const w = cwin[c.id];
@@ -342,7 +355,7 @@
             const done = awarded[key];
             const can = c.prize_days && c.funded && ended;
             return `<div class="winner-row"><span class="lb-rank">${i + 1}</span><span><b>${esc(r.name)}</b><br><small class="admin-org">${esc(r.formula)} · SF ${Number(r.sf).toFixed(2)} · ₹${Number(r.cost).toLocaleString('en-IN')} · score ${r.score}</small></span>
-              ${done ? `<span class="admin-status">Awarded ${esc(done.days)} days</span>` : can ? `<button class="btn btn-primary small" data-award="${esc(key)}|${esc(r.user_id)}|${c.prize_days}">Award ${c.prize_days} days Pro</button>` : `<small class="admin-org">${c.prize_days ? (c.funded ? 'after it ends' : 'not funded') : 'no prize'}</small>`}
+              ${done ? `<span class="admin-status">${done.claimed === false ? 'Prize sent, not claimed yet' : 'Awarded'} · ${esc(done.days)} days</span>` : can ? `<button class="btn btn-primary small" data-award="${esc(key)}|${esc(r.user_id)}|${c.prize_days}">Award ${c.prize_days} days Pro</button>` : `<small class="admin-org">${c.prize_days ? (c.funded ? 'after it ends' : 'not funded') : 'no prize'}</small>`}
               <button class="text-btn" data-copy="${esc(r.user_id)}">Copy ID</button></div>`;
           }).join('') || '<p class="admin-notes">No entries.</p>') : ''}
         </div>`;
@@ -377,10 +390,79 @@
     render();
   }
 
+  function offerHtml() {
+    return `<div class="admin-card glass"><b>Show a code on the pricing page</b>
+      <p class="admin-notes">Nothing is shown by default. Turn this on at the summit so visitors can tap the code instead of typing it. The code must already exist below.</p>
+      <div class="promo-form"><input id="offerCode" type="text" maxlength="40" placeholder="Code" value="${esc(offer.code || '')}" />
+        <input id="offerText" type="text" maxlength="90" placeholder="Message" value="${esc(offer.text || 'Summit visitors: 2 days of free Pro.')}" />
+        <button class="btn btn-primary small" id="offerOn">${offer.active ? 'Update' : 'Show it'}</button>${offer.active ? '<button class="btn btn-ghost small" id="offerOff">Hide it</button>' : ''}</div></div>`;
+  }
+
+  /* ------------------------- reports (photos and misuse) ------------------------- */
+  const REASONS = { photo: 'Inappropriate photo', name_or_bio: 'Inappropriate name or bio', harassment: 'Harassment or abuse', other: 'Something else' };
+
+  function reportsHtml() {
+    if (!reports.length) return '<div class="empty-state"><strong>No reports</strong><span>Reports about profiles will appear here.</span></div>';
+    const list = reports.slice().sort((a, b) => (a.status === 'new' ? 0 : 1) - (b.status === 'new' ? 0 : 1));
+    return `<p class="micro-note">Look at the profile first. "Remove photo" deletes the picture and stops that member adding photos again. Photos are also checked automatically before they appear.</p>
+      <div class="admin-list">${list.map((r) => {
+        const v = repView[r.target];
+        return `<div class="admin-card glass ${r.status === 'new' ? '' : 'done'}"><header><b>${esc(REASONS[r.reason] || r.reason)}</b><span class="admin-org">${esc(r.status)}</span><span class="admin-time">${r.created_at?.toDate ? esc(r.created_at.toDate().toLocaleString('en-IN')) : ''}</span></header>
+          ${r.note ? `<p class="admin-notes">${esc(r.note)}</p>` : ''}
+          <p class="admin-notes">Reported member: <code>${esc(r.target)}</code> · reported by <code>${esc(r.reporter)}</code></p>
+          ${v === undefined ? '' : v === null ? '<p class="admin-notes">This member has no profile.</p>' : `<div class="winner-row">${v.avatar ? `<img src="${esc(v.avatar)}" alt="" style="width:64px;height:64px;border-radius:12px;object-fit:cover" />` : '<span class="admin-org">No photo</span>'}<span><b>${esc(v.display_name)}</b><br><small class="admin-org">${esc([v.who, v.org].filter(Boolean).join(' · '))}</small><br><small>${esc(v.bio)}</small></span></div>`}
+          <div class="admin-actions"><button class="btn btn-glass small" data-rp="view" data-id="${esc(r.id)}">Show profile</button>
+            <button class="btn btn-primary small" data-rp="photo" data-id="${esc(r.id)}">Remove photo and block photos</button>
+            <button class="btn btn-glass small" data-rp="reset" data-id="${esc(r.id)}">Reset name and bio</button>
+            ${r.status === 'new' ? `<button class="btn btn-ghost small" data-rp="done" data-id="${esc(r.id)}">Dismiss</button>` : ''}</div></div>`;
+      }).join('')}</div>`;
+  }
+
+  async function reportAction(t) {
+    const r = reports.find((x) => x.id === t.dataset.id);
+    if (!r) return;
+    const pref = db().collection('profiles').doc(r.target);
+    if (t.dataset.rp === 'view') {
+      const snap = await pref.get();
+      repView[r.target] = snap.exists ? snap.data() : null;
+    } else if (t.dataset.rp === 'photo') {
+      await pref.update({ avatar: '', show_avatar: false, photo_blocked: true });
+      repView[r.target] = { ...(repView[r.target] || {}), avatar: '' };
+      await db().collection('reports').doc(r.id).update({ status: 'actioned', handled_at: FV().serverTimestamp() });
+      r.status = 'actioned';
+      notify('Photo removed and photos blocked for that member.', 'success', 3500);
+    } else if (t.dataset.rp === 'reset') {
+      await pref.update({ display_name: 'Member', bio: '' });
+      repView[r.target] = { ...(repView[r.target] || {}), display_name: 'Member', bio: '' };
+      await db().collection('reports').doc(r.id).update({ status: 'actioned', handled_at: FV().serverTimestamp() });
+      r.status = 'actioned';
+      notify('Name and bio reset.', 'success', 3000);
+    } else if (t.dataset.rp === 'done') {
+      await db().collection('reports').doc(r.id).update({ status: 'dismissed', handled_at: FV().serverTimestamp() });
+      r.status = 'dismissed';
+    }
+    render();
+  }
+
+  async function runPrizeJob(btn) {
+    const base = window.MH_CONFIG?.aiProxyUrl;
+    if (!base) { notify('The assistant server address is not set.', 'warning', 4000); return; }
+    btn.disabled = true;
+    try {
+      const token = await window.MH_FIREBASE.auth.currentUser.getIdToken();
+      const res = await fetch(`${base}/run-prizes`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'failed');
+      notify(`Prize check done: ${j.issued.length} issued, ${j.skipped} already done${j.errors.length ? `, problem: ${j.errors[0]}` : ''}.`, j.errors.length ? 'warning' : 'success', 7000);
+      loadExtras();
+    } catch (e) { notify(`Could not run the prize check: ${e.message}`, 'error', 7000); }
+    btn.disabled = false;
+  }
+
   function promosHtmlCodes() {
     return `<div class="admin-card glass"><b>Create a promo code</b>
-      <p class="admin-notes">Codes are random and long on purpose. They exist only in your database, not in the website, and each person can redeem one code.</p>
-      <div class="promo-form"><input id="promoLabel" type="text" maxlength="60" placeholder="Label, e.g. Tech summit" />
+      <p class="admin-notes">Leave the code box empty for a long random code (safest). A short readable code such as CCQBSTS2026 is easier to share but easier to guess, so give it a low number of uses. Codes live only in your database, and each person can redeem one.</p>
+      <div class="promo-form"><input id="promoCustom" type="text" maxlength="40" placeholder="Code (leave empty for a random one)" autocapitalize="characters" /><input id="promoLabel" type="text" maxlength="60" placeholder="Label, e.g. Tech summit" />
         <input id="promoDays" type="number" min="1" max="365" value="2" title="Days of Pro" /><span>days</span>
         <input id="promoMax" type="number" min="1" max="100000" value="500" title="Maximum uses" /><span>uses</span>
         <button class="btn btn-primary small" id="promoCreate">Generate code</button></div></div>
@@ -394,7 +476,10 @@
     const days = Math.max(1, Math.min(365, Number(q('#promoDays').value) || 2));
     const max = Math.max(1, Math.min(100000, Number(q('#promoMax').value) || 100));
     const label = (q('#promoLabel').value || '').trim().slice(0, 60);
-    const code = randomCode();
+    const typed = (q('#promoCustom')?.value || '').toUpperCase().replace(/\s+/g, '');
+    if (typed && !/^[A-Z0-9-]{6,40}$/.test(typed)) { notify('Use 6 to 40 letters, numbers or dashes.', 'warning', 4000); return; }
+    const code = typed || randomCode();
+    if (typed && promos.some((p) => p.code === code)) { notify('That code already exists.', 'warning', 3500); return; }
     await db().collection('promos').doc(code).set({ days, max_uses: max, uses: 0, active: true, label, created_at: FV().serverTimestamp() });
     promos.unshift({ code, days, max_uses: max, uses: 0, active: true, label });
     notify(`Code ${code} created. Copy it now.`, 'success', 5000);
@@ -431,7 +516,7 @@
   }
 
   async function onClick(e) {
-    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,[data-cc]');
+    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],#prizeRun');
     if (!t) return;
     try {
       if (t.dataset.tab) { tab = t.dataset.tab; search = ''; render(); }
@@ -448,6 +533,19 @@
         promos = promos.filter((x) => x.code !== t.dataset.promoDel); render();
       } else if (t.id === 'promoCreate') { await createPromo(); }
       else if (t.dataset.cc) { await communityAction(t); }
+      else if (t.dataset.rp) { await reportAction(t); }
+      else if (t.id === 'prizeRun') { await runPrizeJob(t); }
+      else if (t.id === 'offerOn') {
+        const code = (q('#offerCode').value || '').toUpperCase().replace(/\s+/g, '');
+        if (!promos.some((p) => p.code === code)) { notify('Create that code first (below), then show it.', 'warning', 4500); return; }
+        offer = { active: true, code, text: (q('#offerText').value || '').trim().slice(0, 90) };
+        await db().collection('settings').doc('public_promo').set(offer);
+        notify('The code is now shown on the pricing page.', 'success', 3500); render();
+      } else if (t.id === 'offerOff') {
+        offer.active = false;
+        await db().collection('settings').doc('public_promo').set(offer);
+        notify('Hidden from the pricing page.', 'info', 3000); render();
+      }
       else if (t.id === 'limSave') {
         const free = Math.max(1, Math.min(500, Number(q('#limFree').value) || 15));
         const pro = Math.max(1, Math.min(1000, Number(q('#limPro').value) || 60));

@@ -495,3 +495,21 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .cm-mine small { flex-basis: 100%; opacity: .7; }
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ---------- notifications page, prizes ---------- */
+.notif-foot { padding: 8px 12px; border-top: 1px solid rgba(255,255,255,.08); text-align: center; }
+.notif-claim { margin-top: 8px; }
+.notif-page { padding: 8px 14px; max-width: 760px; }
+.notif-page .notif-item { padding: 12px 4px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.notif-item.tone-prize .notif-dot { background: #f5c451; box-shadow: 0 0 10px rgba(245,196,81,.7); }
+.promo-offer { grid-column: 1 / -1; margin: 6px 0 0; font-size: 14px; }
+.promo-offer .text-btn { font-weight: 600; }
+.report-btn { margin-top: 10px; }
+.stall { position: fixed; inset: 0; z-index: 400; background: radial-gradient(circle at 30% 20%, #10243a, #060b14 70%); color: #fff; padding: 4vh 5vw; overflow: auto; }
+.stall h1 { font-size: clamp(28px, 5vw, 64px); margin: 0 0 6px; }
+.stall .stall-sub { font-size: clamp(14px, 2vw, 26px); opacity: .8; margin-bottom: 3vh; }
+.stall .stall-row { display: grid; grid-template-columns: 8vw 1fr 1fr auto; gap: 2vw; align-items: center; font-size: clamp(16px, 2.6vw, 38px); padding: 1.6vh 1vw; border-bottom: 1px solid rgba(255,255,255,.12); }
+.stall .stall-row:nth-child(-n+3) { font-weight: 700; }
+.stall .stall-foot { position: fixed; left: 5vw; right: 5vw; bottom: 3vh; display: flex; justify-content: space-between; font-size: clamp(14px, 2vw, 26px); opacity: .9; }
+.stall .stall-x { position: fixed; top: 2vh; right: 2vw; }
+.share-card-preview { max-width: 100%; border-radius: 12px; margin: 10px 0; }

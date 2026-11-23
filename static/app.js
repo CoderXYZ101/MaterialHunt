@@ -4233,13 +4233,13 @@ const BENCHMARKS = {
   submersible: {
     id: 'submersible', title: 'Deep-Sea Submersible Hull', tag: 'MARINE · 11,000 M',
     brief: 'A pressure hull for full-ocean-depth dives must resist 110 MPa seawater pressure while keeping mass and corrosion under control.',
-    targetTempC: 4, minBurstMPa: 110, loadMpa: 627, maxDensity: 8.2, maxCostINR: 5200, minSafety: 1.5, bannedElements: [], metalsOnly: true, environment: 'Marine / Salt Spray',
+    targetTempC: 4, minBurstMPa: 110, loadMpa: 627, maxDensity: 7.0, maxCostINR: 4000, minSafety: 1.85, bannedElements: [], metalsOnly: true, environment: 'Marine / Salt Spray',
     tiers: [
-      { name: 'GOLD', label: 'Gold', sf: 1.86, cost: 3540, dens: 7.22 },
-      { name: 'SILVER', label: 'Silver', sf: 1.68, cost: 4370, dens: 7.71 },
-      { name: 'BRONZE', label: 'Bronze', sf: 1.5, cost: 5200, dens: 8.2 },
+      { name: 'GOLD', label: 'Gold', sf: 1.95, cost: 3600, dens: 6.6 },
+      { name: 'SILVER', label: 'Silver', sf: 1.9, cost: 3800, dens: 6.8 },
+      { name: 'BRONZE', label: 'Bronze', sf: 1.85, cost: 4000, dens: 7.0 },
     ],
-    rules: ['Hold 110 MPa external pressure (627 MPa wall stress)', 'Seawater corrosion resistance', 'Density ≤ 8.2 g/cm³', 'Raw cost ≤ ₹5,200/kg', 'Safety factor ≥ 1.50', 'Metals only'],
+    rules: ['Hold 110 MPa external pressure (627 MPa wall stress)', 'Seawater corrosion resistance', 'Density ≤ 7.0 g/cm³', 'Raw cost ≤ ₹4,000/kg', 'Safety factor ≥ 1.85', 'Metals only'],
     standards: 'ASTM A240 · NORSOK M-001 · IS 6911',
   },
   'ev-enclosure': {
@@ -4259,8 +4259,8 @@ const BENCHMARKS = {
     brief: 'A rotating blade sees 1,450°C gas, 45,000 RPM centrifugal load and 45 MPa cooling pressure. Creep and burst are both fatal.',
     targetTempC: 1450, minBurstMPa: 45, loadMpa: 472.5, maxDensity: 8.5, maxCostINR: 7000, minSafety: 1.2, bannedElements: [], metalsOnly: true,
     tiers: [
-      { name: 'GOLD', label: 'Gold', sf: 1.49, cost: 4760, dens: 7.49 },
-      { name: 'SILVER', label: 'Silver', sf: 1.34, cost: 5880, dens: 7.99 },
+      { name: 'GOLD', label: 'Gold', sf: 1.3, cost: 3950, dens: 6.8 },
+      { name: 'SILVER', label: 'Silver', sf: 1.24, cost: 5750, dens: 7.8 },
       { name: 'BRONZE', label: 'Bronze', sf: 1.2, cost: 7000, dens: 8.5 },
     ],
     rules: ['Survive 1,450 °C gas temperature', 'Hold 45 MPa cooling pressure (472 MPa centrifugal load)', 'Density ≤ 8.5 g/cm³', 'Raw cost ≤ ₹7,000/kg', 'Safety factor ≥ 1.20', 'Metals only'],

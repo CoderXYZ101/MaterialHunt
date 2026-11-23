@@ -111,7 +111,214 @@ async function bumpQuota(token, env) {
   return { ok: res.ok, status: res.status };
 }
 
+/* ==========================================================================
+   Automatic prizes
+   Runs by itself once a day (a Cron Trigger) and can also be started from the Admin page.
+   It looks at the leaderboard of the period that just finished, and at community challenges that
+   ended, and writes one "prize" record per winner. The winner then presses Claim in their
+   notifications, and the database rules add the Pro days. It signs in as a dedicated bot admin
+   account (BOT_EMAIL / BOT_PASSWORD secrets). Running it twice never gives a prize twice.
+   ========================================================================== */
+const DAY_MS = 86400000;
+const IST_MS = 19800000;
+const RESET_SHIFT = 60000;
+const DEFAULT_API_KEY = 'AIzaSyCSdfxGQu5opz4x5E_1GxLfPTb2HbpmhdE'; // public web key, not a secret
+
+/* same period maths as the website (tools.js) */
+function periodInfo(kind, offset) {
+  const now = new Date(Date.now() + IST_MS + RESET_SHIFT);
+  if (kind === 'month') {
+    const s = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
+    return { id: `${s.getUTCFullYear()}-M${String(s.getUTCMonth() + 1).padStart(2, '0')}`, label: `${s.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })} ${s.getUTCFullYear()}` };
+  }
+  const dow = (now.getUTCDay() + 6) % 7;
+  const monday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dow) + offset * 7 * DAY_MS;
+  const thursday = new Date(monday + 3 * DAY_MS);
+  const isoYear = thursday.getUTCFullYear();
+  const week = Math.floor((thursday.getTime() - Date.UTC(isoYear, 0, 1)) / (7 * DAY_MS)) + 1;
+  return { id: `${isoYear}-W${String(week).padStart(2, '0')}`, label: `Week ${week}, ${isoYear}` };
+}
+
+const fsRoot = (env) => `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT || DEFAULT_PROJECT}/databases/(default)/documents`;
+
+async function botSignIn(env) {
+  if (!env.BOT_EMAIL || !env.BOT_PASSWORD) throw new Error('BOT_EMAIL and BOT_PASSWORD are not set');
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${env.FIREBASE_API_KEY || DEFAULT_API_KEY}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: env.BOT_EMAIL, password: env.BOT_PASSWORD, returnSecureToken: true }),
+  });
+  const j = await res.json();
+  if (!res.ok || !j.idToken) throw new Error(`Bot sign-in failed (${(j.error && j.error.message) || res.status})`);
+  return j.idToken;
+}
+
+const plain = (v) => {
+  if (!v) return undefined;
+  if ('stringValue' in v) return v.stringValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return Number(v.doubleValue);
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('timestampValue' in v) return Date.parse(v.timestampValue);
+  return undefined;
+};
+
+async function runQuery(token, env, collection, field, value) {
+  const wrap = typeof value === 'boolean' ? { booleanValue: value } : { stringValue: value };
+  const res = await fetch(`${fsRoot(env)}:runQuery`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: collection }], where: { fieldFilter: { field: { fieldPath: field }, op: 'EQUAL', value: wrap } }, limit: 200 } }),
+  });
+  if (!res.ok) throw new Error(`Query ${collection} failed (${res.status})`);
+  return (await res.json()).filter((r) => r.document).map((r) => {
+    const f = {};
+    Object.entries(r.document.fields || {}).forEach(([k, v]) => { f[k] = plain(v); });
+    return { id: r.document.name.split('/').pop(), ...f };
+  });
+}
+
+const top3 = (rows) => rows.filter((r) => r.user_id && Number.isFinite(r.score)).sort((a, b) => b.score - a.score).slice(0, 3);
+
+async function issuePrize(token, env, id, data) {
+  // a prize an admin already handed out by hand is never issued again
+  const manual = await fetch(`${fsRoot(env)}/awards/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (manual.ok) return 'already-awarded';
+  const fields = {
+    period: { stringValue: data.period }, rank: { integerValue: String(data.rank) }, user_id: { stringValue: data.user_id },
+    name: { stringValue: String(data.name || 'Member').slice(0, 40) }, days: { integerValue: String(data.days) },
+    label: { stringValue: String(data.label).slice(0, 80) }, source: { stringValue: data.source }, claimed: { booleanValue: false },
+    created_at: { timestampValue: new Date().toISOString() },
+  };
+  const res = await fetch(`${fsRoot(env)}:commit`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ writes: [{ update: { name: `projects/${env.FIREBASE_PROJECT || DEFAULT_PROJECT}/databases/(default)/documents/prizes/${id}`, fields }, currentDocument: { exists: false } }] }),
+  });
+  if (res.ok) return 'issued';
+  if (res.status === 409) return 'exists';
+  throw new Error(`Could not write prize ${id} (${res.status})`);
+}
+
+async function runPrizes(env) {
+  const log = { issued: [], skipped: 0, closed: [], errors: [] };
+  const token = await botSignIn(env);
+  const days = String(env.PRIZE_DAYS || '30,14,7').split(',').map((n) => Number(n.trim()) || 0);
+  const kind = env.PERIOD === 'month' ? 'month' : 'week';
+
+  // 1) the leaderboard period that just finished
+  try {
+    const prev = periodInfo(kind, -1);
+    const winners = top3(await runQuery(token, env, 'challenge_entries', 'period', prev.id));
+    for (let i = 0; i < winners.length; i += 1) {
+      if (!days[i]) continue;
+      const r = await issuePrize(token, env, `${prev.id}_${i + 1}`, { period: prev.id, rank: i + 1, user_id: winners[i].user_id, name: winners[i].name, days: days[i], label: `${kind === 'month' ? 'Monthly' : 'Weekly'} leaderboard, ${prev.label}`, source: 'leaderboard' });
+      if (r === 'issued') log.issued.push(`${prev.id}_${i + 1}`); else log.skipped += 1;
+    }
+  } catch (e) { log.errors.push(String((e && e.message) || e)); }
+
+  // 2) community challenges that were paid for and have ended
+  try {
+    const funded = await runQuery(token, env, 'community_challenges', 'funded', true);
+    for (const c of funded) {
+      const ended = c.status === 'closed' || (c.status === 'live' && c.ends_at && c.ends_at < Date.now());
+      if (!ended) continue;
+      if (c.status === 'live') {
+        await fetch(`${fsRoot(env)}/community_challenges/${c.id}?updateMask.fieldPaths=status`, {
+          method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { status: { stringValue: 'closed' } } }),
+        });
+        log.closed.push(c.id);
+      }
+      if (!(c.prize_days > 0)) continue;
+      const winners = top3(await runQuery(token, env, 'community_entries', 'challenge', c.id));
+      for (let i = 0; i < winners.length; i += 1) {
+        const r = await issuePrize(token, env, `${c.id}_${i + 1}`, { period: c.id, rank: i + 1, user_id: winners[i].user_id, name: winners[i].name, days: c.prize_days, label: `Community challenge: ${c.title}`, source: 'community' });
+        if (r === 'issued') log.issued.push(`${c.id}_${i + 1}`); else log.skipped += 1;
+      }
+    }
+  } catch (e) { log.errors.push(String((e && e.message) || e)); }
+  return log;
+}
+
+/* started from the Admin page: only an admin's own login token is accepted */
+async function handleRun(request, env, headers) {
+  const auth = request.headers.get('Authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const uid = jwtUid(token);
+  if (!token || !uid) return reply(401, { error: 'sign_in_required' }, headers);
+  const me = await fetch(`${fsRoot(env)}/users/${uid}`, { headers: { Authorization: `Bearer ${token}` } });
+  const role = me.ok ? plain(((await me.json()).fields || {}).role) : '';
+  if (role !== 'admin') return reply(403, { error: 'admin_only' }, headers);
+  try { return reply(200, await runPrizes(env), headers); } catch (e) { return reply(500, { error: String((e && e.message) || e) }, headers); }
+}
+
+/* ==========================================================================
+   Profile photo safety check
+   A photo only reaches a profile through here. The server asks a vision model whether the picture
+   is safe for a public audience that includes students, and writes the photo itself (the member's
+   own database writes cannot replace a photo). If the check cannot run, the photo is refused.
+   ========================================================================== */
+const VISION_MODELS = ['@cf/llava-hf/llava-1.5-7b-hf', '@cf/meta/llama-3.2-11b-vision-instruct'];
+const VISION_PROMPT = 'You are a strict safety moderator for a school-friendly website. Look at this profile picture. Does it contain nudity, sexual content, violence, blood, gore, weapons, drugs, hate symbols, or anything disturbing or offensive? Answer with exactly one word: SAFE or UNSAFE.';
+
+async function visionVerdict(env, bytes) {
+  for (const model of VISION_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const out = await env.AI.run(model, { image: bytes, prompt: VISION_PROMPT, max_tokens: 12 });
+        const text = String((out && (out.description || out.response)) || '');
+        if (/\bUNSAFE\b/i.test(text)) return 'unsafe';
+        if (/\bSAFE\b/i.test(text)) return 'safe';
+        break; // unclear answer: try the next model
+      } catch (e) {
+        // some Cloudflare vision models need a one-time licence agreement
+        if (attempt === 0 && /agree|licen[cs]e/i.test(String((e && e.message) || e))) {
+          try { await env.AI.run(model, { prompt: 'agree' }); continue; } catch { break; }
+        }
+        break;
+      }
+    }
+  }
+  return 'unknown';
+}
+
+async function handleAvatar(request, env, headers) {
+  const auth = request.headers.get('Authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const uid = jwtUid(token);
+  if (!token || !uid) return reply(401, { error: 'sign_in_required' }, headers);
+  // the member's own token must be valid (the database refuses a forged one)
+  const me = await fetch(`${fsRoot(env)}/users/${uid}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!me.ok) return reply(401, { error: 'sign_in_required' }, headers);
+  let body;
+  try { body = await request.json(); } catch { return reply(400, { error: 'bad_request' }, headers); }
+  const image = String(body.image || '');
+  if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 30000) return reply(400, { error: 'bad_image' }, headers);
+  if (!env.AI) return reply(503, { error: 'check_unavailable' }, headers);
+
+  let bot;
+  try { bot = await botSignIn(env); } catch { return reply(503, { error: 'check_unavailable' }, headers); }
+  const prof = await fetch(`${fsRoot(env)}/profiles/${uid}`, { headers: { Authorization: `Bearer ${bot}` } });
+  if (!prof.ok) return reply(409, { error: 'save_profile_first' }, headers);
+  const fields = (await prof.json()).fields || {};
+  if (plain(fields.photo_blocked) === true) return reply(403, { error: 'photo_blocked' }, headers);
+
+  const raw = atob(image.slice(image.indexOf(',') + 1));
+  const bytes = Array.from(raw, (c) => c.charCodeAt(0));
+  const verdict = await visionVerdict(env, bytes);
+  if (verdict === 'unsafe') return reply(422, { error: 'unsafe' }, headers);
+  if (verdict !== 'safe') return reply(503, { error: 'check_unavailable' }, headers);
+
+  const res = await fetch(`${fsRoot(env)}/profiles/${uid}?updateMask.fieldPaths=avatar`, {
+    method: 'PATCH', headers: { Authorization: `Bearer ${bot}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { avatar: { stringValue: image } } }),
+  });
+  if (!res.ok) return reply(500, { error: 'save_failed' }, headers);
+  return reply(200, { ok: true }, headers);
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runPrizes(env).catch(() => {}));
+  },
+
   async fetch(request, env) {
     const allowed = String(env.ALLOWED_ORIGINS || DEFAULT_ORIGINS).split(',').map((s) => s.trim()).filter(Boolean);
     const origin = request.headers.get('Origin') || '';
@@ -120,6 +327,8 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     if (request.method !== 'POST') return reply(405, { error: 'POST only' }, headers);
     if (!allowed.includes(origin)) return reply(403, { error: 'This site is not allowed to use the assistant.' }, headers);
+    if (new URL(request.url).pathname === '/run-prizes') return handleRun(request, env, headers);
+    if (new URL(request.url).pathname === '/set-avatar') return handleAvatar(request, env, headers);
 
     let body;
     try { body = await request.json(); } catch { return reply(400, { error: 'Bad request' }, headers); }

@@ -11,6 +11,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const notify = (m, t = 'info', ms) => { if (typeof toast === 'function') toast(m, t, ms); };
 
+  const WHO = ['Student', 'Engineer or professional', 'Business owner or buyer', 'Educator', 'Researcher', 'Maker or hobbyist'];
   const cache = new Map();   // uid -> profile (or null when none)
   let mine = null;
   let draftAvatar = '';
@@ -68,6 +69,30 @@
   }
   const closeModal = () => q('#profileModal')?.classList.add('hidden');
 
+  const PHOTO_ERRORS = {
+    unsafe: 'that picture was not accepted. Please choose a different one (a clear, appropriate photo of you or a logo).',
+    photo_blocked: 'photos are switched off for this account.',
+    check_unavailable: 'the automatic photo check is not available right now. Please try again later.',
+    save_profile_first: 'please save your profile first.',
+    bad_image: 'that image could not be used.',
+    sign_in_required: 'please sign in again.',
+  };
+
+  /* a photo only goes onto a profile after the server's safety check */
+  async function uploadPhoto(dataUrl) {
+    const base = window.MH_CONFIG?.aiProxyUrl;
+    if (!base) throw new Error(PHOTO_ERRORS.check_unavailable);
+    const token = await window.MH_FIREBASE.auth.currentUser.getIdToken();
+    let res;
+    try {
+      res = await fetch(`${base}/set-avatar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: dataUrl }) });
+    } catch { throw new Error(PHOTO_ERRORS.check_unavailable); }
+    if (res.ok) return;
+    let code = '';
+    try { code = (await res.json()).error; } catch { code = ''; }
+    throw new Error(PHOTO_ERRORS[code] || 'something went wrong. Please try again.');
+  }
+
   async function openMine() {
     if (!state.user) { openAuth('register'); return; }
     await loadMine();
@@ -83,12 +108,14 @@
           <button class="btn btn-glass small" type="button" id="profPick">Add a photo</button>
           <button class="btn btn-ghost small" type="button" id="profClear">Remove</button>
           <input type="file" id="profFile" accept="image/*" class="hidden" />
-          <label class="guardrail-check prof-show"><input type="checkbox" id="profShow" ${p.show_avatar ? 'checked' : ''} /><span><strong>Show my photo on the leaderboard</strong><small>Only signed-in members can see it. Off by default.</small></span></label>
+          <label class="guardrail-check prof-show"><input type="checkbox" id="profShow" ${p.show_avatar ? 'checked' : ''} /><span><strong>Show my photo on the leaderboard</strong><small>Only signed-in members can see it. Off by default. Every photo is checked automatically and can be reported.</small></span></label>
         </div>
       </div>
       <form class="auth-form" id="profForm">
         <label class="field-label" for="profName">Display name</label><input id="profName" type="text" maxlength="40" value="${esc(p.display_name || state.user.organization_name || '')}" required />
-        <label class="field-label" for="profOrg">School, college or company (optional)</label><input id="profOrg" type="text" maxlength="80" value="${esc(p.org || '')}" />
+        <label class="field-label" for="profWho">I am a (optional)</label>
+        <select id="profWho" class="field-select"><option value="">Prefer not to say</option>${WHO.map((w) => `<option${p.who === w ? ' selected' : ''}>${esc(w)}</option>`).join('')}</select>
+        <label class="field-label" for="profOrg">Organisation (optional)</label><input id="profOrg" type="text" maxlength="80" placeholder="Company, institute or team" value="${esc(p.org || '')}" />
         <label class="field-label" for="profBio">About you (optional, <span id="profCount">0</span>/200)</label><textarea id="profBio" rows="3" maxlength="200">${esc(p.bio || '')}</textarea>
         <p class="micro-note">Do not share phone numbers, home addresses or other private details. Your name, organisation and bio can be seen by other signed-in members.</p>
         <button class="btn btn-primary full" type="submit">Save profile</button>
@@ -125,20 +152,33 @@
       e.preventDefault();
       const err = q('#profError', m);
       err.textContent = '';
+      const existing = mine?.avatar || '';
+      const wantsNew = Boolean(draftAvatar) && draftAvatar !== existing;
+      const keep = draftAvatar === '' ? '' : existing;
       const doc = {
-        display_name: q('#profName', m).value.trim().slice(0, 40), bio: q('#profBio', m).value.trim().slice(0, 200), org: q('#profOrg', m).value.trim().slice(0, 80),
-        avatar: draftAvatar, show_avatar: Boolean(draftAvatar && q('#profShow', m).checked),
+        display_name: q('#profName', m).value.trim().slice(0, 40), bio: q('#profBio', m).value.trim().slice(0, 200), org: q('#profOrg', m).value.trim().slice(0, 80), who: q('#profWho', m).value,
+        avatar: keep, show_avatar: Boolean((keep || wantsNew) && q('#profShow', m).checked),
       };
+      if (mine?.photo_blocked) doc.photo_blocked = true;
       if (!doc.display_name) { err.textContent = 'Please enter a display name.'; return; }
+      const submit = q('button[type=submit]', m);
+      submit.disabled = true;
       try {
         await window.MH_FIREBASE.initFirebase();
         await db().collection('profiles').doc(uid()).set({ ...doc, updated_at: window.firebase.firestore.FieldValue.serverTimestamp() });
         mine = { ...doc };
+        let photoNote = '';
+        if (wantsNew) {
+          try { await uploadPhoto(draftAvatar); mine.avatar = draftAvatar; }
+          catch (pe) { photoNote = pe.message; draftAvatar = keep; mine.show_avatar = false; }
+        }
         cache.set(uid(), mine);
         applyChip();
+        if (photoNote) { err.textContent = `Profile saved, but the photo was not added: ${photoNote}`; submit.disabled = false; return; }
         notify('Profile saved.', 'success', 2500);
         closeModal();
       } catch (error) { err.textContent = error.message || 'Could not save your profile.'; }
+      submit.disabled = false;
     });
   }
 
@@ -154,10 +194,30 @@
     const name = p?.display_name || row?.name || 'Member';
     q('.profile-modal', m).innerHTML = `<button class="modal-close" data-x aria-label="Close">×</button>
       <div class="prof-top"><div class="prof-avatar">${p && p.show_avatar && p.avatar ? `<img src="${esc(p.avatar)}" alt="" />` : `<span>${esc(initials(name))}</span>`}</div>
-        <div><h2>${esc(name)}</h2>${p?.org ? `<p class="micro-note">${esc(p.org)}</p>` : ''}</div></div>
+        <div><h2>${esc(name)}</h2>${p?.who || p?.org ? `<p class="micro-note">${esc([p.who, p.org].filter(Boolean).join(' · '))}</p>` : ''}</div></div>
       ${p?.bio ? `<p class="prof-bio">${esc(p.bio)}</p>` : '<p class="micro-note">This member has not added a bio yet.</p>'}
+      <div id="repBox"><button class="btn btn-ghost small report-btn" id="repOpen">Report this profile</button></div>
       ${row ? `<div class="prof-entry"><span class="medal-dot medal-${esc(String(row.medal).toLowerCase())}"></span> <b>${esc(row.medal)}</b> · ${esc(row.formula)} · score <b>${row.score}</b></div>` : ''}`;
     q('[data-x]', m).addEventListener('click', closeModal);
+    q('#repOpen', m)?.addEventListener('click', () => reportForm(m, id));
+  }
+
+  function reportForm(m, target) {
+    const box = q('#repBox', m);
+    box.innerHTML = `<form class="auth-form" id="repForm"><label class="field-label" for="repReason">What is the problem?</label>
+      <select id="repReason" class="field-select"><option value="photo">Inappropriate photo</option><option value="name_or_bio">Inappropriate name or bio</option><option value="harassment">Harassment or abuse</option><option value="other">Something else</option></select>
+      <label class="field-label" for="repNote">Details (optional)</label><textarea id="repNote" rows="2" maxlength="200"></textarea>
+      <button class="btn btn-primary small" type="submit">Send report</button> <span class="micro-note" id="repMsg"></span></form>`;
+    q('#repForm', m).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = q('#repMsg', m);
+      if (!state.user?.email_verified) { msg.textContent = 'Verify your email first to send a report.'; return; }
+      try {
+        await window.MH_FIREBASE.initFirebase();
+        await db().collection('reports').doc(`${uid()}_${target}`).set({ reporter: uid(), target, reason: q('#repReason', m).value, note: q('#repNote', m).value.trim().slice(0, 200), status: 'new', created_at: window.firebase.firestore.FieldValue.serverTimestamp() });
+        box.innerHTML = '<p class="micro-note">Thank you. Our team will review this report.</p>';
+      } catch { msg.textContent = 'You have already reported this member, or the report could not be sent.'; }
+    });
   }
 
   /* ---------------- wiring ---------------- */

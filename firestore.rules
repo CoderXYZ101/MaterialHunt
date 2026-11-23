@@ -6,6 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // the moment a new Pro period starts: now, or when current Pro ends if that is later
+    function prizeBase(userData) {
+      return userData.get('pro_until', request.time) > request.time ? userData.pro_until : request.time;
+    }
+
     function isAdmin() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -34,8 +39,31 @@ service cloud.firestore {
         && request.resource.data.promo_code == get(/databases/$(database)/documents/redemptions/$(uid)).data.code
         && request.resource.data.promo_at == request.time
         && request.resource.data.promo_days == get(/databases/$(database)/documents/promos/$(request.resource.data.promo_code)).data.days;
+      // claiming a prize: adds the prize's Pro days (within a day of tolerance for clock differences),
+      // and only in the same batch that marks that prize as claimed
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pro_until', 'award_note'])
+        && request.resource.data.award_note is string
+        && get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.user_id == uid
+        && get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.claimed == false
+        && getAfter(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.claimed == true
+        && request.resource.data.pro_until <= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days + 1, 'd')
+        && request.resource.data.pro_until >= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days - 1, 'd');
       allow update: if isAdmin();
       allow delete: if false;
+    }
+
+    // Prizes are written by the automatic prize job (a bot admin account). A winner can only read their own
+    // prizes and mark one as claimed (together with the Pro days, see the users rule above).
+    match /prizes/{prizeId} {
+      allow read: if signedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
+      allow create, delete: if isAdmin();
+      allow update: if signedIn() && resource.data.user_id == request.auth.uid
+        && resource.data.claimed == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed', 'claimed_at'])
+        && request.resource.data.claimed == true
+        && request.resource.data.claimed_at == request.time
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.award_note == prizeId;
     }
 
     // Promo codes live only here (created by an admin). Clients can never read or list them.
@@ -71,17 +99,50 @@ service cloud.firestore {
     }
 
     // Public profile. Readable by signed-in members only (photos are never public).
-    match /profiles/{uid} {
-      allow read: if signedIn();
-      allow create, update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['display_name', 'bio', 'org', 'avatar', 'show_avatar', 'updated_at'])
+    // A photo can only be put on a profile by the MaterialHunt server after an automatic safety check
+    // (the member's own writes may keep or remove the photo, never replace it). Admins can remove a
+    // photo or reset a name or bio, and block photos for a member who misuses them.
+    function profileFieldsOk() {
+      return request.resource.data.keys().hasOnly(['display_name', 'bio', 'org', 'who', 'avatar', 'show_avatar', 'updated_at', 'photo_blocked'])
         && request.resource.data.display_name is string && request.resource.data.display_name.size() > 0 && request.resource.data.display_name.size() <= 40
         && request.resource.data.bio is string && request.resource.data.bio.size() <= 200
         && request.resource.data.org is string && request.resource.data.org.size() <= 80
+        && request.resource.data.who in ['', 'Student', 'Engineer or professional', 'Business owner or buyer', 'Educator', 'Researcher', 'Maker or hobbyist']
         && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 30000
         && request.resource.data.show_avatar is bool
         && request.resource.data.updated_at == request.time;
-      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid
+        && profileFieldsOk()
+        && request.resource.data.avatar == ''
+        && !('photo_blocked' in request.resource.data);
+      allow update: if signedIn() && request.auth.uid == uid
+        && profileFieldsOk()
+        && (request.resource.data.avatar == '' || request.resource.data.avatar == resource.data.avatar)
+        && request.resource.data.get('photo_blocked', false) == resource.data.get('photo_blocked', false);
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatar', 'show_avatar', 'photo_blocked', 'display_name', 'bio', 'org', 'who', 'updated_at']);
+      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // Reports about a profile (photo, name, bio or behaviour). One report per reporter per member.
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['reporter', 'target', 'reason', 'note', 'status', 'created_at'])
+        && request.resource.data.reporter == request.auth.uid
+        && reportId == request.auth.uid + '_' + request.resource.data.target
+        && request.resource.data.target is string && request.resource.data.target != request.auth.uid
+        && request.resource.data.reason in ['photo', 'name_or_bio', 'harassment', 'other']
+        && request.resource.data.note is string && request.resource.data.note.size() <= 200
+        && request.resource.data.status == 'new'
+        && request.resource.data.created_at == request.time;
+      allow read: if isAdmin();
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'handled_at']);
+      allow delete: if false;
     }
 
     // One public, non-personal record per account. Only used to count sign-ups.

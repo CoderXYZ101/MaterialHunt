@@ -75,6 +75,29 @@
     } catch { /* nothing to resume */ }
   }
 
+  /* an admin can choose to show one code on the pricing page (nothing is shown by default) */
+  async function loadOffer() {
+    const el = q('#promoOffer');
+    if (!el) return;
+    try {
+      await window.MH_FIREBASE.initFirebase();
+      const snap = await db().collection('settings').doc('public_promo').get();
+      const d = snap.exists ? snap.data() : null;
+      if (!d || !d.active || !/^[A-Z0-9-]{6,40}$/.test(String(d.code || ''))) { el.classList.add('hidden'); return; }
+      el.innerHTML = `${esc(d.text || 'Special offer')} <button class="text-btn" type="button" data-offer="${esc(d.code)}">Use code ${esc(d.code)}</button>`;
+      el.classList.remove('hidden');
+    } catch { el.classList.add('hidden'); }
+  }
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  document.addEventListener('click', (e) => {
+    const o = e.target.closest('[data-offer]');
+    if (o) { const i = q('#promoInput'); if (i) { i.value = o.dataset.offer; redeem(o.dataset.offer); } }
+  });
+  window.addEventListener('mh:view', () => {});
+  const _sv = window.setView;
+  if (typeof _sv === 'function') window.setView = function promoSetView(view, scroll) { _sv(view, scroll); if (view === 'pricing') loadOffer(); };
+  setTimeout(loadOffer, 1500);
+
   document.addEventListener('click', (e) => { if (e.target.closest('#promoBtn')) redeem(q('#promoInput')?.value); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'promoInput') { e.preventDefault(); redeem(e.target.value); } });
   window.addEventListener('mh:session', (e) => { if (e.detail.user && e.detail.user.email_verified) setTimeout(resume, 1500); });

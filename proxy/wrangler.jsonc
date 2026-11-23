@@ -6,5 +6,7 @@
   "compatibility_date": "2025-06-01",
   "workers_dev": true,
   // Gives the Worker free access to Workers AI as env.AI (no key needed)
-  "ai": { "binding": "AI" }
+  "ai": { "binding": "AI" },
+  // Runs the automatic prize job every day at 00:05 India time
+  "triggers": { "crons": ["35 18 * * *"] }
 }
