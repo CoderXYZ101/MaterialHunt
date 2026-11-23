@@ -14,7 +14,7 @@ window.MH_CONFIG = {
      Paste your Worker address here, for example:
        aiProxyUrl: 'https://materialhunt-ai.yourname.workers.dev',
      When this is set it is used instead of Gemini. Leave empty to use the built-in assistant. */
-  aiProxyUrl: '',
+  aiProxyUrl: 'https://materialhunt-ai.sasi-nayan24.workers.dev',
 
   /* ---------- Payments ----------
      Fill in whichever options you have. Any option left empty is simply hidden.

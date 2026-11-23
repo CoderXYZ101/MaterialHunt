@@ -11,7 +11,7 @@
    ========================================================================== */
 
 const DEFAULT_ORIGINS = 'https://materialhunt-2026.web.app,https://materialhunt-2026.firebaseapp.com';
-const DEFAULT_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+const DEFAULT_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
 
 const RULES = `You are the MaterialHunt Assistant: a practical materials, manufacturing and sourcing engineer for Indian engineers, student teams, makers, fabricators and buyers.
 Answer ANY question the user asks. Materials, design, machining, welding, 3D printing, corrosion, failure analysis, procurement, costs and standards are your specialty, but you can also help with general, study and writing questions.
