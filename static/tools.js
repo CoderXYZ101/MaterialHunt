@@ -264,9 +264,11 @@
       ${info.others.length ? `<p class="gc-alt">Also close: ${info.others.map((o) => `${esc(o.grade.name)} (${Math.round(o.score)}%)`).join(', ')}</p>` : ''}
       <div class="gc-actions">
         <button class="btn btn-primary small" id="gcRfq">Create RFQ &amp; test sheet</button>
+        <button class="btn btn-glass small" id="gcSave">Save design</button>
         <button class="btn btn-glass small" id="gcDoctor">Run Failure Doctor</button>
       </div>`;
     q('#gcRfq', card)?.addEventListener('click', () => openRfqSheet());
+    q('#gcSave', card)?.addEventListener('click', () => { if (window.MH_DESIGNS) window.MH_DESIGNS.save(); else notify('Saving is not ready yet.', 'warning'); });
     q('#gcDoctor', card)?.addEventListener('click', () => { setView('doctor'); });
   }
 

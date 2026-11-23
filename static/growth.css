@@ -389,3 +389,13 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .rev-stats strong small { font-size: 12px; color: var(--muted); font-weight: 500; }
 
 .price-tag.soon { background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(245, 158, 11, .4); }
+
+/* ---------- saved designs ---------- */
+.designs-modal { width: min(640px, 94vw); }
+.designs-list { display: grid; gap: 10px; margin-top: 14px; max-height: 56vh; overflow-y: auto; }
+.design-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-soft); flex-wrap: wrap; }
+.design-main { display: grid; gap: 2px; min-width: 0; }
+.design-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.design-meta { font-size: 11.5px; color: var(--muted); }
+.design-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.design-rename { background: var(--panel-soft); border: 1px solid var(--cyan); border-radius: 8px; color: var(--text); padding: 6px 10px; font-size: 14px; min-width: 200px; }

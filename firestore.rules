@@ -134,6 +134,25 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Saved designs: private to the owner. Rename-only updates; owner can delete.
+    match /designs/{designId} {
+      allow read: if signedIn() && resource.data.user_id == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.keys().hasOnly(['user_id', 'name', 'composition', 'conditions', 'result', 'grade', 'created_at'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.composition is map
+        && request.resource.data.conditions is map
+        && request.resource.data.result is map
+        && request.resource.data.grade is string && request.resource.data.grade.size() <= 80
+        && request.resource.data.created_at == request.time;
+      allow update: if signedIn()
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80;
+      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
+    }
+
     // Public design-challenge leaderboard. One entry per user (document id = uid) that can only improve.
     match /challenge_entries/{uid} {
       allow read: if true;
