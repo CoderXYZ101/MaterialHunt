@@ -138,7 +138,53 @@ Rules:
     return { error: 'Unknown tool' };
   }
 
+  const usingProxy = () => Boolean(window.MH_CONFIG?.aiProxyUrl);
+
+  function referenceFor(text) {
+    const ref = { context: buildContext() };
+    const gs = mentionedGrades(text);
+    if (gs.length) ref.grades = gs.map(gradeBrief);
+    const req = T().parseRequirement(text);
+    if (req.constraintCount >= 1 || req.rank) ref.alloy_search = runTool('find_alloys', { requirement: text });
+    return JSON.stringify(ref).slice(0, 4800);
+  }
+
+  async function askProxy(question, onChunk) {
+    if (attached) throw new Error('proxy-no-image');
+    const history = messages.slice(-8).filter((m) => m.text).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: String(m.text).slice(0, 1500) }));
+    const res = await fetch(window.MH_CONFIG.aiProxyUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history, reference: referenceFor(question), libraryIds: (T().GRADES || []).map((g) => g.id).join(', ') }),
+    });
+    if (!res.ok || !res.body) throw new Error(`proxy ${res.status}`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let full = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        const l = line.trim();
+        if (!l.startsWith('data:')) continue;
+        const data = l.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const j = JSON.parse(data);
+          const piece = j.response ?? j.choices?.[0]?.delta?.content ?? '';
+          if (piece) { full += piece; onChunk(full); }
+        } catch { /* partial line */ }
+      }
+    }
+    if (!full.trim()) throw new Error('empty answer');
+    return full;
+  }
+
   async function askModel(question, onChunk) {
+    if (usingProxy()) return askProxy(question, onChunk);
     try { return await askModelOnce(question, onChunk); } catch (error) {
       const msg = String(error?.message || error);
       if (toolsOn && /function|tool|declaration|schema|parameters/i.test(msg) && !/not been used|not enabled|PERMISSION|API/i.test(msg)) {
@@ -458,12 +504,12 @@ Rules:
       body.innerHTML = parsed.html;
     } catch (error) {
       if (error.message !== 'ai-off') {
-        if (!/429|quota|rate|resource.?exhausted|network|fetch/i.test(String(error.message))) aiOff = true;
+        if (!usingProxy() && !/429|quota|rate|resource.?exhausted|network|fetch/i.test(String(error.message))) aiOff = true;
         console.warn('Live AI unavailable, using built-in assistant:', error.message || error);
       }
       chat = null;
       if (attached) {
-        parsed = { html: '<p>Reading photos needs the live AI assistant, which is not switched on yet. Describe the part in words (metal, what happened, where it was used) and I will diagnose it, or open the Failure Doctor.</p>', followups: ['Open the Failure Doctor'], actions: [['view', 'doctor', 'Open Failure Doctor']] };
+        parsed = { html: '<p>Reading photos is not available right now. Describe the part in words (metal, what happened, where it was used) and I will diagnose it, or open the Failure Doctor.</p>', followups: ['Open the Failure Doctor'], actions: [['view', 'doctor', 'Open Failure Doctor']] };
         final = 'Photo analysis unavailable.';
       } else {
         const local = localAnswer(text);

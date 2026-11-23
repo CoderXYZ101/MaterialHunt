@@ -378,3 +378,7 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 
 .ai-caveat { margin: 2px 0 0; font-size: 11.5px; color: var(--amber); line-height: 1.5; }
 .ai-req-value select { width: 100%; background: var(--panel-soft); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 4px 6px; font-size: 12.5px; }
+
+/* assistant header: close and new-chat buttons sit side by side */
+.drawer-tools .modal-close { position: static; flex-shrink: 0; }
+.drawer-tools { flex-shrink: 0; }
