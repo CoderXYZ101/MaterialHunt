@@ -52,7 +52,7 @@ window.MH_CONFIG = {
      The challenge and its leaderboard change automatically each period, cycling through `rotation`.
      To force a particular challenge for a period: featured: { '2026-W49': 'submersible' } */
   challengePeriod: 'week',
-  rotation: ['rocket-nozzle', 'submersible', 'turbine-blade', 'ev-enclosure'],
+  rotation: ['machine-bracket', 'submersible', 'ev-enclosure', 'turbine-blade'],
   featured: {},
 
   /* ---------- Leaderboard prizes ----------

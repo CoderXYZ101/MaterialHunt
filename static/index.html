@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.15.0" />
+  <link rel="stylesheet" href="growth.css?v=4.16.1" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -132,7 +132,7 @@
               </div>
               <div class="mode-toggle" role="tablist" aria-label="3D specimen shape">
                 <button class="mode-btn active" data-shape="lattice" role="tab" aria-selected="true" title="Crystal atomic lattice (BCC / FCC / HCP)">Lattice</button>
-                <button class="mode-btn" data-shape="nozzle" role="tab" aria-selected="false" title="Rocket nozzle bell">Nozzle</button>
+                <button class="mode-btn" data-shape="nozzle" role="tab" aria-selected="false" title="Flow nozzle">Nozzle</button>
                 <button class="mode-btn" data-shape="blade" role="tab" aria-selected="false" title="Hypersonic turbine blade">Blade</button>
                 <button class="mode-btn" data-shape="sphere" role="tab" aria-selected="false" title="Submersible pressure sphere">Sphere</button>
                 <button class="mode-btn" data-shape="dogbone" role="tab" aria-selected="false" title="Tensile dogbone bar">Dogbone</button>
@@ -203,7 +203,7 @@
 
         <section class="audience-strip" aria-label="Who uses MaterialHunt">
           <span>Built for</span>
-          <b>Student teams (Formula, drones, rockets)</b>
+          <b>Student teams (Formula, drones, robots)</b>
           <b>Startups &amp; makers</b>
           <b>Fabrication &amp; machine shops</b>
           <b>Procurement &amp; R&amp;D teams</b>
@@ -212,15 +212,15 @@
         <section class="stats-row" aria-label="Platform metrics">
           <article class="stat-card glass">
             <span class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg></span>
-            <div><span class="stat-label">Training samples <button type="button" class="term-hint" data-hint="How many real alloys the on-device models learned from: the 48 library grades plus 312 measured steels. More (and more varied) data makes a model more trustworthy, and 360 is still small, so the models are a rough guide." data-ask="Why is the library model only a rough guide?">?</button></span><strong id="statCandidates">—</strong><small>48 library grades + 312 measured steels</small></div>
+            <div><span class="stat-label">Training samples <button type="button" class="term-hint" data-hint="How many real alloys the on-device models learned from: the 48 library grades plus 312 measured steels. More (and more varied) data makes a model more trustworthy, and 360 is still small, so the models are a rough guide." data-ask="Why is the library model only a rough guide?">i</button></span><strong id="statCandidates">360</strong><small>48 library grades + 312 measured steels</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. On a separate check against our library only one grade was in range, and it was about 33% off, so treat it as a guide. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">?</button></span><strong id="statAccuracy">—</strong><small id="statAccuracySub">steel model · cross-validated · <a href="evaluation.html">see the evaluation</a></small></div>
+            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. On a separate check against our library only one grade was in range, and it was about 33% off, so treat it as a guide. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model · cross-validated · <a href="evaluation.html">see the evaluation</a></small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-            <div><span class="stat-label">Simulation time <button type="button" class="term-hint" data-hint="How long your last simulation took, measured on this device. Everything runs inside your browser, so there is no server wait and it works offline." data-ask="Explain the simulation time and where the simulator runs">?</button></span><strong id="statLatency">—</strong><small>on this device · no server</small></div>
+            <div><span class="stat-label">Where it runs <button type="button" class="term-hint" data-hint="Everything runs inside your browser: the simulator, the machine-learning models and the tools. There is no server wait, nothing is uploaded, and it keeps working offline. After you run a simulation this card also shows how long it took." data-ask="Where does the simulator run and does it work offline?">i</button></span><strong>This device</strong><small id="statLatency">no server needed · works offline</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></span>
@@ -229,11 +229,11 @@
         </section>
 
         <div class="glossary-strip" aria-label="Engineering glossary">
-          <span><strong>Liquidus</strong> melting-out temperature <i class="term-hint" title="Liquidus: above this temperature the alloy is fully liquid and cannot carry load.">?</i></span>
-          <span><strong>Dynamic Head</strong> pressure from moving fluid <i class="term-hint" title="Dynamic head q = ½ρv²: airspeed or flow adds pressure on top of static pressure.">?</i></span>
-          <span><strong>Epistemic Uncertainty</strong> model disagreement <i class="term-hint" data-hint="Epistemic uncertainty: how much the trees of a machine-learning model disagree with each other. A smaller spread means the model is more sure. It is only shown when an ML model made the estimate." data-ask="What is the model spread and uncertainty?">?</i></span>
-          <span><strong>PREN</strong> pitting resistance <i class="term-hint" title="PREN = Cr + 3.3·Mo + 16·N. Above ~40 resists seawater pitting; above ~50 handles harsh chlorides.">?</i></span>
-          <span><strong>Creep</strong> slow hot deformation <i class="term-hint" title="Creep: time-dependent stretching under load at high temperature. It limits long-life hot sections.">?</i></span>
+          <span><strong>Liquidus</strong> melting-out temperature <i class="term-hint" title="Liquidus: above this temperature the alloy is fully liquid and cannot carry load.">i</i></span>
+          <span><strong>Dynamic Head</strong> pressure from moving fluid <i class="term-hint" title="Dynamic head q = ½ρv²: airspeed or flow adds pressure on top of static pressure.">i</i></span>
+          <span><strong>Epistemic Uncertainty</strong> model disagreement <i class="term-hint" data-hint="Epistemic uncertainty: how much the trees of a machine-learning model disagree with each other. A smaller spread means the model is more sure. It is only shown when an ML model made the estimate." data-ask="What is the model spread and uncertainty?">i</i></span>
+          <span><strong>PREN</strong> pitting resistance <i class="term-hint" title="PREN = Cr + 3.3·Mo + 16·N. Above ~40 resists seawater pitting; above ~50 handles harsh chlorides.">i</i></span>
+          <span><strong>Creep</strong> slow hot deformation <i class="term-hint" title="Creep: time-dependent stretching under load at high temperature. It limits long-life hot sections.">i</i></span>
         </div>
 
         <section class="glass ml-home" aria-label="Machine learning on this site">
@@ -282,7 +282,7 @@
               <div class="thermal-scale"><span></span></div>
             </div>
             <div class="liquidus-strip">
-              <span>Weighted liquidus <span class="term-hint" title="Liquidus: the temperature above which the alloy is fully liquid and can no longer carry load. Weighted by elemental melting points.">?</span></span>
+              <span>Weighted liquidus <span class="term-hint" title="Liquidus: the temperature above which the alloy is fully liquid and can no longer carry load. Weighted by elemental melting points.">i</span></span>
               <strong id="liquidusOut">—</strong>
               <span class="liquidus-state" id="liquidusState">SOLID</span>
             </div>
@@ -340,7 +340,7 @@
               <input id="densitySlider" type="range" min="0" max="25000" step="1" value="1.225" />
             </div>
             <div class="env-readout">
-              <div><span>Dynamic head q = ½ρv² <span class="term-hint" title="Dynamic head: the extra pressure created by moving fluid. It adds to static pressure, so airspeed can burst a vessel just like depth can.">?</span></span><strong id="dynamicPressureOut">0 Pa</strong></div>
+              <div><span>Dynamic head q = ½ρv² <span class="term-hint" title="Dynamic head: the extra pressure created by moving fluid. It adds to static pressure, so airspeed can burst a vessel just like depth can.">i</span></span><strong id="dynamicPressureOut">0 Pa</strong></div>
               <div><span>Total pressure</span><strong id="totalPressureOut">101.3 kPa</strong></div>
               <div><span>Burst ceiling</span><strong id="burstLimitOut">—</strong></div>
             </div>
@@ -397,10 +397,10 @@
 
             <div class="mini-stat-grid">
               <article class="glass mini-stat"><span>Predicted yield</span><strong id="simStrength">—</strong><small id="simStrengthSrc">how it was estimated</small></article>
-              <article class="glass mini-stat"><span>Epistemic ± <span class="term-hint" data-hint="How much the trees of the on-device machine-learning model disagree. A smaller ± means the model is more sure. It only appears when the ML model made the estimate (not for a library grade)." data-ask="What is the model spread and uncertainty?">?</span></span><strong id="simUncertainty">—</strong><small>ML model spread</small></article>
+              <article class="glass mini-stat"><span>Epistemic ± <span class="term-hint" data-hint="How much the trees of the on-device machine-learning model disagree. A smaller ± means the model is more sure. It only appears when the ML model made the estimate (not for a library grade)." data-ask="What is the model spread and uncertainty?">i</span></span><strong id="simUncertainty">—</strong><small>ML model spread</small></article>
               <article class="glass mini-stat"><span>Working strength</span><strong id="simWorking">—</strong><small>derated at operating temp</small></article>
               <article class="glass mini-stat"><span>Density / cost</span><strong id="simDensityCost">—</strong><small>rule-of-mixtures</small></article>
-              <article class="glass mini-stat"><span>Weighted liquidus <span class="term-hint" title="The temperature where this chemistry stops being a solid. Stay below it with margin.">?</span></span><strong id="simLiquidus">—</strong><small>elemental melt weighting</small></article>
+              <article class="glass mini-stat"><span>Weighted liquidus <span class="term-hint" title="The temperature where this chemistry stops being a solid. Stay below it with margin.">i</span></span><strong id="simLiquidus">—</strong><small>elemental melt weighting</small></article>
               <article class="glass mini-stat"><span>Total pressure</span><strong id="simPressure">—</strong><small>static + dynamic head</small></article>
             </div>
 
@@ -464,7 +464,7 @@
             <div class="forge-head-actions">
               <label class="sr-only" for="benchmarkSelect">Blueprint</label>
               <select id="benchmarkSelect" class="field-select">
-                <option value="rocket-nozzle">Reusable Rocket Nozzle — 2,200°C + 65 MPa</option>
+                <option value="machine-bracket">Lightweight Machine Bracket — 150 MPa at 120°C</option>
                 <option value="submersible">Deep-Sea Submersible Hull — 110 MPa + seawater</option>
                 <option value="ev-enclosure">EV Solid-State Battery Enclosure</option>
                 <option value="turbine-blade">Hypersonic Turbine Blade — 1,450°C + 45,000 RPM</option>
@@ -477,9 +477,9 @@
           </div>
           <div class="forge-grid">
             <div class="forge-blueprint">
-              <span class="forge-chip" id="benchmarkTag">AEROSPACE  <button class="btn btn-ghost small" id="genChallenge">Generate Challenge</button> · REUSABLE</span>
-              <h4 id="benchmarkTitle">Reusable Rocket Nozzle</h4>
-              <p id="benchmarkBrief">A regeneratively cooled bell nozzle must survive 2,200°C combustion gas at 65 MPa chamber pressure. Metals only.</p>
+              <span class="forge-chip" id="benchmarkTag">INDUSTRIAL · MACHINE PART</span>
+              <h4 id="benchmarkTitle">Lightweight Machine Bracket</h4>
+              <p id="benchmarkBrief">A bracket that holds a motor on a machine frame must carry the load at 120°C, stay light enough to lift by hand, and be affordable. Steels and aluminium are allowed.</p>
               <ul class="forge-rules" id="benchmarkRules"></ul>
               <div class="forge-standards" id="benchmarkStandards"></div>
               <div class="forge-share">
@@ -1112,7 +1112,7 @@
     <div class="engine-strip in-drawer" role="status"><span class="engine-pill" id="enginePill" title="Answers and photo checks run on your device first (offline-safe, zero cloud tokens). The Cloudflare AI is used only for open-ended questions and when you press Escalate."><span class="engine-dot"></span><span id="enginePillText">Edge AI: Hybrid Ready · 0-Token Offline Safe</span></span></div>
     <div class="ai-mode-row"><label for="aiMode">Answers from</label>
       <select id="aiMode" class="field-select"><option value="auto">Auto: built-in first, live AI when needed</option><option value="local">Built-in only (on this device, offline)</option><option value="live">Live AI (sign in; uses your daily limit)</option></select>
-      <i class="term-hint" data-hint="Built-in answers (curated notes plus the on-device ML models) are free and unlimited. The live AI can answer anything, needs a verified sign-in, and has a daily limit. Whichever you pick, the assistant tells the live AI what the on-device ML models estimated, so the two work together.">?</i></div>
+      <i class="term-hint" data-hint="Built-in answers (curated notes plus the on-device ML models) are free and unlimited. The live AI can answer anything, needs a verified sign-in, and has a daily limit. Whichever you pick, the assistant tells the live AI what the on-device ML models estimated, so the two work together.">i</i></div>
     <div class="copilot-context" id="copilotContext"></div>
     <div class="copilot-messages" id="copilotMessages" aria-live="polite"></div>
     <div class="copilot-chips" id="copilotChips"></div>
@@ -1135,25 +1135,25 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.15.0"></script>
-  <script src="app.js?v=4.15.0"></script>
-  <script src="config.js?v=4.15.0"></script>
-  <script src="tools.js?v=4.15.0"></script>
-  <script src="growth.js?v=4.15.0"></script>
-  <script src="ai.js?v=4.15.0"></script>
-  <script src="admin.js?v=4.15.0"></script>
-  <script src="designs.js?v=4.15.0"></script>
-  <script src="profile.js?v=4.15.0"></script>
-  <script src="promo.js?v=4.15.0"></script>
-  <script src="community.js?v=4.15.0"></script>
-  <script src="showcase.js?v=4.15.0"></script>
-  <script src="brain.js?v=4.15.0"></script>
-  <script src="vision.js?v=4.15.0"></script>
-  <script src="ml.js?v=4.15.0"></script>
-  <script src="engine.js?v=4.15.0"></script>
-  <script src="hints.js?v=4.15.0"></script>
-  <script src="account.js?v=4.15.0"></script>
-  <script src="endorse.js?v=4.15.0"></script>
-  <script src="notifications.js?v=4.15.0"></script>
+  <script src="firebase-bridge.js?v=4.16.1"></script>
+  <script src="app.js?v=4.16.1"></script>
+  <script src="config.js?v=4.16.1"></script>
+  <script src="tools.js?v=4.16.1"></script>
+  <script src="growth.js?v=4.16.1"></script>
+  <script src="ai.js?v=4.16.1"></script>
+  <script src="admin.js?v=4.16.1"></script>
+  <script src="designs.js?v=4.16.1"></script>
+  <script src="profile.js?v=4.16.1"></script>
+  <script src="promo.js?v=4.16.1"></script>
+  <script src="community.js?v=4.16.1"></script>
+  <script src="showcase.js?v=4.16.1"></script>
+  <script src="brain.js?v=4.16.1"></script>
+  <script src="vision.js?v=4.16.1"></script>
+  <script src="ml.js?v=4.16.1"></script>
+  <script src="engine.js?v=4.16.1"></script>
+  <script src="hints.js?v=4.16.1"></script>
+  <script src="account.js?v=4.16.1"></script>
+  <script src="endorse.js?v=4.16.1"></script>
+  <script src="notifications.js?v=4.16.1"></script>
 </body>
 </html>

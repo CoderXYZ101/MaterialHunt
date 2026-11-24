@@ -123,23 +123,78 @@ for x in Xs:
     Xe.append(feat({e: v / t * 100 for e, v in w.items()}, 'BCC', cols))
 Xe = np.array(Xe)
 
-def loo(extra):
+def loo(extra, log=False):
     pred = []
     for i in range(len(lib)):
         tr = [k for k in range(len(lib)) if k != i]
         Xt, yt = Xl[tr], yl[tr]
         if extra:
             Xt, yt = np.vstack([Xt, Xe]), np.concatenate([yt, ys])
-        pred.append(RandomForestRegressor(n_estimators=80, max_features=0.4, random_state=i).fit(Xt, yt).predict(Xl[i:i + 1])[0])
-    return metrics(yl, pred)
+        m = RandomForestRegressor(n_estimators=80, max_features=0.4, random_state=i).fit(Xt, np.log(yt) if log else yt)
+        v = m.predict(Xl[i:i + 1])[0]
+        pred.append(float(np.exp(v)) if log else float(v))
+    return np.array(pred)
 
 base = [np.delete(yl, i).mean() for i in range(len(yl))]
+p47 = loo(False)
+p359 = loo(True)
+plog = loo(True, log=True)
 out['library_loo'] = dict(
     guess_the_average=metrics(yl, base),
-    trained_on_47_grades=loo(False),
-    trained_on_47_grades_plus_312_steels=loo(True),
+    trained_on_47_grades=metrics(yl, p47),
+    trained_on_47_grades_plus_312_steels=metrics(yl, p359),
+    tried_log_scale_not_adopted=metrics(yl, plog),
     method='leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold')
+
+# 4. known-material validation: reference value, prediction made without seeing that material, error
+def pct(a, p):
+    return round(abs(p - a) / a * 100, 1)
+
+picks = ['e250', 'en8', 'en24', 'ss304', 'ss316l', 'ss174', 'du2205', 'al6061', 'al7075', 'ti64', 'brass70', 'in718', 'maraging']
+ids = [r['id'] for r in lib]
+out['validation_library'] = [dict(name=lib[ids.index(g)]['name'], reference=lib[ids.index(g)]['y'], predicted=round(float(p359[ids.index(g)])),
+                                  error_pct=pct(lib[ids.index(g)]['y'], p359[ids.index(g)])) for g in picks if g in ids]
+order = np.argsort(ys)
+chosen = [int(order[k]) for k in np.linspace(5, len(ys) - 6, 10).astype(int)]
+def steel_formula(i):
+    w = {e: Xs[i][k] * AM[e] for k, e in enumerate(els)}
+    t = sum(w.values())
+    top = sorted(((v / t * 100, e) for e, v in w.items()), reverse=True)
+    return ' '.join(f'{e}{v:.1f}' for v, e in top if v >= 0.5)
+out['validation_steels'] = [dict(composition=steel_formula(i), measured=round(float(ys[i])), predicted=round(float(oof[i])), error_pct=pct(ys[i], oof[i])) for i in chosen]
+out['validation_note'] = 'Every prediction here was made by a model that did not see that material (out-of-fold for the steels, leave-one-out for the library grades).'
+
 dest = SRC / 'data' / 'evaluation.json'
 dest.write_text(json.dumps(out, indent=1), encoding='utf-8')
-print(json.dumps(out, indent=1))
-print('wrote', dest)
+
+# ------------------------------------------------------------------ write the numbers into evaluation.html (so it reads without JavaScript)
+def f(v, d=0):
+    return 'n/a' if v is None else f'{v:.{d}f}'
+
+def rows(items, cols):
+    return ''.join('<tr>' + ''.join(f'<td>{c(x)}</td>' for c in cols) + '</tr>' for x in items)
+
+def block(name, html):
+    global page
+    a, b = f'<!--EVAL:{name}-->', f'<!--/EVAL:{name}-->'
+    i, j = page.index(a) + len(a), page.index(b)
+    page = page[:i] + html + page[j:]
+
+page_path = SRC / 'evaluation.html'
+page = page_path.read_text(encoding='utf-8')
+sc, sh = out['steel_cv'], out['steel_cv_shipped']
+block('steel', f"<tr><td>5-fold cross-validation, re-run by the script</td><td>{f(sc['mae'])} MPa</td><td>{f(sc['r2'], 2)}</td><td>{f(sc['baseline_mae'])} MPa</td></tr>"
+      f"<tr><td>5-fold cross-validation, recorded when the shipped model was trained</td><td>{f(sh['mae'])} MPa</td><td>{f(sh['r2'], 2)}</td><td>{f(sh['baseline_mae'])} MPa</td></tr>")
+block('ind', rows(ind['grades'], [lambda g: g['name'], lambda g: f(g['library_yield']), lambda g: f(g['predicted'])]) if ind['grades'] else '<tr><td colspan="3">No library grade was inside the steel model range.</td></tr>')
+block('indnote', f"<strong>Only {ind['n_tested']} of the {out['library_grades']} library grades was inside the steel model's range</strong> (the other {ind['n_outside_range']} are stainless, aluminium, nickel and other alloys it was not trained for). "
+      + (f"On that one grade the error was about {f(ind['mape'])}%. One grade proves very little, and it shows the model is rough outside its training data. " if ind['grades'] else '') + ind['note'])
+L = out['library_loo']
+block('lib', ''.join(f"<tr><td>{n}</td><td>{f(m['mae'])}</td><td>{f(m['mape'])}%</td><td>{f(m['r2'], 2)}</td></tr>" for n, m in [
+    ('Always guess the average', L['guess_the_average']), ('Trained on the other 47 grades only', L['trained_on_47_grades']),
+    ('Trained on the other 47 grades plus the 312 measured steels', L['trained_on_47_grades_plus_312_steels']),
+    ('Same, predicting on a log scale (tried, not adopted)', L['tried_log_scale_not_adopted'])]))
+block('vlib', rows(out['validation_library'], [lambda g: g['name'], lambda g: f(g['reference']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
+block('vsteel', rows(out['validation_steels'], [lambda g: g['composition'], lambda g: f(g['measured']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
+page_path.write_text(page, encoding='utf-8')
+print(json.dumps({k: out[k] for k in ('steel_cv', 'library_loo', 'validation_library', 'validation_steels')}, indent=1))
+print('wrote', dest, 'and', page_path)

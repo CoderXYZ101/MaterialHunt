@@ -68,7 +68,7 @@ const state = {
   scene: null,
   chartsReady: {},
   lastRadar: null,
-  benchmarkId: 'rocket-nozzle',
+  benchmarkId: 'machine-bracket',
   benchmark: null,
   customBenchmark: null,
   forgeResult: null,
@@ -1542,7 +1542,7 @@ async function runSimulation(options = {}) {
     state.simRequest = request;
     renderSimulation(result);
     const latency = Math.round(performance.now() - started);
-    $('#statLatency').textContent = `${latency} ms`;
+    $('#statLatency').textContent = `last simulation ${latency} ms · no server`;
     if (status) {
       status.textContent = 'SIMULATED';
       status.className = 'status-pill status-emerald';
@@ -3719,7 +3719,7 @@ function updatePersonaHint() {
 function updateModeUI() {
   const titles = {
     lattice: 'Crystal Atomic Lattice',
-    nozzle: 'Rocket Nozzle Bell',
+    nozzle: 'Flow Nozzle',
     blade: 'Hypersonic Turbine Blade',
     sphere: 'Submersible Pressure Sphere',
     dogbone: 'Tensile Dogbone Bar',
@@ -4273,7 +4273,7 @@ function shareSpecLink() {
 }
 
 function copyBenchmarkLink() {
-  const benchmark = state.benchmark || BENCHMARKS[state.benchmarkId] || BENCHMARKS['rocket-nozzle'];
+  const benchmark = state.benchmark || BENCHMARKS[state.benchmarkId] || BENCHMARKS['machine-bracket'];
   const params = new URLSearchParams({
     benchmark: 'custom',
     title: benchmark.title,
@@ -4289,6 +4289,19 @@ function copyBenchmarkLink() {
    Validation Benchmarks & stress-test benchmarks
    ========================================================================== */
 const BENCHMARKS = {
+  'machine-bracket': {
+    id: 'machine-bracket', title: 'Lightweight Machine Bracket', tag: 'INDUSTRIAL · MACHINE PART',
+    brief: 'A bracket that holds a motor on a machine frame sees about 150 MPa at its bolt holes and runs at 120°C next to the motor. It must be strong enough, light enough to lift by hand and affordable. Steel is strong and cheap but heavy; aluminium is light but only the right alloy is strong enough.',
+    targetTempC: 120, minBurstMPa: 1, loadMpa: 150, maxDensity: 8.0, maxCostINR: 2500, minSafety: 1.5, bannedElements: [], metalsOnly: false,
+    environment: 'Air / Industrial',
+    tiers: [
+      { name: 'GOLD', label: 'Gold (light and strong)', sf: 2.5, cost: 2300, dens: 3.2 },
+      { name: 'SILVER', label: 'Silver (light)', sf: 1.6, cost: 2400, dens: 3.0 },
+      { name: 'BRONZE', label: 'Bronze (works, but heavy)', sf: 1.5, cost: 2500, dens: 8.0 },
+    ],
+    rules: ['Carry 150 MPa at the bolt holes', 'Work at 120 °C', 'Density ≤ 8.0 g/cm³', 'Raw cost ≤ ₹2,500/kg (indicative)', 'Safety factor ≥ 1.5', 'Steels and aluminium alloys are allowed'],
+    standards: 'IS 2062 · IS 733 · ASTM B221',
+  },
   'rocket-nozzle': {
     id: 'rocket-nozzle', title: 'Reusable Rocket Nozzle', tag: 'AEROSPACE · REUSABLE',
     brief: 'A regeneratively cooled bell nozzle must survive 2,200°C combustion gas at 65 MPa chamber pressure (about 163 MPa wall stress). Metals only. Heavy tungsten and tantalum bust the weight limit, plain steel and titanium melt, so the winning alloy has to be tuned.',
@@ -4379,7 +4392,7 @@ function benchmarkFromUrl() {
 }
 
 function applyBenchmark(id, options = {}) {
-  const benchmark = id === 'custom' && state.customBenchmark ? state.customBenchmark : BENCHMARKS[id] || BENCHMARKS['rocket-nozzle'];
+  const benchmark = id === 'custom' && state.customBenchmark ? state.customBenchmark : BENCHMARKS[id] || BENCHMARKS['machine-bracket'];
   state.benchmarkId = id;
   state.benchmark = benchmark;
   const select = $('#benchmarkSelect');
@@ -4503,7 +4516,7 @@ function renderBenchmarkResult(benchmark, sim) {
 }
 
 async function runBenchmark() {
-  const benchmark = state.benchmark || BENCHMARKS[state.benchmarkId] || BENCHMARKS['rocket-nozzle'];
+  const benchmark = state.benchmark || BENCHMARKS[state.benchmarkId] || BENCHMARKS['machine-bracket'];
   const tempSlider = $('#temperatureSlider');
   if (tempSlider) tempSlider.value = String(clamp(benchmark.targetTempC, -273.15, 4500));
   setPressureUnit('MPa');
@@ -4528,7 +4541,7 @@ async function runBenchmark() {
 }
 
 async function applyBenchmarkFix() {
-  const benchmark = state.benchmark || BENCHMARKS[state.benchmarkId] || BENCHMARKS['rocket-nozzle'];
+  const benchmark = state.benchmark || BENCHMARKS[state.benchmarkId] || BENCHMARKS['machine-bracket'];
   const derived = state.simulation?.derived;
   if (!derived) { toast('Run the stress test first.', 'warning'); return; }
   const current = { ...state.composition };
@@ -5044,9 +5057,9 @@ function bindExtraEvents() {
   $('#copyBenchmarkLink')?.addEventListener('click', copyBenchmarkLink);
   // Generate Challenge - auto-populate with aerospace rocket nozzle defaults
   $('#genChallenge')?.addEventListener('click', () => {
-    $('#benchmarkTag').value = 'AEROSPACE - REUSABLE';
-    $('#benchmarkTitle').value = 'Rocket Nozzle Gen-2';
-    $('#benchmarkBrief').value = 'Rocket nozzle must survive combustion and pressure cycles';
+    $('#benchmarkTag').value = 'INDUSTRIAL - MACHINE PART';
+    $('#benchmarkTitle').value = 'Machine Bracket Gen-2';
+    $('#benchmarkBrief').value = 'Bracket must carry a motor load at working temperature';
     syncBenchmarkSlidersToJson();
     $('#benchmarkCost').value = 800;
     $('#benchmarkBurst').value = 250;
@@ -5537,7 +5550,7 @@ const FAILURE_CASES = [
   { id: 'f3', title: 'Reformer Tube Creep Rupture', alloy: 'HK-40 (25Cr-20Ni)', type: 'creep', desc: 'Primary creep accelerated by carburization; tertiary creep rupture at 105,000 hours.', condition: '950°C · 15 MPa · Carburizing', actions: ['Aluminize coating', 'Reduce tube skin temp', 'Switch to HP Modified'] },
   { id: 'f4', title: 'Cryogenic Brittle Fracture in 304L', alloy: '304L SS', type: 'brittle', desc: 'Cleavage fracture at -196°C due to δ-ferrite stringers and high strain rate.', condition: '-196°C · 500 MPa · LNG Service', actions: ['Specify 316LN', 'Limit ferrite < 1%', 'Charpy qualify'] },
   { id: 'f5', title: 'Hydrogen Embrittlement in Aermet 100', alloy: 'Aermet 100', type: 'hydrogen', desc: 'Delayed fracture at 1800 MPa UTS after cadmium plating; H ingress during electroplating.', condition: 'RT · 1800 MPa · Cd Plated', actions: ['Bake 190°C/23h post-plate', 'Use IVD aluminum', 'Reduce strength to 1600 MPa'] },
-  { id: 'f6', title: 'Thermal Fatigue in Rocket Nozzle', alloy: 'NARloy-Z (Cu-3Ag-0.5Zr)', type: 'fatigue', desc: 'Cracking at throat due to thermal cycling; oxidation-assisted fatigue.', condition: '500-1200°C · 100 cycles · H2/O2', actions: ['GRCop-84 alloy', 'Channel cooling', 'Increase corner radius'] },
+  { id: 'f6', title: 'Thermal Fatigue in a Furnace Liner', alloy: 'NARloy-Z (Cu-3Ag-0.5Zr)', type: 'fatigue', desc: 'Cracking at throat due to thermal cycling; oxidation-assisted fatigue.', condition: '500-1200°C · 100 cycles · H2/O2', actions: ['GRCop-84 alloy', 'Channel cooling', 'Increase corner radius'] },
   { id: 'f7', title: 'Pitting in Offshore Riser 13Cr', alloy: '13Cr Martensitic', type: 'corrosion', desc: 'Severe pitting at 120°C with 500 ppm Cl- and 0.5 MPa H2S.', condition: '120°C · 500 ppm Cl · 0.5 MPa H2S', actions: ['Switch to Super 13Cr', 'Inhibitor injection', 'CRA cladding'] },
   { id: 'f8', title: 'Creep-Fatigue in GTD-111 Blade', alloy: 'GTD-111 DS', type: 'creep', desc: 'Hold-time fatigue interaction at 980°C; rafting-induced loss of creep strength.', condition: '980°C · 120 MPa · 120s hold', actions: ['Reduce hold time', 'Coat with TBC', 'Switch to Rene N5'] },
 ];
@@ -6346,10 +6359,10 @@ function trackBenchmark(verdict) {
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
     toast('🏆 Achievement unlocked: Benchmark Accepted!', 'success');
   }
-  if (verdict === 'PASS' && state.benchmark?.id === 'rocket-nozzle' && !milestones.includes('rocket_scientist')) {
+  if (verdict === 'PASS' && state.benchmark?.id === 'machine-bracket' && !milestones.includes('rocket_scientist')) {
     milestones.push('rocket_scientist');
     localStorage.setItem('mh_user_milestones', JSON.stringify(milestones));
-    toast('🚀 Achievement unlocked: Rocket Scientist!', 'success');
+    toast('🔧 Achievement unlocked: Bracket Builder!', 'success');
   }
   if (verdict === 'PASS' && state.simulation?.conditions?.temperature_c <= -100 && !milestones.includes('cryo_master')) {
     milestones.push('cryo_master');

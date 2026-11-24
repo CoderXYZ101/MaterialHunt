@@ -29,56 +29,43 @@
 
     <h2>1. Steel strength model (pre-trained)</h2>
     <p>An extra-trees ensemble (80 trees) trained offline on <strong>312 measured high-strength steels</strong> (public Matbench steels data, Dunn et al., npj Comput. Mater. 6, 138, 2020), shipped with the site and run in your browser.</p>
-    <table id="steelTable"><thead><tr><th>Test</th><th>Average error</th><th>R²</th><th>Guess-the-average error</th></tr></thead><tbody><tr><td colspan="4">Loading…</td></tr></tbody></table>
+    <table id="steelTable"><thead><tr><th>Test</th><th>Average error</th><th>R²</th><th>Guess-the-average error</th></tr></thead><tbody><!--EVAL:steel--><tr><td>5-fold cross-validation, re-run by the script</td><td>83 MPa</td><td>0.84</td><td>229 MPa</td></tr><tr><td>5-fold cross-validation, recorded when the shipped model was trained</td><td>84 MPa</td><td>0.85</td><td>229 MPa</td></tr><!--/EVAL:steel--></tbody></table>
 
     <h2>2. Independent check</h2>
     <p>The cross-validation above only tests on the same dataset. For an independent check, the steel model (which never saw our library) predicts the yield strength of each library grade it considers inside its range, and we compare with the library value.</p>
-    <table id="indTable"><thead><tr><th>Grade</th><th>Library value (MPa)</th><th>Model said (MPa)</th></tr></thead><tbody><tr><td colspan="3">Loading…</td></tr></tbody></table>
-    <p id="indNote"></p>
+    <table id="indTable"><thead><tr><th>Grade</th><th>Library value (MPa)</th><th>Model said (MPa)</th></tr></thead><tbody><!--EVAL:ind--><tr><td>Maraging steel 18Ni300</td><td>1900</td><td>1279</td></tr><!--/EVAL:ind--></tbody></table>
+    <p><!--EVAL:indnote--><strong>Only 1 of the 48 library grades was inside the steel model's range</strong> (the other 47 are stainless, aluminium, nickel and other alloys it was not trained for). On that one grade the error was about 33%. One grade proves very little, and it shows the model is rough outside its training data. Library values are typical datasheet values, which depend on heat treatment; this is a small, honest check, not a proof.<!--/EVAL:indnote--></p>
 
     <h2>3. Library yield model: does more data help?</h2>
     <p>A random forest predicting yield strength for the 48 library grades, tested by <strong>leave-one-out</strong> (each grade is predicted by a model that never saw it). The 312 measured steels are only ever added to the <em>training</em> side, so they cannot flatter the score.</p>
-    <table id="libTable"><thead><tr><th>Model</th><th>Average error (MPa)</th><th>Average % error</th><th>R²</th></tr></thead><tbody><tr><td colspan="4">Loading…</td></tr></tbody></table>
+    <table id="libTable"><thead><tr><th>Model</th><th>Average error (MPa)</th><th>Average % error</th><th>R²</th></tr></thead><tbody><!--EVAL:lib--><tr><td>Always guess the average</td><td>292</td><td>83%</td><td>-0.04</td></tr><tr><td>Trained on the other 47 grades only</td><td>210</td><td>52%</td><td>0.34</td></tr><tr><td>Trained on the other 47 grades plus the 312 measured steels</td><td>181</td><td>47%</td><td>0.59</td></tr><tr><td>Same, predicting on a log scale (tried, not adopted)</td><td>191</td><td>42%</td><td>0.51</td></tr><!--/EVAL:lib--></tbody></table>
 
     <p><strong>The same question in the in-browser (JavaScript) version</strong>, 8-fold test on the 48 library grades, measured on the version that ships with the site: library grades only gave R² 0.26 and an average error of 226 MPa (53%); with the 312 steels added to the training side, R² 0.48 and 214 MPa (54%). So more data clearly raised R², but the average percentage error barely moved. The ML Lab recomputes these live on your device.</p>
 
-    <h2>4. Reproduce it yourself</h2>
+    <h2>4. Known-material validation: reference, prediction, error</h2>
+    <p>This is the plain test: take a material with a known value, hide it from the model, ask the model, and measure the error. Nothing is cherry-picked by result: the library grades are a fixed list of well-known alloys, and the steels are spread evenly from the weakest to the strongest of the 312.</p>
+    <h3>Well-known library grades (the model did not see the grade it is predicting)</h3>
+    <table><thead><tr><th>Material</th><th>Reference yield (MPa)</th><th>Model predicted (MPa)</th><th>Error</th></tr></thead><tbody><!--EVAL:vlib--><tr><td>Mild steel E250</td><td>250</td><td>472</td><td>89%</td></tr><tr><td>Medium-carbon steel EN8</td><td>450</td><td>464</td><td>3%</td></tr><tr><td>Nickel-chrome-moly steel EN24 (4340)</td><td>1000</td><td>670</td><td>33%</td></tr><tr><td>Stainless steel 304</td><td>215</td><td>225</td><td>5%</td></tr><tr><td>Stainless steel 316L</td><td>200</td><td>237</td><td>19%</td></tr><tr><td>Stainless steel 17-4PH</td><td>1000</td><td>565</td><td>44%</td></tr><tr><td>Duplex stainless 2205</td><td>450</td><td>398</td><td>12%</td></tr><tr><td>Aluminium 6061-T6</td><td>275</td><td>233</td><td>15%</td></tr><tr><td>Aluminium 7075-T6</td><td>503</td><td>233</td><td>54%</td></tr><tr><td>Titanium Ti-6Al-4V (Grade 5)</td><td>880</td><td>871</td><td>1%</td></tr><tr><td>Brass 70/30 (C26000)</td><td>150</td><td>313</td><td>109%</td></tr><tr><td>Inconel 718</td><td>1035</td><td>585</td><td>43%</td></tr><tr><td>Maraging steel 18Ni300</td><td>1900</td><td>1069</td><td>44%</td></tr><!--/EVAL:vlib--></tbody></table>
+    <h3>Measured steels, evenly spaced by strength (out-of-fold predictions)</h3>
+    <table><thead><tr><th>Composition (weight %)</th><th>Measured yield (MPa)</th><th>Model predicted (MPa)</th><th>Error</th></tr></thead><tbody><!--EVAL:vsteel--><tr><td>Fe81.2 Ni10.2 Cr5.2 Mo3.2</td><td>1019</td><td>1095</td><td>8%</td></tr><tr><td>Fe79.9 Ni18.1 Mn1.7</td><td>1137</td><td>1456</td><td>28%</td></tr><tr><td>Fe70.9 Cr15.7 Co7.4 Ni4.1 Si1.7</td><td>1206</td><td>1181</td><td>2%</td></tr><tr><td>Fe75.8 Cr12.5 Ni8.3 Mo2.2 Al1.1</td><td>1269</td><td>1310</td><td>3%</td></tr><tr><td>Fe79.4 Ni17.8 Si2.6</td><td>1309</td><td>1346</td><td>3%</td></tr><tr><td>Fe71.9 Co14.2 Cr6.8 Ni2.8 Mo2.4 W1.3</td><td>1371</td><td>1443</td><td>5%</td></tr><tr><td>Fe66.7 Cr14.4 Co13.5 Mo5.2</td><td>1461</td><td>1415</td><td>3%</td></tr><tr><td>Fe77.3 Ni18.2 Mo3.1 Ti1.3</td><td>1599</td><td>1611</td><td>1%</td></tr><tr><td>Fe70.7 Co13.5 Ni11.3 Cr3.1 Mo1.2</td><td>1744</td><td>1782</td><td>2%</td></tr><tr><td>Fe63.8 Ni18.0 Co12.0 Mo3.6 Ti1.9 V0.5</td><td>2402</td><td>2424</td><td>1%</td></tr><!--/EVAL:vsteel--></tbody></table>
+    <p><strong>How to read this:</strong> on the steels the model is usually within a few percent of the measurement, because they are alike and plentiful. On the varied library grades the errors are large for some alloys. That is why the library model is labelled a rough guide and why the Simulator prefers a grade's datasheet value whenever your mix matches one. You can repeat the test yourself with the script below, or watch it happen live in the <a href="/" data-view-link="ml">ML Lab</a>.</p>
+
+    <h2>5. Reproduce it yourself</h2>
     <p>Everything above is produced by one script that reads only files in the project. With Python installed:</p>
     <pre>pip install scikit-learn numpy
 python evaluation/evaluate.py</pre>
-    <p>It writes <code>static/data/evaluation.json</code>, which this page displays. Seeds are fixed. Small differences in the last digit between machines are normal. The same checks also run live in your browser: open the <a href="/" data-view-link="ml">ML Lab</a> and press "Train and test the model" (slow motion shows each step).</p>
+    <p>It writes <code>static/data/evaluation.json</code> and fills the numbers in this page. Seeds are fixed. Small differences in the last digit between machines are normal. The same checks also run live in your browser: open the <a href="/" data-view-link="ml">ML Lab</a> and press "Train and test the model" (slow motion shows each step).</p>
     <p>The in-browser model is written from scratch in JavaScript, so its numbers differ slightly from the Python figures here; the ML Lab shows its own, live.</p>
 
-    <h2>5. Known limits</h2>
+    <h2>6. Known limits</h2>
     <ul>
       <li>The library has only 48 grades. Library values are typical datasheet numbers, and real strength depends on heat treatment.</li>
       <li>The steel model only covers iron-based alloyed steels in roughly the 1,000 to 2,500 MPa range. For anything else it refuses, and the simulator tries the library model. If the mix is outside that model's range too, no ML estimate is made at all.</li>
+      <li>Even the best case is not dependable engineering prediction: the library model is off by roughly half on average. Use datasheets and tests for decisions.</li>
       <li>The independent check is tiny (see the table). We publish it because it is the honest result, not because it is flattering.</li>
       <li>The "spread" between trees is a rough sign of uncertainty, not a calibrated confidence interval.</li>
     </ul>
   </main>
   <script src="legal.js"></script>
-  <script>
-    (function () {
-      var f = function (v, d) { return v === null || v === undefined ? 'n/a' : Number(v).toFixed(d === undefined ? 0 : d); };
-      var esc = function (t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
-      fetch('data/evaluation.json').then(function (r) { return r.json(); }).then(function (d) {
-        var s = d.steel_cv, sh = d.steel_cv_shipped;
-        document.querySelector('#steelTable tbody').innerHTML =
-          '<tr><td>5-fold cross-validation, re-run by the script</td><td>' + f(s.mae) + ' MPa</td><td>' + f(s.r2, 2) + '</td><td>' + f(s.baseline_mae) + ' MPa</td></tr>' +
-          '<tr><td>5-fold cross-validation, recorded when the shipped model was trained</td><td>' + f(sh.mae) + ' MPa</td><td>' + f(sh.r2, 2) + '</td><td>' + f(sh.baseline_mae) + ' MPa</td></tr>';
-        var ind = d.independent_steel_on_library;
-        document.querySelector('#indTable tbody').innerHTML = ind.grades.length
-          ? ind.grades.map(function (g) { return '<tr><td>' + esc(g.name) + '</td><td>' + f(g.library_yield) + '</td><td>' + f(g.predicted) + '</td></tr>'; }).join('')
-          : '<tr><td colspan="3">No library grade was inside the model\'s range.</td></tr>';
-        document.getElementById('indNote').innerHTML = '<strong>Only ' + ind.n_tested + ' of the ' + d.library_grades + ' library grades was inside the steel model\'s range</strong> (the other ' + ind.n_outside_range + ' are stainless, aluminium, nickel and other alloys it was not trained for). ' +
-          (ind.grades.length ? 'On that one grade the error was about ' + f(ind.mape) + '%. One grade proves very little, and it shows the model is rough outside its training data. ' : '') + esc(ind.note);
-        var L = d.library_loo, row = function (n, m) { return '<tr><td>' + n + '</td><td>' + f(m.mae) + '</td><td>' + f(m.mape) + '%</td><td>' + f(m.r2, 2) + '</td></tr>'; };
-        document.querySelector('#libTable tbody').innerHTML = row('Always guess the average', L.guess_the_average) + row('Trained on the other 47 grades only', L.trained_on_47_grades) + row('Trained on the other 47 grades plus the 312 measured steels', L.trained_on_47_grades_plus_312_steels);
-      }).catch(function () {
-        document.querySelector('main').insertAdjacentHTML('beforeend', '<p><strong>The results file could not be loaded.</strong> Run the script above to generate it.</p>');
-      });
-    })();
-  </script>
 </body>
 </html>

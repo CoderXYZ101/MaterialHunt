@@ -312,7 +312,7 @@
   }
 
   const GOALS = [
-    { id: 'rocket', icon: 'rocket', title: 'Rocket nozzle or hot gas part', sub: 'Hot gas at 650°C under load', grade: 'in718', tempC: 650, loadMpa: 200, safety: 1.5 },
+    { id: 'rocket', icon: 'rocket', title: 'Hot machine part (furnace bracket)', sub: 'Runs at 650°C under load', grade: 'in718', tempC: 650, loadMpa: 200, safety: 1.5 },
     { id: 'drone', icon: 'drone', title: 'Light drone or bike frame', sub: 'Strong, low weight', grade: 'ti64', tempC: 25, loadMpa: 380, safety: 1.5 },
     { id: 'marine', icon: 'wave', title: 'Boat or coastal fitting', sub: 'Seawater corrosion', grade: 'du2205', tempC: 30, loadMpa: 200, safety: 1.5, environment: 'sea' },
     { id: 'cryo', icon: 'snow', title: 'Cryogenic tank or valve', sub: 'Stay tough at -196°C', grade: 'ss316l', tempC: -196, loadMpa: 150, safety: 1.5 },
@@ -320,7 +320,7 @@
     { id: 'shaft', icon: 'gear', title: 'Shaft, gear or fastener', sub: 'Strength at low cost', grade: 'en19', tempC: 25, loadMpa: 280, safety: 1.5 },
   ];
   const ICONS = {
-    rocket: '<path d="M12 2c3 2 5 6 5 10l-2 3H9l-2-3c0-4 2-8 5-10Z"/><circle cx="12" cy="9" r="1.6"/><path d="M9 15l-3 4M15 15l3 4M12 15v6"/>',
+    rocket: '<path d=\"M6 4v14h12\"/><path d=\"M6 9h4M6 14h7\"/><circle cx=\"16\" cy=\"8\" r=\"2\"/>',
     drone: '<circle cx="5" cy="5" r="2.4"/><circle cx="19" cy="5" r="2.4"/><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="19" r="2.4"/><path d="M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/>',
     wave: '<path d="M2 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
     snow: '<path d="M12 2v20M3.5 7l17 10M20.5 7l-17 10M9 4l3 2 3-2M9 20l3-2 3 2"/>',
@@ -1048,8 +1048,8 @@ Chassis plate: 6061-T6, 6 kg`;
   function benchIdFor(period) {
     const cfg = window.MH_CONFIG || {};
     if (cfg.featured && cfg.featured[period.id] && BENCHMARKS[cfg.featured[period.id]]) return cfg.featured[period.id];
-    const rotation = (cfg.rotation || ['rocket-nozzle', 'submersible', 'turbine-blade', 'ev-enclosure']).filter((x) => BENCHMARKS[x] && BENCHMARKS[x].tiers);
-    return rotation[((period.index % rotation.length) + rotation.length) % rotation.length] || 'rocket-nozzle';
+    const rotation = (cfg.rotation || ['machine-bracket', 'submersible', 'ev-enclosure', 'turbine-blade']).filter((x) => BENCHMARKS[x] && BENCHMARKS[x].tiers);
+    return rotation[((period.index % rotation.length) + rotation.length) % rotation.length] || 'machine-bracket';
   }
   const currentPeriod = () => periodInfo(0);
   const currentBench = () => BENCHMARKS[benchIdFor(currentPeriod())];
@@ -1572,7 +1572,7 @@ Chassis plate: 6061-T6, 6 kg`;
     'Surgical implant, biocompatible, 500 MPa',
     'What is the strongest metal here?',
     'My 304 bracket keeps rusting at the coast',
-    'Rocket injector plate at 1400°C, 60 MPa, zero cobalt, under ₹2000/kg',
+    'Furnace door bracket at 900°C, 40 MPa, zero cobalt, under ₹1500/kg',
   ];
 
   function reqChips(req) {

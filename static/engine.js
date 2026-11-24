@@ -175,7 +175,7 @@
   function barHtml(view) {
     const id = `eng-${view}`;
     return `<div class="engine-bar glass" data-engine-bar>
-      <span class="engine-title">Estimator <i class="term-hint" data-hint="Choose what powers the estimates and checks on this page. Rules: fixed formulas and the library table. Default ML: the pre-trained steel model and the library model. My ML: the model you trained in the ML Lab. The choice is shared by every tab." data-ask="Where is the machine learning on this site?">?</i></span>
+      <span class="engine-title">Estimator <i class="term-hint" data-hint="Choose what powers the estimates and checks on this page. Rules: fixed formulas and the library table. Default ML: the pre-trained steel model and the library model. My ML: the model you trained in the ML Lab. The choice is shared by every tab." data-ask="Where is the machine learning on this site?">i</i></span>
       <span class="engine-opts" role="radiogroup" aria-label="Estimator">${MODES.map(([k, label, tip]) => `<label class="engine-opt" title="${esc(tip)}"><input type="radio" name="${id}" value="${k}" ${k === 'custom' && !custom ? 'disabled' : ''}/> <span>${label}</span></label>`).join('')}</span>
       <span class="engine-note" data-engine-note></span>
     </div>`;

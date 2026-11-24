@@ -51,6 +51,154 @@
    "mape": 47.0,
    "r2": 0.587
   },
+  "tried_log_scale_not_adopted": {
+   "mae": 190.9,
+   "mape": 42.3,
+   "r2": 0.505
+  },
   "method": "leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold"
- }
+ },
+ "validation_library": [
+  {
+   "name": "Mild steel E250",
+   "reference": 250.0,
+   "predicted": 472,
+   "error_pct": 88.9
+  },
+  {
+   "name": "Medium-carbon steel EN8",
+   "reference": 450.0,
+   "predicted": 464,
+   "error_pct": 3.2
+  },
+  {
+   "name": "Nickel-chrome-moly steel EN24 (4340)",
+   "reference": 1000.0,
+   "predicted": 670,
+   "error_pct": 33.0
+  },
+  {
+   "name": "Stainless steel 304",
+   "reference": 215.0,
+   "predicted": 225,
+   "error_pct": 4.6
+  },
+  {
+   "name": "Stainless steel 316L",
+   "reference": 200.0,
+   "predicted": 237,
+   "error_pct": 18.6
+  },
+  {
+   "name": "Stainless steel 17-4PH",
+   "reference": 1000.0,
+   "predicted": 565,
+   "error_pct": 43.5
+  },
+  {
+   "name": "Duplex stainless 2205",
+   "reference": 450.0,
+   "predicted": 398,
+   "error_pct": 11.6
+  },
+  {
+   "name": "Aluminium 6061-T6",
+   "reference": 275.0,
+   "predicted": 233,
+   "error_pct": 15.3
+  },
+  {
+   "name": "Aluminium 7075-T6",
+   "reference": 503.0,
+   "predicted": 233,
+   "error_pct": 53.8
+  },
+  {
+   "name": "Titanium Ti-6Al-4V (Grade 5)",
+   "reference": 880.0,
+   "predicted": 871,
+   "error_pct": 1.1
+  },
+  {
+   "name": "Brass 70/30 (C26000)",
+   "reference": 150.0,
+   "predicted": 313,
+   "error_pct": 108.9
+  },
+  {
+   "name": "Inconel 718",
+   "reference": 1035.0,
+   "predicted": 585,
+   "error_pct": 43.4
+  },
+  {
+   "name": "Maraging steel 18Ni300",
+   "reference": 1900.0,
+   "predicted": 1069,
+   "error_pct": 43.7
+  }
+ ],
+ "validation_steels": [
+  {
+   "composition": "Fe81.2 Ni10.2 Cr5.2 Mo3.2",
+   "measured": 1019,
+   "predicted": 1095,
+   "error_pct": 7.5
+  },
+  {
+   "composition": "Fe79.9 Ni18.1 Mn1.7",
+   "measured": 1137,
+   "predicted": 1456,
+   "error_pct": 28.1
+  },
+  {
+   "composition": "Fe70.9 Cr15.7 Co7.4 Ni4.1 Si1.7",
+   "measured": 1206,
+   "predicted": 1181,
+   "error_pct": 2.1
+  },
+  {
+   "composition": "Fe75.8 Cr12.5 Ni8.3 Mo2.2 Al1.1",
+   "measured": 1269,
+   "predicted": 1310,
+   "error_pct": 3.2
+  },
+  {
+   "composition": "Fe79.4 Ni17.8 Si2.6",
+   "measured": 1309,
+   "predicted": 1346,
+   "error_pct": 2.8
+  },
+  {
+   "composition": "Fe71.9 Co14.2 Cr6.8 Ni2.8 Mo2.4 W1.3",
+   "measured": 1371,
+   "predicted": 1443,
+   "error_pct": 5.2
+  },
+  {
+   "composition": "Fe66.7 Cr14.4 Co13.5 Mo5.2",
+   "measured": 1461,
+   "predicted": 1415,
+   "error_pct": 3.1
+  },
+  {
+   "composition": "Fe77.3 Ni18.2 Mo3.1 Ti1.3",
+   "measured": 1599,
+   "predicted": 1611,
+   "error_pct": 0.7
+  },
+  {
+   "composition": "Fe70.7 Co13.5 Ni11.3 Cr3.1 Mo1.2",
+   "measured": 1744,
+   "predicted": 1782,
+   "error_pct": 2.2
+  },
+  {
+   "composition": "Fe63.8 Ni18.0 Co12.0 Mo3.6 Ti1.9 V0.5",
+   "measured": 2402,
+   "predicted": 2424,
+   "error_pct": 0.9
+  }
+ ],
+ "validation_note": "Every prediction here was made by a model that did not see that material (out-of-fold for the steels, leave-one-out for the library grades)."
 }
