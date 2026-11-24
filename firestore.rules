@@ -427,6 +427,40 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == memberId);
     }
 
+    // Forum: questions and answers from verified members. Nothing is public until an admin approves it.
+    match /forum_threads/{tid} {
+      allow read: if resource.data.status == 'approved' || (signedIn() && resource.data.owner == request.auth.uid) || isAdmin();
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['owner', 'owner_name', 'category', 'title', 'body', 'status', 'created_at'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.category in ['choose', 'check', 'failure', 'general']
+        && request.resource.data.owner_name is string && request.resource.data.owner_name.size() > 0 && request.resource.data.owner_name.size() <= 40
+        && request.resource.data.title is string && request.resource.data.title.size() >= 5 && request.resource.data.title.size() <= 100
+        && request.resource.data.body is string && request.resource.data.body.size() >= 10 && request.resource.data.body.size() <= 600
+        && request.resource.data.created_at == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'admin_note']);
+      allow delete: if isAdmin() || (signedIn() && resource.data.owner == request.auth.uid);
+    }
+
+    match /forum_replies/{rid} {
+      allow read: if resource.data.status == 'approved' || (signedIn() && resource.data.owner == request.auth.uid) || isAdmin();
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['thread', 'owner', 'owner_name', 'body', 'status', 'created_at'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.thread is string && request.resource.data.thread.size() > 0 && request.resource.data.thread.size() <= 40
+        && request.resource.data.owner_name is string && request.resource.data.owner_name.size() > 0 && request.resource.data.owner_name.size() <= 40
+        && request.resource.data.body is string && request.resource.data.body.size() >= 5 && request.resource.data.body.size() <= 500
+        && request.resource.data.created_at == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'admin_note']);
+      allow delete: if isAdmin() || (signedIn() && resource.data.owner == request.auth.uid);
+    }
+
     // Record of prizes handed out (admin only).
     match /awards/{awardId} {
       allow read, write: if isAdmin();

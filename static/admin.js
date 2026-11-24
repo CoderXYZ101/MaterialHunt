@@ -30,6 +30,8 @@
   let signupsMap = {};
   let publicStats = null;
   let endorsements = [];
+  let fthreads = [];
+  let freplies = [];
   let photos = [];
   let showChecked = false;
   let repView = {};
@@ -159,13 +161,14 @@
         <button class="${tab === 'winners' ? 'active' : ''}" data-tab="winners">Winners</button>
         <button class="${tab === 'photos' ? 'active' : ''}" data-tab="photos">Photos${photosToCheck().length ? ` (${photosToCheck().length})` : ''}</button>
         <button class="${tab === 'endorse' ? 'active' : ''}" data-tab="endorse">Endorsements${endorsements.some((x) => x.status === 'pending') ? ' •' : ''}</button>
+        <button class="${tab === 'forum' ? 'active' : ''}" data-tab="forum">Forum${fthreads.concat(freplies).some((x) => x.status === 'pending') ? ' •' : ''}</button>
         <button class="${tab === 'reports' ? 'active' : ''}" data-tab="reports">Reports${reports.some((r) => r.status === 'new') ? ' •' : ''}</button>
         <button class="${tab === 'community' ? 'active' : ''}" data-tab="community">Community${cchal.some((c) => c.status === 'pending') ? ' •' : ''}</button>
         <button class="${tab === 'promos' ? 'active' : ''}" data-tab="promos">Promo codes</button>
         <button class="${tab === 'users' ? 'active' : ''}" data-tab="users">Customers</button>
       </div>
-      ${['reviews', 'winners', 'promos', 'community', 'reports', 'photos', 'endorse'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
-      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : tab === 'reports' ? reportsHtml() : tab === 'photos' ? photosHtml() : tab === 'endorse' ? endorseHtml() : usersHtml()}`;
+      ${['reviews', 'winners', 'promos', 'community', 'reports', 'photos', 'endorse', 'forum'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
+      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : tab === 'reports' ? reportsHtml() : tab === 'photos' ? photosHtml() : tab === 'endorse' ? endorseHtml() : tab === 'forum' ? forumHtml() : usersHtml()}`;
   }
 
   function requestsHtml() {
@@ -270,6 +273,12 @@
         publicStats = ps.exists ? ps.data() : { total_users: 0, verified_users: 0 };
         const en = await db().collection('endorsements').limit(200).get();
         endorsements = en.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+        try {
+          const ft = await db().collection('forum_threads').limit(200).get();
+          fthreads = ft.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+          const fr = await db().collection('forum_replies').limit(300).get();
+          freplies = fr.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+        } catch { /* forum rules not deployed yet */ }
         const pf = await db().collection('profiles').limit(400).get();
         photos = pf.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.avatar).sort((a, b) => (b.updated_at?.toMillis ? b.updated_at.toMillis() : 0) - (a.updated_at?.toMillis ? a.updated_at.toMillis() : 0));
         const pz = await db().collection('prizes').limit(300).get();
@@ -442,6 +451,32 @@
     Object.assign(x, patch);
     window.MH_ENDORSE?.refresh?.();
     notify(act === 'approve' || act === 'verify' ? 'Shown on the home page.' : 'Hidden.', 'success', 2500);
+    render();
+  }
+
+  /* ------------------------- forum ------------------------- */
+  function forumHtml() {
+    const items = [...fthreads.map((x) => ({ ...x, kind: 'forum_threads', label: 'Question' })), ...freplies.map((x) => ({ ...x, kind: 'forum_replies', label: 'Answer' }))];
+    if (!items.length) return '<div class="empty-state"><strong>No forum posts yet</strong><span>Posts from members appear here for you to approve before anyone else can see them.</span></div>';
+    const order = { pending: 0, approved: 1, rejected: 2 };
+    items.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3));
+    return `<p class="micro-note">Read each post. Approve only what is helpful, polite and free of personal details. Reject anything else.</p>
+      <div class="admin-list">${items.map((x) => `<div class="admin-card glass ${x.status === 'pending' ? '' : 'done'}"><header><b>${esc(x.label)}${x.title ? ': ' + esc(x.title) : ''}</b><span class="admin-org">${esc(x.owner_name || 'Member')}</span><span class="admin-status">${esc(x.status)}</span></header>
+        <p class="admin-notes">${esc(x.body)}</p>
+        <div class="admin-actions">
+          ${x.status !== 'approved' ? `<button class="btn btn-primary small" data-fm="approve" data-k="${x.kind}" data-id="${esc(x.id)}">Approve</button>` : `<button class="btn btn-ghost small" data-fm="hide" data-k="${x.kind}" data-id="${esc(x.id)}">Hide</button>`}
+          ${x.status === 'pending' ? `<button class="btn btn-ghost small" data-fm="reject" data-k="${x.kind}" data-id="${esc(x.id)}">Reject</button>` : ''}</div></div>`).join('')}</div>`;
+  }
+
+  async function forumAction(t) {
+    const list = t.dataset.k === 'forum_threads' ? fthreads : freplies;
+    const x = list.find((e) => e.id === t.dataset.id);
+    if (!x) return;
+    const status = t.dataset.fm === 'approve' ? 'approved' : 'rejected';
+    await db().collection(t.dataset.k).doc(x.id).update({ status });
+    x.status = status;
+    window.MH_FORUM?.refresh?.();
+    notify(status === 'approved' ? 'Now public in the Forum.' : 'Hidden.', 'success', 2500);
     render();
   }
 
@@ -634,6 +669,7 @@
       else if (t.dataset.rp) { await reportAction(t); }
       else if (t.dataset.ph) { await photoAction(t); }
       else if (t.dataset.en) { await endorseAction(t); }
+      else if (t.dataset.fm) { await forumAction(t); }
       else if (t.id === 'statsApply') {
         const c = counting();
         await db().collection('stats').doc('public').set({ total_users: c.total, verified_users: c.verified });
