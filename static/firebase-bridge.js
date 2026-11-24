@@ -818,7 +818,7 @@
   /* ------------------------------------------------------------------ */
   /* Firebase SDK, real accounts, tiers, public stats, leads            */
   /* ------------------------------------------------------------------ */
-  const TIER_NAMES = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enterprise' };
+  const TIER_NAMES = { free: 'Free', pro: 'Pro', max: 'Max', ultra: 'Ultra', team: 'Team Pro', team_max: 'Team Max', team_ultra: 'Team Ultra', enterprise: 'Custom' };
   const FOUNDING_LIMIT = 500; // first N verified accounts are tagged "Founding member" by the UI
   let authSettled = false;
   let authResolve = () => {};

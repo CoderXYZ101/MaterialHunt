@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.16.5" />
+  <link rel="stylesheet" href="growth.css?v=4.16.6" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -638,69 +638,23 @@
           <div>
             <span class="panel-kicker">PLANS</span>
             <h2>Start free. Upgrade when it pays for itself.</h2>
-            <p>Every plan includes the full simulator. Paid plans add the reports and sourcing tools that save real money on real parts.</p>
+            <p>Every plan includes the full simulator. Pro adds the reports and sourcing tools. Max and Ultra are for people who want to train models on their own data. Teams get the same tiers with shared tools.</p>
           </div>
           <div class="billing-toggle" role="group" aria-label="Billing period">
             <button class="active" data-bill="month">Monthly</button>
             <button data-bill="year">Yearly <em>2 months free</em></button>
           </div>
+          <div class="billing-toggle" role="group" aria-label="Plan for">
+            <button class="active" data-aud="me">For me</button>
+            <button data-aud="team">For my team</button>
+          </div>
         </div>
 
-        <div class="pricing-grid four-stream" id="pricingGrid">
-          <article class="glass price-card">
-            <span class="price-tier">FREE</span>
-            <strong class="price-value">₹0</strong>
-            <span class="price-cycle">forever · no card</span>
-            <ul class="price-list">
-              <li>Unlimited simulations, all 118 elements</li>
-              <li>Closest Indian grade + indicative ₹/kg</li>
-              <li>Failure Doctor, Alloy Finder &amp; Cost-Down Scanner</li>
-              <li>3 PDF reports or RFQ sheets / month</li>
-              <li>Save up to 5 designs</li>
-              <li>Design benchmark &amp; leaderboard</li>
-            </ul>
-            <button class="btn btn-glass full" data-plan-cta="free">Create free account</button>
-          </article>
-          <article class="glass price-card featured">
-            <span class="price-tag">RECOMMENDED</span>
-            <span class="price-tier">PRO</span>
-            <strong class="price-value" id="proPrice">₹1,499</strong>
-            <span class="price-cycle" id="proCycle">per month · cancel anytime</span>
-            <ul class="price-list">
-              <li>Everything in Free</li>
-              <li>Unlimited PDF reports &amp; RFQ sheets</li>
-              <li>Unlimited saved designs</li>
-              <li>Higher daily limit on the AI assistant</li>
-              <li>Early access to new tools</li>
-              <li>Email support</li>
-            </ul>
-            <button class="btn btn-primary full" data-plan-cta="pro">Upgrade to Pro</button>
-          </article>
-          <article class="glass price-card">
-            <span class="price-tag soon">COMING SOON</span>
-            <span class="price-tier">TEAM</span>
-            <strong class="price-value" id="teamPrice">₹4,999</strong>
-            <span class="price-cycle" id="teamCycle">planned · up to 5 seats</span>
-            <ul class="price-list">
-              <li>Everything in Pro for up to 5 people</li>
-              <li>Shared team library (being built)</li>
-              <li>Team RFQ and report templates (being built)</li>
-              <li>Join the list to hear when it is ready</li>
-            </ul>
-            <button class="btn btn-glass full" data-plan-cta="team">Request early access</button>
-          </article>
-          <article class="glass price-card">
-            <span class="price-tier">ORGANISATIONS</span>
-            <strong class="price-value">Let's talk</strong>
-            <span class="price-cycle">companies, colleges and teams</span>
-            <ul class="price-list">
-              <li>Tell us what you need</li>
-              <li>Custom grade and price lists, built to order</li>
-              <li>Onboarding for your team</li>
-              <li>We reply by email</li>
-            </ul>
-            <button class="btn btn-glass full" data-plan-cta="enterprise">Tell us what you need</button>
-          </article>
+        <div class="pricing-grid plan-grid" id="pricingGrid"></div>
+
+        <div class="glass plan-note">
+          <h3>What do Max and Ultra change for accuracy?</h3>
+          <p>The two built-in models are the same on every plan, and the Evaluation page shows exactly how well they do. We also tested whether a bigger model helps: going from 80 to 400 trees changed the library model's error from 47.0% to 48.4%, so it did not help. Accuracy is limited by how much data a model has seen. That is why Max and Ultra are built around <b>training on your own data</b>, where your materials are what the model learns from. Anything marked <span class="planned-chip">planned</span> is not built yet.</p>
         </div>
 
         <div class="promo-row glass">
@@ -1137,26 +1091,26 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.16.5"></script>
-  <script src="app.js?v=4.16.5"></script>
-  <script src="config.js?v=4.16.5"></script>
-  <script src="tools.js?v=4.16.5"></script>
-  <script src="growth.js?v=4.16.5"></script>
-  <script src="ai.js?v=4.16.5"></script>
-  <script src="admin.js?v=4.16.5"></script>
-  <script src="designs.js?v=4.16.5"></script>
-  <script src="profile.js?v=4.16.5"></script>
-  <script src="promo.js?v=4.16.5"></script>
-  <script src="community.js?v=4.16.5"></script>
-  <script src="forum.js?v=4.16.5"></script>
-  <script src="showcase.js?v=4.16.5"></script>
-  <script src="brain.js?v=4.16.5"></script>
-  <script src="vision.js?v=4.16.5"></script>
-  <script src="ml.js?v=4.16.5"></script>
-  <script src="engine.js?v=4.16.5"></script>
-  <script src="hints.js?v=4.16.5"></script>
-  <script src="account.js?v=4.16.5"></script>
-  <script src="endorse.js?v=4.16.5"></script>
-  <script src="notifications.js?v=4.16.5"></script>
+  <script src="firebase-bridge.js?v=4.16.6"></script>
+  <script src="app.js?v=4.16.6"></script>
+  <script src="config.js?v=4.16.6"></script>
+  <script src="tools.js?v=4.16.6"></script>
+  <script src="growth.js?v=4.16.6"></script>
+  <script src="ai.js?v=4.16.6"></script>
+  <script src="admin.js?v=4.16.6"></script>
+  <script src="designs.js?v=4.16.6"></script>
+  <script src="profile.js?v=4.16.6"></script>
+  <script src="promo.js?v=4.16.6"></script>
+  <script src="community.js?v=4.16.6"></script>
+  <script src="forum.js?v=4.16.6"></script>
+  <script src="showcase.js?v=4.16.6"></script>
+  <script src="brain.js?v=4.16.6"></script>
+  <script src="vision.js?v=4.16.6"></script>
+  <script src="ml.js?v=4.16.6"></script>
+  <script src="engine.js?v=4.16.6"></script>
+  <script src="hints.js?v=4.16.6"></script>
+  <script src="account.js?v=4.16.6"></script>
+  <script src="endorse.js?v=4.16.6"></script>
+  <script src="notifications.js?v=4.16.6"></script>
 </body>
 </html>

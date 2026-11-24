@@ -42,10 +42,14 @@ window.MH_CONFIG = {
     upiId: '',
     payeeName: 'MaterialHunt',
   },
-  paymentLinks: { pro_month: '', pro_year: '', team_month: '', team_year: '', credits: '' },
+  paymentLinks: { pro_month: '', pro_year: '', max_month: '', max_year: '', ultra_month: '', ultra_year: '', team_month: '', team_year: '', team_max_month: '', team_max_year: '', team_ultra_month: '', team_ultra_year: '', credits: '' },
 
   /* Prices in INR (shown on the Pricing page and used at checkout). */
-  prices: { pro: { month: 1499, year: 14990 }, team: { month: 4999, year: 49990 }, credits: 999 },
+  prices: {
+    pro: { month: 1499, year: 14990 }, max: { month: 2999, year: 29990 }, ultra: { month: 5999, year: 59990 },
+    team: { month: 4999, year: 49990 }, team_max: { month: 9999, year: 99990 }, team_ultra: { month: 19999, year: 199990 },
+    credits: 999,
+  },
 
   /* ---------- Rotating challenge ----------
      challengePeriod: 'week' (Monday to Sunday, India time) or 'month'.

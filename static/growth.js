@@ -29,7 +29,8 @@
   }, window.MH_CONFIG || {});
 
   const rupee = (v) => `₹${Number(v).toLocaleString('en-IN')}`;
-  const PAID = ['pro', 'team', 'enterprise'];
+  const PAID = ['pro', 'max', 'ultra', 'team', 'team_max', 'team_ultra', 'enterprise'];
+  const SOON = ['max', 'ultra', 'team', 'team_max', 'team_ultra'];
 
   /* ------------------------------------------------------------------ */
   /* Referral + analytics (consent-based)                                 */
@@ -221,8 +222,12 @@
   /* ------------------------------------------------------------------ */
   const PLAN_COPY = {
     pro: { name: 'Pro', blurb: 'Unlimited PDF reports and RFQ sheets, and a higher daily limit on the AI assistant.' },
-    team: { name: 'Team (early access)', blurb: 'Coming soon: Pro for up to 5 people with shared tools. Leave your details and we will tell you when it is ready.' },
-    enterprise: { name: 'Your organisation', blurb: 'Tell us what you need and we will reply by email.' },
+    max: { name: 'Max (early access)', blurb: 'Coming soon: everything in Pro, plus a private workspace to train and compare machine-learning models on your own data. Leave your details and we will tell you when it is ready.' },
+    ultra: { name: 'Ultra (early access)', blurb: 'Coming soon: everything in Max with the largest own-data workspace and priority support. Leave your details and we will tell you when it is ready.' },
+    team: { name: 'Team Pro (early access)', blurb: 'Coming soon: Pro for up to 5 people with shared tools. Leave your details and we will tell you when it is ready.' },
+    team_max: { name: 'Team Max (early access)', blurb: 'Coming soon: Max for up to 10 people, with models and designs shared across the team. Leave your details and we will tell you when it is ready.' },
+    team_ultra: { name: 'Team Ultra (early access)', blurb: 'Coming soon: Ultra for up to 25 people, with shared models, a team library and priority support. Leave your details and we will tell you when it is ready.' },
+    enterprise: { name: 'Custom plan', blurb: 'Tell us how many people you are and what you need, and we will reply by email with a quote.' },
   };
   let billing = 'month';
 
@@ -333,7 +338,7 @@
     const opts = paymentOptions(plan);
     const canPay = plan === 'pro' && (opts.razorpay || opts.link || opts.upi);
     modal.innerHTML = `<div class="auth-modal glass tool-modal" role="dialog" aria-modal="true"><button class="modal-close" data-x aria-label="Close">×</button>
-      <span class="panel-kicker">${plan === 'enterprise' ? 'TELL US WHAT YOU NEED' : plan === 'team' ? 'COMING SOON' : 'UPGRADE'}</span>
+      <span class="panel-kicker">${plan === 'enterprise' ? 'TELL US WHAT YOU NEED' : SOON.includes(plan) ? 'COMING SOON' : 'UPGRADE'}</span>
       <h2>${esc(info.name)}</h2><p class="micro-note">${esc(info.blurb)}</p>
       <div class="upgrade-price"><strong>${esc(planPrice(plan))}</strong></div>
       <form class="auth-form" id="upgradeForm">
@@ -343,7 +348,7 @@
         </div>
         <label class="field-label" for="upEmail">Email</label><input id="upEmail" type="email" value="${esc(u.email || '')}" required />
         <label class="field-label" for="upNote">Anything we should know? (optional)</label><input id="upNote" type="text" placeholder="e.g. team size, parts you buy, timeline" />
-        <button class="btn btn-primary full" type="submit">${plan === 'enterprise' ? 'Send' : plan === 'team' ? 'Request early access' : canPay ? 'Continue to payment' : 'Request this plan'}</button>
+        <button class="btn btn-primary full" type="submit">${plan === 'enterprise' ? 'Send' : SOON.includes(plan) ? 'Request early access' : canPay ? 'Continue to payment' : 'Request this plan'}</button>
         <p class="form-error" id="upError"></p>
         <p class="micro-note">${canPay ? 'You will choose how to pay on the next step.' : 'We will email you a secure payment link within one business day.'}</p>
       </form></div>`;
@@ -365,21 +370,48 @@
       if (canPay) { showPaymentStep(modal, plan, who, close); return; }
       q('.tool-modal', modal).innerHTML = `<button class="modal-close" data-x aria-label="Close">×</button>
         <span class="panel-kicker">REQUEST RECEIVED</span><h2>Thank you${who.name ? `, ${esc(who.name.split(' ')[0])}` : ''}.</h2>
-        <p>${res?.ok ? (plan === 'enterprise' ? 'We have your message and will reply by email.' : plan === 'team' ? 'You are on the early-access list. We will email you when it is ready.' : 'We have your request and will email you soon to confirm and send a secure payment link.') : 'We saved this on your device. Please try again in a moment.'}</p>
+        <p>${res?.ok ? (plan === 'enterprise' ? 'We have your message and will reply by email.' : SOON.includes(plan) ? 'You are on the early-access list. We will email you when it is ready.' : 'We have your request and will email you soon to confirm and send a secure payment link.') : 'We saved this on your device. Please try again in a moment.'}</p>
         <div class="rfq-actions"><button class="btn btn-primary" data-x2>Done</button></div>`;
       q('[data-x]', modal).onclick = close; q('[data-x2]', modal).onclick = close;
     };
   }
   window.openUpgrade = openUpgrade;
 
+  /* Plans. A feature starting with "~" is planned, not built yet, and is shown with a "planned" tag. */
+  const FREE_LIST = ['Unlimited simulations, all 118 elements', 'Closest Indian grade + indicative ₹/kg', 'Failure Doctor, Alloy Finder & Cost-Down Scanner', 'ML Lab and the two built-in models', '3 PDF reports or RFQ sheets / month', 'Save up to 5 designs', 'Design challenge, leaderboard and Forum'];
+  const PLAN_CARDS = {
+    me: [
+      { id: 'free', name: 'FREE', price: 0, cycle: 'forever · no card', list: FREE_LIST, cta: 'Create free account' },
+      { id: 'pro', name: 'PRO', tag: 'AVAILABLE', featured: true, list: ['Everything in Free', 'Unlimited PDF reports & RFQ sheets', 'Unlimited saved designs', 'Higher daily limit on the AI assistant', 'Early access to new tools', 'Email support'], cta: 'Upgrade to Pro' },
+      { id: 'max', name: 'MAX', tag: 'COMING SOON', list: ['Everything in Pro', '~Private ML workspace: train on your own data with larger tables', '~Save and compare several of your own models', '~Highest AI assistant limit', 'Priority email support'], cta: 'Request early access' },
+      { id: 'ultra', name: 'ULTRA', tag: 'COMING SOON', list: ['Everything in Max', '~Largest own-data workspace (no row limit)', '~Test-error report for every model you train', '~Early access to every new model and tool', 'Priority support, replies first'], cta: 'Request early access' },
+    ],
+    team: [
+      { id: 'team', name: 'TEAM PRO', tag: 'COMING SOON', seats: 'up to 5 seats', list: ['Everything in Pro for 5 people', '~Shared team design library', '~Team RFQ and report templates', 'Email support'], cta: 'Request early access' },
+      { id: 'team_max', name: 'TEAM MAX', tag: 'COMING SOON', seats: 'up to 10 seats', list: ['Everything in Team Pro, for 10 people', '~Shared private ML workspace', '~Models and designs shared across the team', 'Priority email support'], cta: 'Request early access' },
+      { id: 'team_ultra', name: 'TEAM ULTRA', tag: 'COMING SOON', seats: 'up to 25 seats', list: ['Everything in Team Max, for 25 people', '~Largest own-data workspace, shared', '~Admin view of team usage', 'Priority support, replies first'], cta: 'Request early access' },
+    ],
+  };
+  const CUSTOM_CARD = { id: 'enterprise', name: 'CUSTOM', customPrice: "Let's talk", cycle: 'more than 25 seats, or special needs', list: ['Tell us how many people and what you need', 'Custom grade and price lists, built to order', 'Onboarding for your team', 'We reply by email with a quote'], cta: 'Tell us what you need' };
+  let audience = 'me';
+
+  function cardHtml(c) {
+    const priced = CONFIG.prices[c.id];
+    const value = c.customPrice || (c.id === 'free' ? '₹0' : rupee(billing === 'year' ? priced.year : priced.month));
+    const cycle = c.cycle || (billing === 'year' ? `per year · 2 months free${c.seats ? ` · ${c.seats}` : ''}` : `${c.seats ? `per team per month · ${c.seats}` : 'per month'} · ends by itself, no auto-renewal`);
+    const items = c.list.map((t) => (t.startsWith('~') ? `<li>${esc(t.slice(1))} <span class="planned-chip">planned</span></li>` : `<li>${esc(t)}</li>`)).join('');
+    return `<article class="glass price-card${c.featured ? ' featured' : ''}">
+      ${c.tag ? `<span class="price-tag${c.tag === 'COMING SOON' ? ' soon' : ''}">${c.tag}</span>` : ''}
+      <span class="price-tier">${c.name}</span><strong class="price-value">${value}</strong><span class="price-cycle">${esc(cycle)}</span>
+      <ul class="price-list">${items}</ul>
+      <button class="btn ${c.featured ? 'btn-primary' : 'btn-glass'} full" data-plan-cta="${c.id}">${c.cta}</button></article>`;
+  }
+
   function renderPricing() {
-    const set = (id, text) => { const el = q(id); if (el) el.textContent = text; };
-    const yearly = billing === 'year';
-    set('#proPrice', rupee(yearly ? CONFIG.prices.pro.year : CONFIG.prices.pro.month));
-    set('#proCycle', yearly ? 'per year · 2 months free' : 'per month · ends by itself, no auto-renewal');
-    set('#teamPrice', rupee(yearly ? CONFIG.prices.team.year : CONFIG.prices.team.month));
-    set('#teamCycle', yearly ? 'per year · up to 5 seats' : 'per month · up to 5 seats');
-    qa('.billing-toggle button').forEach((b) => b.classList.toggle('active', b.dataset.bill === billing));
+    const grid = q('#pricingGrid');
+    if (grid) grid.innerHTML = [...PLAN_CARDS[audience], CUSTOM_CARD].map(cardHtml).join('');
+    qa('.billing-toggle [data-bill]').forEach((b) => b.classList.toggle('active', b.dataset.bill === billing));
+    qa('.billing-toggle [data-aud]').forEach((b) => b.classList.toggle('active', b.dataset.aud === audience));
     const tier = PLAN.tier();
     qa('[data-plan-cta]').forEach((b) => {
       const plan = b.dataset.planCta;
@@ -611,7 +643,9 @@
         return;
       }
       const bill = e.target.closest('[data-bill]');
-      if (bill) { billing = bill.dataset.bill; renderPricing(); }
+      if (bill) { billing = bill.dataset.bill; renderPricing(); return; }
+      const aud = e.target.closest('[data-aud]');
+      if (aud) { audience = aud.dataset.aud; renderPricing(); }
     });
     window.MH_GROWTH = Object.assign(window.MH_GROWTH || {}, { track, renderPricing, setPendingSubmit: (v) => { pendingSubmit = v; } });
   }

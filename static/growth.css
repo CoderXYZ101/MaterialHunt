@@ -704,3 +704,12 @@ button.term-hint { background: transparent; padding: 0; line-height: 1; font-fam
 .forum-reply small { opacity: .65; }
 .forum-answer { margin-top: 12px; }
 .forum-answer textarea { width: 100%; box-sizing: border-box; }
+
+/* Plans */
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.plan-grid .price-card { display: flex; flex-direction: column; }
+.plan-grid .price-list { flex: 1; }
+.planned-chip { display: inline-block; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; border: 1px solid rgba(245,158,11,.6); color: #f59e0b; vertical-align: middle; }
+.plan-note { margin: 18px 0; padding: 16px 18px; }
+.plan-note h3 { margin: 0 0 6px; font-size: 16px; }
+.plan-note p { margin: 0; line-height: 1.6; }

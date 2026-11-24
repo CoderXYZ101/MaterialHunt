@@ -123,14 +123,14 @@ for x in Xs:
     Xe.append(feat({e: v / t * 100 for e, v in w.items()}, 'BCC', cols))
 Xe = np.array(Xe)
 
-def loo(extra, log=False):
+def loo(extra, log=False, trees=80):
     pred = []
     for i in range(len(lib)):
         tr = [k for k in range(len(lib)) if k != i]
         Xt, yt = Xl[tr], yl[tr]
         if extra:
             Xt, yt = np.vstack([Xt, Xe]), np.concatenate([yt, ys])
-        m = RandomForestRegressor(n_estimators=80, max_features=0.4, random_state=i).fit(Xt, np.log(yt) if log else yt)
+        m = RandomForestRegressor(n_estimators=trees, max_features=0.4, random_state=i).fit(Xt, np.log(yt) if log else yt)
         v = m.predict(Xl[i:i + 1])[0]
         pred.append(float(np.exp(v)) if log else float(v))
     return np.array(pred)
@@ -139,11 +139,13 @@ base = [np.delete(yl, i).mean() for i in range(len(yl))]
 p47 = loo(False)
 p359 = loo(True)
 plog = loo(True, log=True)
+p400 = loo(True, trees=400)
 out['library_loo'] = dict(
     guess_the_average=metrics(yl, base),
     trained_on_47_grades=metrics(yl, p47),
     trained_on_47_grades_plus_312_steels=metrics(yl, p359),
     tried_log_scale_not_adopted=metrics(yl, plog),
+    tried_400_trees_no_gain=metrics(yl, p400),
     method='leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold')
 
 # 4. known-material validation: reference value, prediction made without seeing that material, error
@@ -245,7 +247,8 @@ L = out['library_loo']
 block('lib', ''.join(f"<tr><td>{n}</td><td>{f(m['mae'])}</td><td>{f(m['mape'])}%</td><td>{f(m['r2'], 2)}</td></tr>" for n, m in [
     ('Always guess the average', L['guess_the_average']), ('Trained on the other 47 grades only', L['trained_on_47_grades']),
     ('Trained on the other 47 grades plus the 312 measured steels', L['trained_on_47_grades_plus_312_steels']),
-    ('Same, predicting on a log scale (tried, not adopted)', L['tried_log_scale_not_adopted'])]))
+    ('Same, predicting on a log scale (tried, not adopted)', L['tried_log_scale_not_adopted']),
+    ('Same, with 400 trees instead of 80 (a bigger model: tried, no gain)', L['tried_400_trees_no_gain'])]))
 block('vlib', rows(out['validation_library'], [lambda g: g['name'], lambda g: f(g['reference']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
 block('vsteel', rows(out['validation_steels'], [lambda g: g['composition'], lambda g: f(g['measured']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
 

@@ -28,7 +28,7 @@
   const readSeen = () => { try { return JSON.parse(localStorage.getItem(seenKey()) || '{}'); } catch { return {}; } };
   const writeSeen = (m) => localStorage.setItem(seenKey(), JSON.stringify(m));
   const decided = (l) => Boolean(l.status) && l.status !== 'new';
-  const planName = (p) => ({ pro: 'Pro', team: 'Team', enterprise: 'your organisation', credits: 'credit pack' }[p] || '');
+  const planName = (p) => ({ pro: 'Pro', max: 'Max', ultra: 'Ultra', team: 'Team Pro', team_max: 'Team Max', team_ultra: 'Team Ultra', enterprise: 'your custom plan', credits: 'credit pack' }[p] || '');
   const ms = (ts) => (ts?.toMillis ? ts.toMillis() : 0);
   const when = (ts) => { try { const d = ts?.toDate ? ts.toDate() : new Date(ts); return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
   const ordinal = (n) => ({ 1: '1st', 2: '2nd', 3: '3rd' }[n] || `${n}th`);

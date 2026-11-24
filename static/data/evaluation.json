@@ -56,6 +56,11 @@
    "mape": 42.3,
    "r2": 0.505
   },
+  "tried_400_trees_no_gain": {
+   "mae": 182.0,
+   "mape": 48.4,
+   "r2": 0.599
+  },
   "method": "leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold"
  },
  "validation_library": [

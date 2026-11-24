@@ -14,7 +14,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const notify = (m, t = 'info', ms) => { if (typeof toast === 'function') toast(m, t, ms); };
 
-  const TIERS = ['free', 'pro', 'team', 'enterprise'];
+  const TIERS = ['free', 'pro', 'max', 'ultra', 'team', 'team_max', 'team_ultra', 'enterprise'];
   const MONEY_KINDS = ['upgrade', 'payment', 'kyb'];
   let leads = [];
   let users = [];
@@ -135,7 +135,7 @@
   function gmail(to, subject, body) {
     return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
-  const planName = (t) => ({ pro: 'Pro', team: 'Team', enterprise: 'Enterprise', free: 'Free' }[t] || t);
+  const planName = (t) => ({ pro: 'Pro', max: 'Max', ultra: 'Ultra', team: 'Team Pro', team_max: 'Team Max', team_ultra: 'Team Ultra', enterprise: 'Custom', free: 'Free' }[t] || t);
 
   /* ------------------------------------------------------------------ */
   /* Render                                                               */
