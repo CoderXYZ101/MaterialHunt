@@ -243,5 +243,5 @@
   function boot() { mountButton(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  window.MH_DESIGNS = { save, openPanel, _set: (d) => { designs = d; loaded = true; } };
+  window.MH_DESIGNS = { save, openPanel, snapshot, open, _set: (d) => { designs = d; loaded = true; } };
 })();

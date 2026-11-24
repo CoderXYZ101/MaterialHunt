@@ -475,6 +475,8 @@
       if (q('#mlData').value === 'csv') {
         const parsed = parseCsv(q('#mlCsv').value);
         rows = parsed.rows; targetLabel = parsed.targetName; unit = '';
+        const cap = window.MH_PLANS ? window.MH_PLANS.caps() : { rows: 300, name: 'Free', next: 'Pro' };
+        if (rows.length > cap.rows) { err.textContent = `Your ${cap.name} plan allows up to ${cap.rows.toLocaleString('en-IN')} rows in your own table (yours has ${rows.length.toLocaleString('en-IN')}).${cap.next ? ` ${cap.next} allows more: see Pricing.` : ''}`; return; }
       } else {
         const key = q('#mlTarget').value;
         rows = libraryRows(key); targetLabel = TARGETS[key].label; unit = TARGETS[key].unit; kind = `library-${key}`;
@@ -553,6 +555,17 @@
   }
   const PROPS_OK = ['y', 'uts', 't', 'price'];
 
+  /* used by My models and the team shelf: put a trained model in the Lab as if it had just been trained */
+  function loadLab(m, prop) {
+    if (!m || !Array.isArray(m.features) || !Array.isArray(m.trees) || !m.trees.length || !m.cv || !m.baseline || !Array.isArray(m.points)) return false;
+    try { const probe = predictForest(m.trees, vectorise({ Fe: 100 }, 'BCC', m.features)); if (!Number.isFinite(probe.value)) return false; } catch { return false; }
+    lab = m;
+    renderResult();
+    q('#mlTry').classList.remove('hidden');
+    if (PROPS_OK.includes(prop)) q('#mlUseProp').value = prop;
+    return true;
+  }
+
   function useAsCustom() {
     const note = q('#mlUseNote');
     if (!lab) { note.textContent = 'Train a model first.'; return; }
@@ -630,5 +643,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
   window.addEventListener('mh:engine', () => rerun());
-  window.MH_ML = { steelRows, featureList, vectorise, steelEstimate, loadSteel, get steel() { return steel; }, refreshReadout, trainForest, predictForest, parseCsv, libraryMatch, libraryRows, trainAndEvaluate, estimate, get model() { return current; } };
+  window.MH_ML = { steelRows, featureList, vectorise, steelEstimate, loadSteel, get steel() { return steel; }, refreshReadout, trainForest, predictForest, parseCsv, libraryMatch, libraryRows, trainAndEvaluate, estimate, get model() { return current; }, get lab() { return lab; }, loadLab };
 })();

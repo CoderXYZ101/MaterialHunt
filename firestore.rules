@@ -323,7 +323,10 @@ service cloud.firestore {
       let pro = (u.get('tier', 'free') != 'free' && u.get('plan_until', request.time) >= request.time)
         || u.get('pro_until', request.time) > request.time
         || (u.get('promo_at', null) != null && request.time < u.promo_at + duration.value(u.get('promo_days', 0), 'd'));
-      return pro ? cfg.get('pro', 60) : cfg.get('free', 15);
+      let paid = u.get('tier', 'free') != 'free' && u.get('plan_until', request.time) >= request.time;
+      let top = paid && u.get('tier', 'free') in ['ultra', 'team_ultra', 'enterprise'];
+      let mid = paid && u.get('tier', 'free') in ['max', 'team_max'];
+      return top ? cfg.get('ultra', 300) : (mid ? cfg.get('max', 150) : (pro ? cfg.get('pro', 60) : cfg.get('free', 15)));
     }
 
     match /ai_usage/{usageId} {
@@ -459,6 +462,33 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'admin_note']);
       allow delete: if isAdmin() || (signedIn() && resource.data.owner == request.auth.uid);
+    }
+
+    // Team shelf: designs and trained models shared inside a team. The team ID is set on the member's account
+    // by an admin once a team plan is confirmed; only members with the same ID can read or add items.
+    function teamOk(uid) {
+      let u = get(/databases/$(database)/documents/users/$(uid)).data;
+      return u.get('team', '') != ''
+        && u.get('tier', 'free') in ['team', 'team_max', 'team_ultra']
+        && u.get('plan_until', request.time) >= request.time;
+    }
+
+    match /team_items/{tid} {
+      allow read: if signedIn() && (isAdmin() || (teamOk(request.auth.uid)
+        && resource.data.team == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.team));
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && teamOk(request.auth.uid)
+        && request.resource.data.keys().hasOnly(['team', 'kind', 'name', 'owner', 'owner_name', 'payload', 'created_at'])
+        && request.resource.data.team == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.team
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.kind in ['design', 'model']
+        && (request.resource.data.kind == 'design' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tier in ['team_max', 'team_ultra'])
+        && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 80
+        && request.resource.data.owner_name is string && request.resource.data.owner_name.size() <= 40
+        && request.resource.data.payload is string && request.resource.data.payload.size() <= 900000
+        && request.resource.data.created_at == request.time;
+      allow delete: if signedIn() && (isAdmin() || resource.data.owner == request.auth.uid);
     }
 
     // Record of prizes handed out (admin only).

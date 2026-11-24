@@ -23,7 +23,7 @@
   let promos = [];
   let winners = { cur: [], prev: [], curId: '', prevId: '' };
   let awarded = {};
-  let aiLimits = { free: 15, pro: 60 };
+  let aiLimits = { free: 15, pro: 60, max: 150, ultra: 300 };
   let offer = { active: false, code: '', text: '' };
   let cchal = [];
   let reports = [];
@@ -289,7 +289,7 @@
       const off = await db().collection('settings').doc('public_promo').get();
       if (off.exists) offer = { active: Boolean(off.data().active), code: off.data().code || '', text: off.data().text || '' };
       const lim = await db().collection('settings').doc('ai').get();
-      if (lim.exists) aiLimits = { free: Number(lim.data().free) || 15, pro: Number(lim.data().pro) || 60 };
+      if (lim.exists) aiLimits = { free: Number(lim.data().free) || 15, pro: Number(lim.data().pro) || 60, max: Number(lim.data().max) || 150, ultra: Number(lim.data().ultra) || 300 };
       const pr = await db().collection('promos').get();
       promos = pr.docs.map((d) => ({ code: d.id, ...d.data() })).sort((x, y) => String(y.created_at?.toMillis ? y.created_at.toMillis() : 0).localeCompare(String(x.created_at?.toMillis ? x.created_at.toMillis() : 0)));
       render();
@@ -348,7 +348,9 @@
     return `<div class="admin-card glass"><b>Assistant limits (live AI questions per member per day)</b>
       <p class="admin-notes">Enforced by the database. Lower these on a busy day so the free AI allowance lasts; the built-in assistant keeps working after the limit. Resets at midnight India time.</p>
       <div class="promo-form"><input id="limFree" type="number" min="1" max="500" value="${aiLimits.free}" /><span>free members</span>
-        <input id="limPro" type="number" min="1" max="1000" value="${aiLimits.pro}" /><span>Pro members</span>
+        <input id="limPro" type="number" min="1" max="1000" value="${aiLimits.pro}" /><span>Pro and Team Pro</span>
+        <input id="limMax" type="number" min="1" max="2000" value="${aiLimits.max}" /><span>Max and Team Max</span>
+        <input id="limUltra" type="number" min="1" max="5000" value="${aiLimits.ultra}" /><span>Ultra, Team Ultra and Custom</span>
         <button class="btn btn-primary small" id="limSave">Save limits</button></div></div>
       ${offerHtml()}${promosHtmlCodes()}`;
   }
@@ -630,11 +632,12 @@
     let list = users.slice().sort((a, b) => String(b.email).localeCompare(String(a.email)));
     if (search) list = list.filter((u) => [u.email, u.displayName, u.org, u.uid].some((v) => String(v || '').toLowerCase().includes(search)));
     if (!list.length) return '<div class="empty-state"><strong>No customers found</strong><span>Try a different search.</span></div>';
-    return `${counterCardHtml()}<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Customer</th><th title="Tick to include this account in the public member count on the home page">Counts</th><th>Plan</th><th>Business verified</th><th>User ID</th></tr></thead><tbody>${list.slice(0, 200).map((u) => `
+    return `${counterCardHtml()}<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Customer</th><th title="Tick to include this account in the public member count on the home page">Counts</th><th>Plan</th><th title="Team plans: type the team ID (for example school-robotics) and press Enter. Give every member of the team the same ID.">Team ID</th><th>Business verified</th><th>User ID</th></tr></thead><tbody>${list.slice(0, 200).map((u) => `
       <tr>
         <td><b>${esc(u.org || u.displayName || '')}</b><br><span>${esc(u.email)}</span></td>
         <td><input type="checkbox" data-count-uid="${esc(u.uid)}" ${u.exclude_stats ? '' : 'checked'} aria-label="Counts in the public member number" /></td>
         <td><select data-tier-uid="${esc(u.uid)}">${TIERS.map((t) => `<option value="${t}" ${t === (u.tier || 'free') ? 'selected' : ''}>${planName(t)}</option>`).join('')}</select></td>
+        <td><input type="text" class="admin-team" data-team-uid="${esc(u.uid)}" maxlength="40" value="${esc(u.team || '')}" placeholder="none" aria-label="Team ID" /></td>
         <td><button class="btn ${u.kyb_status === 'approved' ? 'btn-primary' : 'btn-glass'} small" data-kyb="${esc(u.uid)}" data-state="${u.kyb_status === 'approved' ? 'pending' : 'approved'}">${u.kyb_status === 'approved' ? 'Verified ✓' : 'Verify'}</button></td>
         <td><code>${esc(short(u.uid))}</code> <button class="text-btn" data-copy="${esc(u.uid)}">Copy</button></td>
       </tr>`).join('')}</tbody></table></div>`;
@@ -711,8 +714,10 @@
       else if (t.id === 'limSave') {
         const free = Math.max(1, Math.min(500, Number(q('#limFree').value) || 15));
         const pro = Math.max(1, Math.min(1000, Number(q('#limPro').value) || 60));
-        await db().collection('settings').doc('ai').set({ free, pro });
-        aiLimits = { free, pro };
+        const mx = Math.max(1, Math.min(2000, Number(q('#limMax').value) || 150));
+        const ul = Math.max(1, Math.min(5000, Number(q('#limUltra').value) || 300));
+        await db().collection('settings').doc('ai').set({ free, pro, max: mx, ultra: ul });
+        aiLimits = { free, pro, max: mx, ultra: ul };
         notify(`Limits saved: ${free} free, ${pro} Pro per day.`, 'success', 3500);
         render();
       }
@@ -762,6 +767,17 @@
         if (u) u.exclude_stats = !cnt.checked;
         render();
       } catch (err) { notify(err.message || 'Could not change that.', 'error', 4000); cnt.checked = !cnt.checked; }
+      return;
+    }
+    const tm = e.target.closest('[data-team-uid]');
+    if (tm) {
+      const id = tm.value.trim();
+      if (id && !/^[A-Za-z0-9_-]{2,40}$/.test(id)) { notify('Use letters, numbers, dash or underscore (2 to 40 characters).', 'warning', 4000); return; }
+      try {
+        await db().collection('users').doc(tm.dataset.teamUid).update({ team: id });
+        const u = users.find((x) => x.uid === tm.dataset.teamUid); if (u) u.team = id;
+        notify(id ? `Team ID set to ${id}.` : 'Team ID removed.', 'success', 2500);
+      } catch (err) { notify(err.message || 'Could not set the team ID.', 'error', 4000); }
       return;
     }
     const sel = e.target.closest('[data-tier-uid]');

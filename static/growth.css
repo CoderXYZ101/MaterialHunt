@@ -713,3 +713,11 @@ button.term-hint { background: transparent; padding: 0; line-height: 1; font-fam
 .plan-note { margin: 18px 0; padding: 16px 18px; }
 .plan-note h3 { margin: 0 0 6px; font-size: 16px; }
 .plan-note p { margin: 0; line-height: 1.6; }
+
+/* Workspace */
+.ml-models { margin-top: 16px; padding: 16px 18px; }
+.ml-models h3 { margin: 4px 0 6px; }
+.ml-save-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+.ml-save-row input { flex: 1 1 220px; min-width: 0; }
+.ml-model-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.admin-team { width: 120px; }

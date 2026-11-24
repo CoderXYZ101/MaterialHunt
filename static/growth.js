@@ -30,7 +30,7 @@
 
   const rupee = (v) => `₹${Number(v).toLocaleString('en-IN')}`;
   const PAID = ['pro', 'max', 'ultra', 'team', 'team_max', 'team_ultra', 'enterprise'];
-  const SOON = ['max', 'ultra', 'team', 'team_max', 'team_ultra'];
+  const SOON = [];
 
   /* ------------------------------------------------------------------ */
   /* Referral + analytics (consent-based)                                 */
@@ -222,11 +222,11 @@
   /* ------------------------------------------------------------------ */
   const PLAN_COPY = {
     pro: { name: 'Pro', blurb: 'Unlimited PDF reports and RFQ sheets, and a higher daily limit on the AI assistant.' },
-    max: { name: 'Max (early access)', blurb: 'Coming soon: everything in Pro, plus a private workspace to train and compare machine-learning models on your own data. Leave your details and we will tell you when it is ready.' },
-    ultra: { name: 'Ultra (early access)', blurb: 'Coming soon: everything in Max with the largest own-data workspace and priority support. Leave your details and we will tell you when it is ready.' },
-    team: { name: 'Team Pro (early access)', blurb: 'Coming soon: Pro for up to 5 people with shared tools. Leave your details and we will tell you when it is ready.' },
-    team_max: { name: 'Team Max (early access)', blurb: 'Coming soon: Max for up to 10 people, with models and designs shared across the team. Leave your details and we will tell you when it is ready.' },
-    team_ultra: { name: 'Team Ultra (early access)', blurb: 'Coming soon: Ultra for up to 25 people, with shared models, a team library and priority support. Leave your details and we will tell you when it is ready.' },
+    max: { name: 'Max', blurb: 'Everything in Pro, with a bigger own-data ML workspace, up to 10 saved models you can compare side by side, and a higher AI assistant limit.' },
+    ultra: { name: 'Ultra', blurb: 'Everything in Max, with the largest own-data workspace, up to 50 saved models, a downloadable test-error report for each model, and the highest AI assistant limit.' },
+    team: { name: 'Team Pro', blurb: 'Pro for up to 5 people, with a team shelf for sharing designs. We set up your team after your plan is confirmed.' },
+    team_max: { name: 'Team Max', blurb: 'Max for up to 10 people, with a team shelf for sharing designs and trained models. We set up your team after your plan is confirmed.' },
+    team_ultra: { name: 'Team Ultra', blurb: 'Ultra for up to 25 people, with a team shelf for sharing designs and trained models. We set up your team after your plan is confirmed.' },
     enterprise: { name: 'Custom plan', blurb: 'Tell us how many people you are and what you need, and we will reply by email with a quote.' },
   };
   let billing = 'month';
@@ -336,7 +336,7 @@
     if (!modal) { modal = document.createElement('div'); modal.id = 'upgradeModal'; modal.className = 'modal-backdrop hidden'; document.body.appendChild(modal); }
     const u = state.user || {};
     const opts = paymentOptions(plan);
-    const canPay = plan === 'pro' && (opts.razorpay || opts.link || opts.upi);
+    const canPay = plan !== 'enterprise' && (opts.razorpay || opts.link || opts.upi);
     modal.innerHTML = `<div class="auth-modal glass tool-modal" role="dialog" aria-modal="true"><button class="modal-close" data-x aria-label="Close">×</button>
       <span class="panel-kicker">${plan === 'enterprise' ? 'TELL US WHAT YOU NEED' : SOON.includes(plan) ? 'COMING SOON' : 'UPGRADE'}</span>
       <h2>${esc(info.name)}</h2><p class="micro-note">${esc(info.blurb)}</p>
@@ -378,18 +378,18 @@
   window.openUpgrade = openUpgrade;
 
   /* Plans. A feature starting with "~" is planned, not built yet, and is shown with a "planned" tag. */
-  const FREE_LIST = ['Unlimited simulations, all 118 elements', 'Closest Indian grade + indicative ₹/kg', 'Failure Doctor, Alloy Finder & Cost-Down Scanner', 'ML Lab and the two built-in models', '3 PDF reports or RFQ sheets / month', 'Save up to 5 designs', 'Design challenge, leaderboard and Forum'];
+  const FREE_LIST = ['Unlimited simulations, all 118 elements', 'Closest Indian grade + indicative ₹/kg', 'Failure Doctor, Alloy Finder & Cost-Down Scanner', 'ML Lab: the two built-in models, plus your own table up to 300 rows, 1 saved model', '3 PDF reports or RFQ sheets / month', 'Save up to 5 designs', 'Design challenge, leaderboard and Forum'];
   const PLAN_CARDS = {
     me: [
       { id: 'free', name: 'FREE', price: 0, cycle: 'forever · no card', list: FREE_LIST, cta: 'Create free account' },
-      { id: 'pro', name: 'PRO', tag: 'AVAILABLE', featured: true, list: ['Everything in Free', 'Unlimited PDF reports & RFQ sheets', 'Unlimited saved designs', 'Higher daily limit on the AI assistant', 'Early access to new tools', 'Email support'], cta: 'Upgrade to Pro' },
-      { id: 'max', name: 'MAX', tag: 'COMING SOON', list: ['Everything in Pro', '~Private ML workspace: train on your own data with larger tables', '~Save and compare several of your own models', '~Highest AI assistant limit', 'Priority email support'], cta: 'Request early access' },
-      { id: 'ultra', name: 'ULTRA', tag: 'COMING SOON', list: ['Everything in Max', '~Largest own-data workspace (no row limit)', '~Test-error report for every model you train', '~Early access to every new model and tool', 'Priority support, replies first'], cta: 'Request early access' },
+      { id: 'pro', name: 'PRO', tag: 'MOST PEOPLE', featured: true, list: ['Everything in Free', 'Unlimited PDF reports & RFQ sheets', 'Unlimited saved designs', 'Own-data ML up to 1,000 rows, 3 saved models', 'AI assistant: 60 questions a day', 'Email support'], cta: 'Upgrade to Pro' },
+      { id: 'max', name: 'MAX', list: ['Everything in Pro', 'Own-data ML up to 5,000 rows', 'Save up to 10 models and compare them side by side', 'AI assistant: 150 questions a day', 'Priority email support'], cta: 'Upgrade to Max' },
+      { id: 'ultra', name: 'ULTRA', list: ['Everything in Max', 'Own-data ML up to 50,000 rows', 'Save up to 50 models', 'Downloadable test-error report (CSV) for every model', 'AI assistant: 300 questions a day', 'Priority support, replies first'], cta: 'Upgrade to Ultra' },
     ],
     team: [
-      { id: 'team', name: 'TEAM PRO', tag: 'COMING SOON', seats: 'up to 5 seats', list: ['Everything in Pro for 5 people', '~Shared team design library', '~Team RFQ and report templates', 'Email support'], cta: 'Request early access' },
-      { id: 'team_max', name: 'TEAM MAX', tag: 'COMING SOON', seats: 'up to 10 seats', list: ['Everything in Team Pro, for 10 people', '~Shared private ML workspace', '~Models and designs shared across the team', 'Priority email support'], cta: 'Request early access' },
-      { id: 'team_ultra', name: 'TEAM ULTRA', tag: 'COMING SOON', seats: 'up to 25 seats', list: ['Everything in Team Max, for 25 people', '~Largest own-data workspace, shared', '~Admin view of team usage', 'Priority support, replies first'], cta: 'Request early access' },
+      { id: 'team', name: 'TEAM PRO', seats: 'up to 5 seats', list: ['Pro for every member', 'Team shelf: share designs with your team', 'We set up your team ID after payment', 'Email support'], cta: 'Get Team Pro' },
+      { id: 'team_max', name: 'TEAM MAX', seats: 'up to 10 seats', featured: true, tag: 'MOST TEAMS', list: ['Max for every member', 'Team shelf: share designs and trained models', 'We set up your team ID after payment', 'Priority email support'], cta: 'Get Team Max' },
+      { id: 'team_ultra', name: 'TEAM ULTRA', seats: 'up to 25 seats', list: ['Ultra for every member', 'Team shelf: share designs and trained models', 'We set up your team ID after payment', 'Priority support, replies first'], cta: 'Get Team Ultra' },
     ],
   };
   const CUSTOM_CARD = { id: 'enterprise', name: 'CUSTOM', customPrice: "Let's talk", cycle: 'more than 25 seats, or special needs', list: ['Tell us how many people and what you need', 'Custom grade and price lists, built to order', 'Onboarding for your team', 'We reply by email with a quote'], cta: 'Tell us what you need' };
@@ -399,9 +399,9 @@
     const priced = CONFIG.prices[c.id];
     const value = c.customPrice || (c.id === 'free' ? '₹0' : rupee(billing === 'year' ? priced.year : priced.month));
     const cycle = c.cycle || (billing === 'year' ? `per year · 2 months free${c.seats ? ` · ${c.seats}` : ''}` : `${c.seats ? `per team per month · ${c.seats}` : 'per month'} · ends by itself, no auto-renewal`);
-    const items = c.list.map((t) => (t.startsWith('~') ? `<li>${esc(t.slice(1))} <span class="planned-chip">planned</span></li>` : `<li>${esc(t)}</li>`)).join('');
+    const items = c.list.map((t) => `<li>${esc(t)}</li>`).join('');
     return `<article class="glass price-card${c.featured ? ' featured' : ''}">
-      ${c.tag ? `<span class="price-tag${c.tag === 'COMING SOON' ? ' soon' : ''}">${c.tag}</span>` : ''}
+      ${c.tag ? `<span class="price-tag">${c.tag}</span>` : ''}
       <span class="price-tier">${c.name}</span><strong class="price-value">${value}</strong><span class="price-cycle">${esc(cycle)}</span>
       <ul class="price-list">${items}</ul>
       <button class="btn ${c.featured ? 'btn-primary' : 'btn-glass'} full" data-plan-cta="${c.id}">${c.cta}</button></article>`;
