@@ -149,6 +149,7 @@ Rules:
     return JSON.stringify(ref).slice(0, 4800);
   }
 
+  const NOTED = new Set();
   const coded = (code) => Object.assign(new Error(code), { code });
   const LIMIT_NOTES = {
     sign_in_required: 'Sign in (free) to unlock the full AI assistant. Until then you get the built-in answers.',
@@ -281,6 +282,8 @@ Rules:
   }
 
   function localAnswer(text) {
+    const strong = (mentionedGrades(text).length === 0 || /(how|why|can i|should i|weld|machin|prevent|heat treat)/i.test(text)) ? window.MH_BRAIN?.answer(text, 0.26) : null;
+    if (strong) return strong;
     const t = T();
     const lower = text.toLowerCase();
     const req = t.parseRequirement(text);
@@ -372,7 +375,9 @@ Rules:
         if (a && a.text && !/Run one simulation first/.test(a.text) && (!generic || /(my|this|current|result|simulation|verdict|alloy|it|part)/i.test(text))) { out.html = a.text; out.followups = ['How can I make it cheaper?', 'Is it easy to machine?', 'Find a better alloy']; if (a.action) out.actions = [['fix', '', 'Apply suggested fix']]; return out; }
       } catch { /* fall through */ }
     }
-    out.html = `<p>I am in quick-answer mode right now, so I cannot take open-ended questions yet. I can <b>describe any grade</b> (try "tell me about 316L"), <b>compare two</b> ("316L vs 2205"), or <b>recommend metals</b> for a job ("part at 600°C, 200 MPa, under ₹1,000/kg").</p>`;
+    const loose = window.MH_BRAIN?.answer(text, 0.12);
+    if (loose) return loose;
+    out.html = `<p>I do not have a built-in answer for that one (open-ended questions use the live AI). On this device I can answer <b>60+ materials and manufacturing topics</b>, <b>describe any grade</b> (try "tell me about 316L"), <b>compare two</b> ("316L vs 2205"), or <b>recommend metals</b> for a job ("part at 600°C, 200 MPa, under ₹1,000/kg").</p>`;
     out.followups = ['Tell me about Ti-6Al-4V', '316L vs 2205 for seawater', 'Metal for 800°C under ₹1,500/kg'];
     return out;
   }
@@ -418,6 +423,7 @@ Rules:
   function runAction(kind, val) {
     if (kind === 'load' && T()?.BY_ID[val]) { T().applyGrade(T().BY_ID[val], {}); }
     else if (kind === 'view') setView(val);
+    else if (kind === 'fn') window.MH_ACTIONS?.[val]?.();
     else if (kind === 'find') {
       setView('ai-design');
       setTimeout(() => { const box = q('#aiDesignPrompt'); if (box) { box.value = val; q('#runAIDesign')?.click(); } }, 150);
@@ -505,10 +511,16 @@ Rules:
   window.copilotAsk = async function copilotAskV2(prompt) {
     const question = String(prompt || '').trim();
     if ((!question && !attached) || busy) return;
-    if (window.MH_PLAN && !window.MH_PLAN.use('ai')) return;
     restore();
     qa('#copilotMessages .chat-extras').forEach((n) => { qa('.chat-followups', n).forEach((f) => f.remove()); });
     const text = question || 'What can you tell me about this part?';
+    // Answers from the built-in (local) assistant are unlimited. Only cloud answers are counted and limited.
+    let liveBlock = '';
+    if (!state.user) liveBlock = 'sign_in_required';
+    else if (!state.user.email_verified) liveBlock = 'verify_required';
+    else if (window.MH_PLAN && window.MH_PLAN.remaining('ai') <= 0) liveBlock = 'daily_limit';
+    const goLive = !liveBlock && !attached && !aiOff && !localFirst(text);
+    if (goLive && window.MH_PLAN) window.MH_PLAN.use('ai');
     const userEl = addMessage('user');
     q('.chat-body', userEl).textContent = text;
     if (attached) { const img = document.createElement('img'); img.src = attached.preview; img.className = 'chat-thumb'; q('.chat-body', userEl).appendChild(img); }
@@ -522,23 +534,26 @@ Rules:
     let final = '';
     let parsed = null;
     try {
+      if (attached) throw new Error('photo-local');
+      if (liveBlock) throw coded(liveBlock);
       if (aiOff) throw new Error('ai-off');
-      if (!attached && localFirst(text)) throw new Error('ai-off');
+      if (!goLive) throw new Error('ai-off');
       final = await askModel(text, (partial) => { body.innerHTML = parseModelText(partial, true).html || '<span class="typing"><i></i><i></i><i></i></span>'; box.scrollTop = box.scrollHeight; });
       parsed = parseModelText(final, false);
       body.innerHTML = parsed.html;
     } catch (error) {
-      if (error.message !== 'ai-off') {
+      if (error.message !== 'ai-off' && error.message !== 'photo-local' && !error.code) {
         if (!usingProxy() && !/429|quota|rate|resource.?exhausted|network|fetch/i.test(String(error.message))) aiOff = true;
         console.warn('Live AI unavailable, using built-in assistant:', error.message || error);
       }
       chat = null;
       if (attached) {
-        parsed = { html: '<p>Reading photos is not available right now. Describe the part in words (metal, what happened, where it was used) and I will diagnose it, or open the Failure Doctor.</p>', followups: ['Open the Failure Doctor'], actions: [['view', 'doctor', 'Open Failure Doctor']] };
-        final = 'Photo analysis unavailable.';
+        try { parsed = await window.MH_VISION.photoReply(attached); final = parsed.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); }
+        catch { parsed = { html: '<p>I could not read that photo. Try another one, or describe the part in words (metal, what happened, where it was used) and I will diagnose it.</p>', followups: ['Open the Failure Doctor'], actions: [['view', 'doctor', 'Open Failure Doctor']] }; final = 'Photo could not be read.'; }
       } else {
         const local = localAnswer(text);
-        const note = LIMIT_NOTES[error.code];
+        let note = LIMIT_NOTES[error.code];
+        if (note && NOTED.has(error.code)) note = ''; else if (note) NOTED.add(error.code);
         parsed = { html: local.html + (note ? `<p class="micro-note">${esc(note)}</p>` : ''), followups: local.followups, actions: local.actions };
         final = local.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       }

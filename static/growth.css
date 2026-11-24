@@ -527,3 +527,32 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 @media (max-width: 720px) { .shape-colors { top: 44px; max-width: calc(100% - 24px); flex-wrap: wrap; } }
 
 .viewport-note { margin: 6px 4px 0; font-size: 11px; opacity: .65; text-align: center; }
+
+/* ---------- engine pill ---------- */
+.engine-strip { display: flex; justify-content: center; padding: 6px 12px 0; }
+.engine-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: .02em; padding: 3px 12px; border-radius: 999px; background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.35); color: #86efac; cursor: help; }
+.engine-pill .engine-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px #34d399; }
+.engine-pill.offline { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.4); color: #fcd34d; }
+.engine-pill.offline .engine-dot { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+[data-theme="light"] .engine-pill { color: #047857; }
+[data-theme="light"] .engine-pill.offline { color: #b45309; }
+
+/* ---------- scan / camera ---------- */
+.scan-box { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.scan-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 4px; font-size: 12px; opacity: .9; }
+.scan-chip { border: 1px solid rgba(148,163,184,.35); background: rgba(148,163,184,.1); color: inherit; padding: 4px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+.scan-chip:hover { border-color: #22d3ee; }
+.scan-card { display: grid; grid-template-columns: 120px 1fr; gap: 12px; margin-top: 12px; }
+.scan-thumb { width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); }
+.scan-info h4 { margin: 2px 0 4px; }
+.scan-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.scan-cloud { margin-top: 8px; padding: 10px; border-radius: 10px; background: rgba(34,211,238,.08); border: 1px solid rgba(34,211,238,.25); }
+.sc-bar { display: grid; grid-template-columns: 1fr 84px 34px; gap: 6px; align-items: center; font-size: 11px; margin: 3px 0; }
+.sc-bar div { height: 6px; border-radius: 3px; background: rgba(148,163,184,.2); overflow: hidden; }
+.sc-bar i { display: block; height: 100%; background: linear-gradient(90deg, #22d3ee, #34d399); }
+@media (max-width: 560px) { .scan-card { grid-template-columns: 1fr; } }
+.cam-modal { max-width: 560px; width: 94vw; }
+.cam-stage { position: relative; background: #05080f; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
+.cam-stage video { width: 100%; height: 100%; object-fit: cover; }
+.cam-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 18px; text-align: center; font-size: 13px; opacity: .85; }
+.cam-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }

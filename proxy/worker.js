@@ -314,6 +314,37 @@ async function handleAvatar(request, env, headers) {
   return reply(200, { ok: true }, headers);
 }
 
+/* ==========================================================================
+   Optional cloud look at a damage photo ("Escalate to Cloud AI")
+   The website analyses photos on the visitor's device first, for free. This only runs when the visitor
+   presses Escalate. It needs a signed-in, verified member and counts as one AI question (daily limit).
+   ========================================================================== */
+async function handleAnalyzeImage(request, env, headers) {
+  const auth = request.headers.get('Authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) return reply(401, { error: 'sign_in_required' }, headers);
+  let body;
+  try { body = await request.json(); } catch { return reply(400, { error: 'bad_request' }, headers); }
+  const image = String(body.image || '');
+  if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 220000) return reply(400, { error: 'bad_image' }, headers);
+  if (!env.AI) return reply(503, { error: 'unavailable' }, headers);
+  const quota = await bumpQuota(token, env);
+  if (!quota.ok) return reply(quota.status === 401 ? 401 : 429, { error: quota.status === 401 ? 'sign_in_required' : 'daily_limit' }, headers);
+
+  const hint = String(body.hint || '').replace(/[^A-Za-z0-9 ,.()-]/g, '').slice(0, 80);
+  const prompt = `This is a photo of a damaged metal part. In under 80 words: say which kind of damage it shows (corrosion, overheating, brittle fracture, fatigue crack or bending), what you can see that supports it, and one likely cause. If the photo is unclear, say so. A basic on-device check guessed: ${hint || 'nothing'}. Do not invent details you cannot see.`;
+  const raw = atob(image.slice(image.indexOf(',') + 1));
+  const bytes = Array.from(raw, (c) => c.charCodeAt(0));
+  for (const model of VISION_MODELS) {
+    try {
+      const out = await env.AI.run(model, { image: bytes, prompt, max_tokens: 200 });
+      const text = String((out && (out.description || out.response)) || '').trim();
+      if (text) return reply(200, { text: text.slice(0, 900) }, headers);
+    } catch { /* try the next model */ }
+  }
+  return reply(503, { error: 'unavailable' }, headers);
+}
+
 export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runPrizes(env).catch(() => {}));
@@ -329,6 +360,7 @@ export default {
     if (!allowed.includes(origin)) return reply(403, { error: 'This site is not allowed to use the assistant.' }, headers);
     if (new URL(request.url).pathname === '/run-prizes') return handleRun(request, env, headers);
     if (new URL(request.url).pathname === '/set-avatar') return handleAvatar(request, env, headers);
+    if (new URL(request.url).pathname === '/analyze-image') return handleAnalyzeImage(request, env, headers);
 
     let body;
     try { body = await request.json(); } catch { return reply(400, { error: 'Bad request' }, headers); }

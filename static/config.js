@@ -21,6 +21,13 @@ window.MH_CONFIG = {
      edited live in Admin -> Promo codes -> "Assistant limits" (no redeploy needed). */
   aiSummitMode: true,
 
+  /* ---------- Your own damage-photo model (optional) ----------
+     Train an Image Project at teachablemachine.withgoogle.com, export it ("Upload my model") and paste the
+     shared link here, for example: 'https://teachablemachine.withgoogle.com/models/XXXXXXXX/'
+     Name the classes with words like rust, heat damage, snapped, crack, bent. Leave empty to use the
+     basic built-in colour-and-texture check. Runs on the visitor's device and uses no cloud tokens. */
+  defectModelUrl: '',
+
   /* ---------- Payments ----------
      Fill in whichever options you have. Any option left empty is simply hidden.
 

@@ -2904,38 +2904,38 @@ class MaterialScene {
     }
   }
 
+  /* a small block of crystal (2x2x2 cubic cells, or three close-packed hexagonal layers) instead of a single cell */
   unitCellPositions() {
     const k = this.cellScale || 1;
-    const s = 2.35 * k;
-    const half = s / 2;
+    const u = 1.9 * k;
+    const P = [];
+    const add = (x, y, z) => P.push(new THREE.Vector3(x * u - u, y * u - u, z * u - u));
     if (this.structure === 'HCP') {
-      const radius = 1.38 * k;
-      const height = radius * 1.633;
-      const positions = [];
-      for (let level = -1; level <= 1; level += 2) {
-        for (let i = 0; i < 6; i += 1) {
-          const angle = (i / 6) * Math.PI * 2;
-          positions.push(new THREE.Vector3(radius * Math.cos(angle), (height / 2) * level, radius * Math.sin(angle)));
+      const a = u * 0.85;
+      const c = a * 1.633;
+      const reach = a * 1.62;
+      const layer = (shiftX, shiftZ, y) => {
+        for (let m = -3; m <= 3; m += 1) {
+          for (let n = -3; n <= 3; n += 1) {
+            const x = a * (m + n / 2) + shiftX;
+            const z = a * n * 0.866 + shiftZ;
+            if (Math.hypot(x, z) <= reach) P.push(new THREE.Vector3(x, y, z));
+          }
         }
-      }
-      for (let i = 0; i < 3; i += 1) {
-        const angle = (i / 3) * Math.PI * 2 + Math.PI / 6;
-        positions.push(new THREE.Vector3(radius * 0.577 * Math.cos(angle), 0, radius * 0.577 * Math.sin(angle)));
-      }
-      return { positions, threshold: radius * 1.02, s, half, hcp: true, radius, height };
+      };
+      layer(0, 0, -c / 2);
+      layer(a / 2, a * 0.2887, 0);
+      layer(0, 0, c / 2);
+      return { positions: P, threshold: a * 1.06, hcp: true, unit: u };
     }
-    const positions = [];
-    [-half, half].forEach((x) => [-half, half].forEach((y) => [-half, half].forEach((z) => positions.push(new THREE.Vector3(x, y, z)))));
+    for (let i = 0; i <= 2; i += 1) for (let j = 0; j <= 2; j += 1) for (let l = 0; l <= 2; l += 1) add(i, j, l);
     if (this.structure === 'BCC') {
-      positions.push(new THREE.Vector3(0, 0, 0));
-      return { positions, threshold: s * 0.9, s, half, hcp: false };
+      for (let i = 0; i < 2; i += 1) for (let j = 0; j < 2; j += 1) for (let l = 0; l < 2; l += 1) add(i + 0.5, j + 0.5, l + 0.5);
+      return { positions: P, threshold: u * 0.9, hcp: false, unit: u };
     }
-    positions.push(
-      new THREE.Vector3(-half, 0, 0), new THREE.Vector3(half, 0, 0),
-      new THREE.Vector3(0, -half, 0), new THREE.Vector3(0, half, 0),
-      new THREE.Vector3(0, 0, -half), new THREE.Vector3(0, 0, half),
-    );
-    return { positions, threshold: s * 0.74, s, half, hcp: false };
+    const halves = [0.5, 1.5];
+    halves.forEach((x) => halves.forEach((y) => { for (let z = 0; z <= 2; z += 1) { add(x, y, z); add(x, z, y); add(z, x, y); } }));
+    return { positions: P, threshold: u * 0.75, hcp: false, unit: u };
   }
 
   buildLattice() {
@@ -2971,11 +2971,11 @@ class MaterialScene {
     const bag = [];
     share.forEach((x) => { for (let i = 0; i < x.n; i += 1) bag.push(x.el); });
     for (let i = bag.length - 1; i > 0; i -= 1) { const j = Math.floor(rand() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
-    const amp = clamp(mismatch * 9, 0, 0.3);
+    const amp = clamp(mismatch * 4, 0, 0.12) * (data.unit / 2.35) * 1.2;
     data.positions.forEach((p) => { if (amp > 0) p.add(new THREE.Vector3((rand() - 0.5) * 2 * amp, (rand() - 0.5) * 2 * amp, (rand() - 0.5) * 2 * amp)); });
     this.latticeInfo = { cell: this.cellScale, mismatch, structure: this.structure };
 
-    const sphereGeometry = new THREE.SphereGeometry(1, 26, 20);
+    const sphereGeometry = new THREE.SphereGeometry(1, 32, 24);
     const materialMap = new Map();
     data.positions.forEach((position, index) => {
       const el = bag[index] || this.composition[0];
@@ -3001,16 +3001,16 @@ class MaterialScene {
 
       const glowMaterial = new THREE.SpriteMaterial({
         map: this.glowTexture, color: new THREE.Color(el.color || '#7FB3FF'), transparent: true,
-        opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false,
+        opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false,
       });
       const halo = new THREE.Sprite(glowMaterial);
-      halo.scale.setScalar(atomRadius * 5.5);
+      halo.scale.setScalar(atomRadius * 4.2);
       halo.position.copy(position);
       this.latticeGroup.add(halo);
     });
     this.atomMaterials = Array.from(materialMap.values());
 
-    const bondGeometry = new THREE.CylinderGeometry(0.022, 0.022, 1, 6, 1, true);
+    const bondGeometry = new THREE.CylinderGeometry(0.028, 0.028, 1, 8, 1, false);
     const bondMaterial = new THREE.MeshStandardMaterial({
       color: 0x6f8dab, emissive: 0x0e7490, emissiveIntensity: 0.4, metalness: 0.9, roughness: 0.32,
       transparent: true, opacity: 0.62,
@@ -3035,34 +3035,6 @@ class MaterialScene {
       }
     }
 
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.2 });
-    if (!data.hcp) {
-      const box = new THREE.BoxGeometry(data.s, data.s, data.s);
-      this.latticeGroup.add(new THREE.LineSegments(new THREE.EdgesGeometry(box), lineMaterial));
-      box.dispose();
-    } else {
-      const points = [];
-      const halfH = data.height / 2;
-      for (let level = -1; level <= 1; level += 2) {
-        for (let i = 0; i < 6; i += 1) {
-          const angle1 = (i / 6) * Math.PI * 2;
-          const angle2 = ((i + 1) / 6) * Math.PI * 2;
-          points.push(
-            new THREE.Vector3(data.radius * Math.cos(angle1), halfH * level, data.radius * Math.sin(angle1)),
-            new THREE.Vector3(data.radius * Math.cos(angle2), halfH * level, data.radius * Math.sin(angle2)),
-          );
-        }
-      }
-      for (let i = 0; i < 6; i += 1) {
-        const angle = (i / 6) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(data.radius * Math.cos(angle), -halfH, data.radius * Math.sin(angle)),
-          new THREE.Vector3(data.radius * Math.cos(angle), halfH, data.radius * Math.sin(angle)),
-        );
-      }
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      this.latticeGroup.add(new THREE.LineSegments(geometry, lineMaterial));
-    }
     this.latticeGroup.rotation.set(0.12, -0.3, 0.05);
     this.updateTint();
   }
@@ -3323,7 +3295,7 @@ class MaterialScene {
       this.buildLattice();
       this.needsRebuild = false;
     }
-    this.radius = this.mode === 'dogbone' ? 9.8 : this.mode === 'lattice' ? 8.4 : 8.0;
+    this.radius = this.mode === 'dogbone' ? 9.8 : this.mode === 'lattice' ? 11.2 : 8.0;
     this.applyPhaseVisual();
   }
 
@@ -3551,6 +3523,7 @@ class MaterialScene {
         bond.scale.y = baseLength * (1 + Math.sin(time * 2.6 + bond.userData.phase) * (0.004 + tempNorm * 0.008));
       });
       const gas = this.phase === 'GASEOUS / VAPORIZED';
+      if (!this.dragging) this.latticeGroup.rotation.y += 0.0014;
       if (gas) {
         this.latticeGroup.scale.setScalar(1 + Math.sin(time * 2.2) * 0.012);
         this.latticeGroup.rotation.z = Math.sin(time * 0.7) * 0.02;
