@@ -892,6 +892,7 @@
       organization_name: p.org || fbUser.displayName || email.split('@')[0] || 'Member',
       org_id: p.org_id || '',
       team: String(p.team || ''),
+      team_slot: Number.isInteger(p.team_slot) ? p.team_slot : -1,
       tier,
       tier_name: TIER_NAMES[tier],
       role: p.role === 'admin' ? 'admin' : 'member',

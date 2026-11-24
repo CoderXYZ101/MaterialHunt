@@ -49,18 +49,15 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.claimed == true
         && request.resource.data.pro_until <= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days + 1, 'd')
         && request.resource.data.pro_until >= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days - 1, 'd');
-      // joining a team: only on a team plan, only to a name they own, or with that team's join code (see team_joins)
+      // joining or leaving a team: only to a seat that exists in team_members and belongs to this member
       allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['team'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['team', 'team_slot'])
         && request.resource.data.team is string
-        && resource.data.get('tier', 'free') in ['team', 'team_max', 'team_ultra']
-        && (request.resource.data.team == ''
-          || (exists(/databases/$(database)/documents/team_names/$(request.resource.data.team))
-              && get(/databases/$(database)/documents/team_names/$(request.resource.data.team)).data.owner == uid)
-          || (exists(/databases/$(database)/documents/team_codes/$(request.resource.data.team))
-              && exists(/databases/$(database)/documents/team_joins/$(uid))
-              && get(/databases/$(database)/documents/team_joins/$(uid)).data.team == request.resource.data.team
-              && get(/databases/$(database)/documents/team_joins/$(uid)).data.code == get(/databases/$(database)/documents/team_codes/$(request.resource.data.team)).data.code));
+        && request.resource.data.team_slot is int
+        && ((request.resource.data.team == '' && request.resource.data.team_slot == -1)
+          || (request.resource.data.team_slot >= 0
+              && exists(/databases/$(database)/documents/team_members/$(request.resource.data.team + '_' + string(request.resource.data.team_slot)))
+              && get(/databases/$(database)/documents/team_members/$(request.resource.data.team + '_' + string(request.resource.data.team_slot))).data.uid == uid));
       allow update: if isAdmin();
       // a member can delete their own account record (the website also removes the rest of their data)
       allow delete: if signedIn() && request.auth.uid == uid;
@@ -329,15 +326,60 @@ service cloud.firestore {
     // Daily limit on live AI questions. The assistant's server (Cloudflare Worker) counts each question here
     // using the member's own login, so this rule is what enforces the limit. Limits come from settings/ai
     // (editable by an admin, so they can be tightened on a busy day without redeploying).
+    // ----- teams -----
+    // A team has an owner (team_names). Each seat is one document in team_members named <team>_<slot>; documents are
+    // created once and never renamed, so the seat limit of the owner's plan cannot be exceeded. A member gets the
+    // owner's plan while the owner's plan is active.
+    function ownerData(team) {
+      return get(/databases/$(database)/documents/users/$(get(/databases/$(database)/documents/team_names/$(team)).data.owner)).data;
+    }
+
+    function teamActive(team) {
+      return exists(/databases/$(database)/documents/team_names/$(team))
+        && ownerData(team).get('tier', 'free') in ['team', 'team_max', 'team_ultra']
+        && ownerData(team).get('plan_until', request.time) >= request.time;
+    }
+
+    function seatsOf(team) {
+      return ownerData(team).get('tier', 'free') == 'team_ultra' ? 25 : (ownerData(team).get('tier', 'free') == 'team_max' ? 10 : 5);
+    }
+
+    function memberOf(team, uid) {
+      return team != ''
+        && get(/databases/$(database)/documents/users/$(uid)).data.get('team', '') == team
+        && get(/databases/$(database)/documents/users/$(uid)).data.get('team_slot', -1) >= 0
+        && exists(/databases/$(database)/documents/team_members/$(team + '_' + string(get(/databases/$(database)/documents/users/$(uid)).data.team_slot)))
+        && get(/databases/$(database)/documents/team_members/$(team + '_' + string(get(/databases/$(database)/documents/users/$(uid)).data.team_slot))).data.uid == uid;
+    }
+
+    function emailKey() {
+      return request.auth.token.email.lower().replace('[.]', ',');
+    }
+
+    function invitedTo(team) {
+      return request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/team_invites/$(emailKey()))
+        && get(/databases/$(database)/documents/team_invites/$(emailKey())).data.team == team;
+    }
+
+    // the plan name a member gets from their team (or 'free')
+    function teamPlanOf(uid) {
+      return memberOf(get(/databases/$(database)/documents/users/$(uid)).data.get('team', ''), uid)
+        && teamActive(get(/databases/$(database)/documents/users/$(uid)).data.team)
+        ? ownerData(get(/databases/$(database)/documents/users/$(uid)).data.team).tier : 'free';
+    }
+
+    // Assistant limits per plan come from settings/ai (editable by an admin).
     function aiCap() {
       let cfg = exists(/databases/$(database)/documents/settings/ai) ? get(/databases/$(database)/documents/settings/ai).data : {};
       let u = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      let pro = (u.get('tier', 'free') != 'free' && u.get('plan_until', request.time) >= request.time)
+      let ownPaid = u.get('tier', 'free') != 'free' && u.get('plan_until', request.time) >= request.time;
+      let t = ownPaid ? u.get('tier', 'free') : teamPlanOf(request.auth.uid);
+      let pro = t != 'free'
         || u.get('pro_until', request.time) > request.time
         || (u.get('promo_at', null) != null && request.time < u.promo_at + duration.value(u.get('promo_days', 0), 'd'));
-      let paid = u.get('tier', 'free') != 'free' && u.get('plan_until', request.time) >= request.time;
-      let top = paid && u.get('tier', 'free') in ['ultra', 'team_ultra', 'enterprise'];
-      let mid = paid && u.get('tier', 'free') in ['max', 'team_max'];
+      let top = t in ['ultra', 'team_ultra', 'enterprise'];
+      let mid = t in ['max', 'team_max'];
       return top ? cfg.get('ultra', 300) : (mid ? cfg.get('max', 150) : (pro ? cfg.get('pro', 60) : cfg.get('free', 15)));
     }
 
@@ -477,67 +519,100 @@ service cloud.firestore {
     }
 
     // Team names work like user names: first come, first served, and a name cannot be renamed. Only a member on a
-    // team plan can claim one. The code to join is kept in team_codes, which only the owner and admins can read.
+    // team plan can claim one. "plan" is a copy of the owner's plan that the owner keeps up to date (the rules check
+    // it against the owner's real plan); members' own screens use it, and the rules below use the real plan.
     match /team_names/{name} {
       allow read: if true;
       allow create: if signedIn()
         && request.auth.token.email_verified == true
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('tier', 'free') in ['team', 'team_max', 'team_ultra']
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('plan_until', request.time) >= request.time
         && name.matches('^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$')
-        && request.resource.data.keys().hasOnly(['owner', 'display', 'created_at'])
+        && request.resource.data.keys().hasOnly(['owner', 'display', 'plan', 'until', 'created_at'])
         && request.resource.data.owner == request.auth.uid
+        && request.resource.data.plan == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('tier', 'free')
+        && request.resource.data.until is number
         && request.resource.data.display is string && request.resource.data.display.size() >= 2 && request.resource.data.display.size() <= 40
         && request.resource.data.created_at == request.time;
+      allow update: if signedIn() && resource.data.owner == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['plan', 'until'])
+        && request.resource.data.plan == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('tier', 'free')
+        && request.resource.data.until is number;
       allow delete: if signedIn() && (isAdmin() || resource.data.owner == request.auth.uid);
     }
 
-    match /team_codes/{name} {
-      allow read: if signedIn() && (isAdmin()
-        || (exists(/databases/$(database)/documents/team_names/$(name))
-            && get(/databases/$(database)/documents/team_names/$(name)).data.owner == request.auth.uid));
-      allow create, update: if signedIn()
-        && exists(/databases/$(database)/documents/team_names/$(name))
-        && get(/databases/$(database)/documents/team_names/$(name)).data.owner == request.auth.uid
-        && request.resource.data.keys().hasOnly(['code'])
-        && request.resource.data.code is string && request.resource.data.code.size() >= 8 && request.resource.data.code.size() <= 12;
-      allow delete: if isAdmin();
-    }
-
-    // A member who wants to join a team writes the team name and code here; the users rule then checks the code.
-    match /team_joins/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow create, update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['team', 'code'])
-        && request.resource.data.team is string && request.resource.data.team.size() <= 40
-        && request.resource.data.code is string && request.resource.data.code.size() <= 12;
-      allow delete: if signedIn() && request.auth.uid == uid;
-    }
-
-    // Team shelf: designs and trained models shared inside a team. The team ID is set on the member's account
-    // by an admin once a team plan is confirmed; only members with the same ID can read or add items.
-    function teamOk(uid) {
-      let u = get(/databases/$(database)/documents/users/$(uid)).data;
-      return u.get('team', '') != ''
-        && u.get('tier', 'free') in ['team', 'team_max', 'team_ultra']
-        && u.get('plan_until', request.time) >= request.time;
-    }
-
-    match /team_items/{tid} {
-      allow read: if signedIn() && (isAdmin() || (teamOk(request.auth.uid)
-        && resource.data.team == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.team));
+    // One document per seat, named <team>_<slot>. The slot must be inside the owner's seat limit. A seat is taken by the
+    // team owner (slot 0, when the team is created) or by a person the owner invited by email.
+    match /team_members/{mid} {
+      allow read: if signedIn() && (isAdmin() || memberOf(resource.data.team, request.auth.uid) || invitedTo(resource.data.team));
       allow create: if signedIn()
         && request.auth.token.email_verified == true
-        && teamOk(request.auth.uid)
+        && request.resource.data.keys().hasOnly(['team', 'slot', 'uid', 'name', 'joined_at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.team is string
+        && request.resource.data.slot is int && request.resource.data.slot >= 0
+        && mid == request.resource.data.team + '_' + string(request.resource.data.slot)
+        && teamActive(request.resource.data.team)
+        && request.resource.data.slot < seatsOf(request.resource.data.team)
+        && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
+        && request.resource.data.joined_at == request.time
+        && (get(/databases/$(database)/documents/team_names/$(request.resource.data.team)).data.owner == request.auth.uid
+            || invitedTo(request.resource.data.team));
+      allow delete: if signedIn() && (isAdmin() || resource.data.uid == request.auth.uid
+        || get(/databases/$(database)/documents/team_names/$(resource.data.team)).data.owner == request.auth.uid);
+    }
+
+    // An invitation is addressed to an email address. Only the team owner can write one; the invited person (with a
+    // verified email) can read it, accept it by taking a seat, or decline it by deleting it.
+    match /team_invites/{ekey} {
+      allow read: if signedIn() && (isAdmin() || resource.data.by == request.auth.uid
+        || (request.auth.token.email_verified == true && ekey == emailKey()));
+      allow create, update: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['team', 'display', 'by', 'by_name', 'created_at'])
+        && request.resource.data.by == request.auth.uid
+        && get(/databases/$(database)/documents/team_names/$(request.resource.data.team)).data.owner == request.auth.uid
+        && teamActive(request.resource.data.team)
+        && ekey.matches('^[^/@ ]+@[^/ ]+$') && ekey.size() <= 200
+        && request.resource.data.display is string && request.resource.data.display.size() <= 40
+        && request.resource.data.by_name is string && request.resource.data.by_name.size() <= 40
+        && request.resource.data.created_at == request.time;
+      allow delete: if signedIn() && (isAdmin() || resource.data.by == request.auth.uid
+        || (request.auth.token.email_verified == true && ekey == emailKey()));
+    }
+
+    // Team shelf: designs and trained models shared inside a team. Trained models need a Team Max or Team Ultra team.
+    match /team_items/{tid} {
+      allow read: if signedIn() && (isAdmin() || (memberOf(resource.data.team, request.auth.uid) && teamActive(resource.data.team)));
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
         && request.resource.data.keys().hasOnly(['team', 'kind', 'name', 'owner', 'owner_name', 'payload', 'created_at'])
-        && request.resource.data.team == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.team
         && request.resource.data.owner == request.auth.uid
+        && memberOf(request.resource.data.team, request.auth.uid)
+        && teamActive(request.resource.data.team)
         && request.resource.data.kind in ['design', 'model']
-        && (request.resource.data.kind == 'design' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tier in ['team_max', 'team_ultra'])
+        && (request.resource.data.kind == 'design' || ownerData(request.resource.data.team).get('tier', 'free') in ['team_max', 'team_ultra'])
         && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 80
         && request.resource.data.owner_name is string && request.resource.data.owner_name.size() <= 40
         && request.resource.data.payload is string && request.resource.data.payload.size() <= 900000
         && request.resource.data.created_at == request.time;
       allow delete: if signedIn() && (isAdmin() || resource.data.owner == request.auth.uid);
+    }
+
+    // Team chat: plain text messages between the members of a team.
+    match /team_messages/{msgId} {
+      allow read: if signedIn() && (isAdmin() || (memberOf(resource.data.team, request.auth.uid) && teamActive(resource.data.team)));
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['team', 'owner', 'owner_name', 'text', 'created_at'])
+        && request.resource.data.owner == request.auth.uid
+        && memberOf(request.resource.data.team, request.auth.uid)
+        && teamActive(request.resource.data.team)
+        && request.resource.data.owner_name is string && request.resource.data.owner_name.size() <= 40
+        && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 500
+        && request.resource.data.created_at == request.time;
+      allow delete: if signedIn() && (isAdmin() || resource.data.owner == request.auth.uid
+        || get(/databases/$(database)/documents/team_names/$(resource.data.team)).data.owner == request.auth.uid);
     }
 
     // Record of prizes handed out (admin only).

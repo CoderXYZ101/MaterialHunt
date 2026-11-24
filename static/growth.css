@@ -726,3 +726,8 @@ button.term-hint { background: transparent; padding: 0; line-height: 1; font-fam
 .team-head h3 { margin: 0 0 4px; font-size: 16px; }
 .team-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
 .team-code { font-size: 18px; letter-spacing: .08em; padding: 3px 8px; border: 1px dashed rgba(34,211,238,.6); border-radius: 6px; }
+.chat-list { max-height: 360px; overflow-y: auto; padding: 8px; border: 1px solid rgba(148,163,184,.25); border-radius: 10px; margin-bottom: 8px; }
+.chat-msg { margin: 6px 0; padding: 6px 10px; border-radius: 10px; background: rgba(148,163,184,.12); max-width: 85%; }
+.chat-msg.mine { margin-left: auto; background: rgba(34,211,238,.14); }
+.chat-msg p { margin: 2px 0 0; }
+.chat-msg small { opacity: .65; }

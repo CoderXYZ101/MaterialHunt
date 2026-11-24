@@ -224,9 +224,9 @@
     pro: { name: 'Pro', blurb: 'Unlimited PDF reports and RFQ sheets, and a higher daily limit on the AI assistant.' },
     max: { name: 'Max', blurb: 'Everything in Pro, with a bigger own-data ML workspace, up to 10 saved models you can compare side by side, and a higher AI assistant limit.' },
     ultra: { name: 'Ultra', blurb: 'Everything in Max, with the largest own-data workspace, up to 50 saved models, a downloadable test-error report for each model, and the highest AI assistant limit.' },
-    team: { name: 'Team Pro', blurb: 'Pro for up to 5 people, with a team shelf for sharing designs. We set up your team after your plan is confirmed.' },
-    team_max: { name: 'Team Max', blurb: 'Max for up to 10 people, with a team shelf for sharing designs and trained models. We set up your team after your plan is confirmed.' },
-    team_ultra: { name: 'Team Ultra', blurb: 'Ultra for up to 25 people, with a team shelf for sharing designs and trained models. We set up your team after your plan is confirmed.' },
+    team: { name: 'Team Pro', blurb: 'Pro for up to 5 people. You add them by email and they get Pro. Includes a team chat and a shelf for sharing designs.' },
+    team_max: { name: 'Team Max', blurb: 'Max for up to 10 people. You add them by email and they get Max. Includes a team chat and a shelf for sharing designs and trained models.' },
+    team_ultra: { name: 'Team Ultra', blurb: 'Ultra for up to 25 people. You add them by email and they get Ultra. Includes a team chat and a shelf for sharing designs and trained models.' },
     enterprise: { name: 'Custom plan', blurb: 'Tell us how many people you are and what you need, and we will reply by email with a quote.' },
   };
   let billing = 'month';
@@ -387,9 +387,9 @@
       { id: 'ultra', name: 'ULTRA', list: ['Everything in Max', 'Own-data ML up to 50,000 rows', 'Save up to 50 models', 'Downloadable test-error report (CSV) for every model', 'AI assistant: 300 questions a day', 'Priority support, replies first'], cta: 'Upgrade to Ultra' },
     ],
     team: [
-      { id: 'team', name: 'TEAM PRO', seats: 'up to 5 seats', list: ['Pro for every member', 'Team shelf: share designs with your team', 'We set up your team ID after payment', 'Email support'], cta: 'Get Team Pro' },
-      { id: 'team_max', name: 'TEAM MAX', seats: 'up to 10 seats', featured: true, tag: 'MOST TEAMS', list: ['Max for every member', 'Team shelf: share designs and trained models', 'We set up your team ID after payment', 'Priority email support'], cta: 'Get Team Max' },
-      { id: 'team_ultra', name: 'TEAM ULTRA', seats: 'up to 25 seats', list: ['Ultra for every member', 'Team shelf: share designs and trained models', 'We set up your team ID after payment', 'Priority support, replies first'], cta: 'Get Team Ultra' },
+      { id: 'team', name: 'TEAM PRO', seats: 'up to 5 seats', list: ['Add up to 5 people by email, all get Pro', 'Team chat', 'Team shelf: share designs', 'Shows "Team full" when the seats are used', 'Email support'], cta: 'Get Team Pro' },
+      { id: 'team_max', name: 'TEAM MAX', seats: 'up to 10 seats', featured: true, tag: 'MOST TEAMS', list: ['Add up to 10 people by email, all get Max', 'Team chat', 'Team shelf: share designs and trained models', 'Priority email support'], cta: 'Get Team Max' },
+      { id: 'team_ultra', name: 'TEAM ULTRA', seats: 'up to 25 seats', list: ['Add up to 25 people by email, all get Ultra', 'Team chat', 'Team shelf: share designs and trained models', 'Priority support, replies first'], cta: 'Get Team Ultra' },
     ],
   };
   const CUSTOM_CARD = { id: 'enterprise', name: 'CUSTOM', customPrice: "Let's talk", cycle: 'more than 25 seats, or special needs', list: ['Tell us how many people and what you need', 'Custom grade and price lists, built to order', 'Onboarding for your team', 'We reply by email with a quote'], cta: 'Tell us what you need' };

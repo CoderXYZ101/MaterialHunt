@@ -3,8 +3,8 @@
    - caps(): what each plan allows (own-data rows, saved models, compare, test-error report).
    - "My models" panel in the ML Lab: save trained models (kept on this device in IndexedDB), reuse them,
      compare them side by side (Max and up), download a test-error report (Ultra).
-   - Team shelf (team plans): share designs, and trained models on Team Max and Team Ultra, with the
-     people your team ID was given to. Plans and team IDs are set by an admin after a request is confirmed.
+   - Teams (team plans): a team name (first come, first served), seats set by the owner's plan, people added by
+     email who accept in one tap and then get the team's plan, a team chat, and a shelf for designs and models.
    The limits are enforced in this page (the data lives on the member's own device), which is honest for
    features that are not secrets; the shared shelf and AI limits are enforced by the database rules.
    ========================================================================== */
@@ -33,7 +33,7 @@
   const caps = () => CAPS[BASE[tier()] || 'free'];
   const isTeam = () => ['team', 'team_max', 'team_ultra'].includes(tier());
   const canShareModels = () => ['team_max', 'team_ultra'].includes(tier());
-  const myTeam = () => String(state.user?.team || '');
+  const myTeam = () => (state.user && Number(state.user.team_slot) >= 0 ? String(state.user.team || '') : '');
   const upgrade = () => { const n = caps().next; if (n) window.openUpgrade?.(n.toLowerCase()); };
 
   /* ------------------------------------------------------------------ */
@@ -173,148 +173,169 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Team shelf                                                           */
+  /* Teams: names, seats, invitations by email, shelf and chat            */
   /* ------------------------------------------------------------------ */
-  let items = [];
-  let shelfLoaded = false;
-  const who = () => (window.MH_PROFILE?.displayName?.() || state.user?.organization_name || 'Member').slice(0, 40);
-  const ago = (t) => { const m = Math.max(0, (Date.now() - ms(t)) / 60000); if (!ms(t)) return 'just now'; if (m < 60) return `${Math.max(1, Math.round(m))} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; return `${Math.round(m / 1440)} d ago`; };
-
-  /* ---- team names: like a user name, first come first served ---- */
-  let teamInfo = null;
+  const SEATS = { team: 5, team_max: 10, team_ultra: 25 };
+  const RANK = { free: 0, guest: 0, pro: 1, team: 1, max: 2, team_max: 2, ultra: 3, team_ultra: 3, enterprise: 3 };
+  const PLAN_LABEL = { team: 'Team Pro', team_max: 'Team Max', team_ultra: 'Team Ultra' };
   const TEAM_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
   const slugTeam = (raw) => String(raw || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
   const uidNow = () => window.MH_FIREBASE?.auth?.currentUser?.uid || '';
-  const newCode = () => { const a = 'abcdefghjkmnpqrstuvwxyz23456789'; const r = new Uint32Array(10); (window.crypto || {}).getRandomValues?.(r); return Array.from(r, (n) => a[(n || Math.floor(Math.random() * 1e6)) % a.length]).join(''); };
+  const emailKey = (e) => String(e || '').trim().toLowerCase().replace(/\./g, ',');
+  const okEmail = (e) => /^[^@\s/]+@[^@\s/]+\.[^@\s/]+$/.test(e);
+  const who = () => (window.MH_PROFILE?.displayName?.() || state.user?.organization_name || 'Member').slice(0, 40);
+  const ago = (t) => { const m = Math.max(0, (Date.now() - ms(t)) / 60000); if (!ms(t)) return 'just now'; if (m < 60) return `${Math.max(1, Math.round(m))} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; return `${Math.round(m / 1440)} d ago`; };
 
-  async function loadTeamInfo() {
-    teamInfo = null;
-    if (!myTeam()) return;
+  let team = null;      // { id, display, owner, plan, until }
+  let members = [];
+  let sentInvites = [];
+  let myInvite = null;  // { key, team, display, by_name, plan }
+  let items = [];
+  let messages = [];
+  let tab = 'chat';
+  let stopChat = null;
+  let note = '';
+
+  const seatsOf = () => (team ? (SEATS[team.plan] || 5) : 0);
+  const isOwner = () => Boolean(team && team.owner === uidNow());
+  const full = () => team && members.length >= seatsOf();
+  const say = (m) => { note = m; const e = q('#teamMsg'); if (e) e.textContent = m; };
+
+  /* members get the team's plan while the team's plan is active */
+  function applyTeamPlan() {
+    const u = state.user;
+    if (!u) return;
+    if (u._ownTier === undefined) u._ownTier = u.tier;
+    let tierNow = u._ownTier;
+    if (team && RANK[team.plan] > (RANK[u._ownTier] || 0) && (!team.until || team.until > Date.now())) tierNow = team.plan;
+    if (tierNow !== u.tier) { u.tier = tierNow; u.tier_name = PLAN_LABEL[tierNow] || tierNow; window.MH_GROWTH?.renderPricing?.(); }
+  }
+
+  async function loadTeam() {
+    team = null; members = []; sentInvites = []; myInvite = null;
+    const u = state.user;
+    if (!u || !u.email_verified) { applyTeamPlan(); return; }
     try {
       await window.MH_FIREBASE.initFirebase();
-      const n = await db().collection('team_names').doc(myTeam()).get();
-      if (n.exists) {
-        teamInfo = { id: myTeam(), ...n.data() };
-        if (teamInfo.owner === uidNow()) { const c = await db().collection('team_codes').doc(myTeam()).get(); teamInfo.code = c.exists ? c.data().code : ''; }
+      const id = myTeam();
+      if (id) {
+        const n = await db().collection('team_names').doc(id).get();
+        const seat = n.exists ? await db().collection('team_members').doc(`${id}_${u.team_slot}`).get() : null;
+        if (n.exists && seat && seat.exists && seat.data().uid === uidNow()) team = { id, ...n.data() };
+        else { await db().collection('users').doc(uidNow()).update({ team: '', team_slot: -1 }); u.team = ''; u.team_slot = -1; }
       }
-    } catch { teamInfo = null; }
+      if (team) {
+        members = (await db().collection('team_members').where('team', '==', team.id).get()).docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.slot - b.slot);
+        if (isOwner()) {
+          sentInvites = (await db().collection('team_invites').where('by', '==', uidNow()).get()).docs.map((d) => ({ key: d.id, ...d.data() })).filter((i) => i.team === team.id);
+          const real = u._ownTier;
+          const until = Date.parse(u.trial_until || '') || 0;
+          if (SEATS[real] && (team.plan !== real || (team.until || 0) !== until)) {
+            try { await db().collection('team_names').doc(team.id).update({ plan: real, until }); team.plan = real; team.until = until; } catch { /* keep the old copy */ }
+          }
+        }
+      } else if (u.email) {
+        const inv = await db().collection('team_invites').doc(emailKey(u.email)).get();
+        if (inv.exists) {
+          const n = await db().collection('team_names').doc(inv.data().team).get();
+          myInvite = { key: inv.id, ...inv.data(), plan: n.exists ? n.data().plan : '' };
+        }
+      }
+    } catch { /* offline: leave what we have */ }
+    applyTeamPlan();
   }
 
-  function renderHead() {
-    const h = q('#teamHead');
-    if (!h) return;
-    if (myTeam()) {
-      const owner = teamInfo && teamInfo.owner === uidNow();
-      h.innerHTML = `<div class="glass team-head"><p><b>${esc(teamInfo?.display || myTeam())}</b> <small>(team name: <code>${esc(myTeam())}</code>)</small></p>
-        ${owner ? `<p class="micro-note">Share this join code with your teammates. They need a team plan on their account, then they press "Join a team" and enter the name and this code.</p>
-          <p><code class="team-code">${esc(teamInfo.code || '')}</code> <button class="btn btn-ghost small" data-t="copy">Copy code</button> <button class="btn btn-ghost small" data-t="newcode">Make a new code</button></p>` : ''}
-        <button class="btn btn-ghost small" data-t="leave">Leave this team</button></div>`;
-      return;
-    }
-    h.innerHTML = `<div class="glass team-head"><div class="team-two"><div><h3>Create a team</h3>
-        <p class="micro-note">Pick a name. It works like a user name: the first person to take it keeps it, and if it is taken you pick another.</p>
-        <div class="ml-save-row"><input id="teamNew" type="text" maxlength="40" placeholder="e.g. SEA Robotics Club" /><button class="btn btn-glass small" data-t="check">Check name</button><button class="btn btn-primary small" data-t="create">Create team</button></div></div>
-        <div><h3>Join a team</h3>
-        <p class="micro-note">Your team owner gives you the name and a join code.</p>
-        <div class="ml-save-row"><input id="teamJoinName" type="text" maxlength="40" placeholder="Team name" /><input id="teamJoinCode" type="text" maxlength="12" placeholder="Join code" /><button class="btn btn-primary small" data-t="join">Join a team</button></div></div></div>
-        <p class="micro-note" id="teamMsg" aria-live="polite"></p></div>`;
-  }
-  const say = (m) => { const e = q('#teamMsg'); if (e) e.textContent = m; };
-
-  async function afterTeamChange(teamId) {
-    state.user.team = teamId;
-    shelfLoaded = false; items = [];
-    await loadShelf();
-  }
-
-  async function teamAction(t) {
-    const a = t.dataset.t;
-    if (!state.user?.email_verified) { notify('Please verify your email first.', 'warning', 4000); return; }
-    await window.MH_FIREBASE.initFirebase();
-    if (a === 'copy') { navigator.clipboard?.writeText(teamInfo?.code || ''); notify('Code copied.', 'success', 2000); return; }
-    if (a === 'newcode') {
-      const code = newCode();
-      try { await db().collection('team_codes').doc(myTeam()).set({ code }); teamInfo.code = code; renderHead(); notify('New code made. The old one no longer works.', 'success', 3000); } catch { notify('Could not make a new code.', 'error', 3500); }
-      return;
-    }
-    if (a === 'leave') {
-      if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Sure? Press again'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Leave this team'; } }, 3000); return; }
-      try { await db().collection('users').doc(uidNow()).update({ team: '' }); await afterTeamChange(''); } catch { notify('Could not leave the team.', 'error', 3500); }
-      return;
-    }
-    if (a === 'check' || a === 'create') {
-      const raw = (q('#teamNew')?.value || '').trim();
-      const id = slugTeam(raw);
-      if (!TEAM_RE.test(id)) { say('Use 3 to 40 letters or numbers. Spaces become dashes.'); return; }
-      let taken = false;
-      try { taken = (await db().collection('team_names').doc(id).get()).exists; } catch { say('Could not check. Are you online?'); return; }
-      if (taken) { say(`"${id}" is taken. Try another name.`); return; }
-      if (a === 'check') { say(`"${id}" is free. Press "Create team" to take it.`); return; }
-      try {
-        await db().collection('team_names').doc(id).set({ owner: uidNow(), display: raw.slice(0, 40), created_at: FV().serverTimestamp() });
-        await db().collection('team_codes').doc(id).set({ code: newCode() });
-        await db().collection('users').doc(uidNow()).update({ team: id });
-        notify(`Team "${raw}" created. Share the join code with your teammates.`, 'success', 5000);
-        await afterTeamChange(id);
-      } catch { say('Could not create the team. Your account needs an active team plan and a verified email, or someone just took that name.'); }
-      return;
-    }
-    if (a === 'join') {
-      const id = slugTeam(q('#teamJoinName')?.value || '');
-      const code = (q('#teamJoinCode')?.value || '').trim().toLowerCase();
-      if (!TEAM_RE.test(id) || code.length < 8) { say('Enter the team name and the join code.'); return; }
-      try {
-        await db().collection('team_joins').doc(uidNow()).set({ team: id, code });
-        await db().collection('users').doc(uidNow()).update({ team: id });
-        notify('You joined the team.', 'success', 4000);
-        await afterTeamChange(id);
-      } catch { say('Could not join. Check the name and code, and that your account is on a team plan.'); }
-      try { await db().collection('team_joins').doc(uidNow()).delete(); } catch { /* ignore */ }
-    }
-  }
-
-  async function loadShelf() {
-    const host = q('#teamList');
-    await loadTeamInfo();
-    renderHead();
-    if (!myTeam()) { shelfLoaded = true; renderShelf(); return; }
+  /* ---------------- actions ---------------- */
+  async function createTeam() {
+    const raw = (q('#teamNew')?.value || '').trim();
+    const id = slugTeam(raw);
+    if (!TEAM_RE.test(id)) { say('Use 3 to 40 letters or numbers. Spaces become dashes.'); return; }
+    let taken = false;
+    try { taken = (await db().collection('team_names').doc(id).get()).exists; } catch { say('Could not check. Are you online?'); return; }
+    if (taken) { say(`"${id}" is taken. Try another name.`); return; }
+    const real = state.user._ownTier;
+    if (!SEATS[real]) { say('Creating a team needs a Team Pro, Team Max or Team Ultra plan on your account.'); return; }
     try {
-      await window.MH_FIREBASE.initFirebase();
-      const s = await db().collection('team_items').where('team', '==', myTeam()).limit(100).get();
-      items = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.created_at) - ms(a.created_at));
-      shelfLoaded = true;
-    } catch {
-      if (host) host.innerHTML = '<div class="empty-state"><strong>The team shelf could not load</strong><span>It needs an internet connection and an active team plan.</span></div>';
-      return;
-    }
-    renderShelf();
+      await db().collection('team_names').doc(id).set({ owner: uidNow(), display: raw.slice(0, 40), plan: real, until: Date.parse(state.user.trial_until || '') || 0, created_at: FV().serverTimestamp() });
+      await db().collection('team_members').doc(`${id}_0`).set({ team: id, slot: 0, uid: uidNow(), name: who(), joined_at: FV().serverTimestamp() });
+      await db().collection('users').doc(uidNow()).update({ team: id, team_slot: 0 });
+      state.user.team = id; state.user.team_slot = 0;
+      notify(`Team "${raw}" created. Add your teammates by email.`, 'success', 5000);
+      note = ''; tab = 'members';
+      await loadTeam(); render();
+    } catch { say('Could not create the team. Your plan must be active and your email verified, or someone just took that name.'); }
   }
 
-  function renderShelf() {
-    const host = q('#teamList');
-    if (!host) return;
-    if (!myTeam()) {
-      host.innerHTML = '<div class="empty-state"><strong>You are not in a team yet</strong><span>Create a team or join one with a code, above.</span></div>';
-      return;
-    }
-    host.innerHTML = items.length ? items.map((i) => `<article class="forum-thread glass"><div class="forum-body" style="padding-top:14px">
-        <span class="forum-cat">${i.kind === 'model' ? 'Trained model' : 'Design'}</span>
-        <p><b>${esc(i.name)}</b><br><small>${esc(i.owner_name || 'Member')} · ${esc(ago(i.created_at))}</small></p>
-        <div class="admin-actions"><button class="btn btn-primary small" data-ti="open" data-id="${esc(i.id)}">${i.kind === 'model' ? 'Open in ML Lab' : 'Open in Simulator'}</button>
-          ${i.owner === state.user?.id ? `<button class="btn btn-ghost small" data-ti="del" data-id="${esc(i.id)}">Remove</button>` : ''}</div></div></article>`).join('')
-      : `<div class="empty-state"><strong>${shelfLoaded ? 'Nothing shared yet' : 'Loading…'}</strong><span>${shelfLoaded ? 'Share a design from the Simulator, or a trained model from the ML Lab, so your team can use it.' : ''}</span></div>`;
+  async function inviteByEmail() {
+    const email = (q('#teamEmail')?.value || '').trim().toLowerCase();
+    if (!okEmail(email)) { say('Enter a valid email address.'); return; }
+    if (full()) { say(`Team full: all ${seatsOf()} seats are used.`); return; }
+    if (members.length + sentInvites.filter((i) => i.key !== emailKey(email)).length >= seatsOf()) { say('All seats are taken or already promised to pending invitations. Cancel one first.'); return; }
+    try {
+      await db().collection('team_invites').doc(emailKey(email)).set({ team: team.id, display: team.display, by: uidNow(), by_name: who(), created_at: FV().serverTimestamp() });
+      say(`Added. When ${email} signs in with that email, they will see an invitation to join and can accept it.`);
+      if (q('#teamEmail')) q('#teamEmail').value = '';
+      await loadTeam(); renderBody();
+    } catch { say('Could not add them. Your team plan must be active.'); }
+  }
+
+  async function acceptInvite() {
+    const inv = myInvite;
+    if (!inv) return;
+    try {
+      const n = await db().collection('team_names').doc(inv.team).get();
+      if (!n.exists) { say('That team no longer exists.'); return; }
+      const seats = SEATS[n.data().plan] || 5;
+      const taken = (await db().collection('team_members').where('team', '==', inv.team).get()).docs.map((d) => d.data().slot);
+      let slot = -1;
+      for (let i = 0; i < seats && slot < 0; i += 1) {
+        if (taken.includes(i)) continue;
+        try { await db().collection('team_members').doc(`${inv.team}_${i}`).set({ team: inv.team, slot: i, uid: uidNow(), name: who(), joined_at: FV().serverTimestamp() }); slot = i; } catch { /* taken a moment ago or no seat: try the next */ }
+      }
+      if (slot < 0) { say(`Team full: all ${seats} seats are used. Ask the team owner to free a seat.`); return; }
+      await db().collection('users').doc(uidNow()).update({ team: inv.team, team_slot: slot });
+      state.user.team = inv.team; state.user.team_slot = slot;
+      try { await db().collection('team_invites').doc(inv.key).delete(); } catch { /* ignore */ }
+      notify('You joined the team. You now have the team plan.', 'success', 5000);
+      note = ''; tab = 'chat';
+      await loadTeam(); mountShelf(); render();
+    } catch { say('Could not join. Please try again.'); }
+  }
+
+  async function declineInvite() {
+    if (!myInvite) return;
+    try { await db().collection('team_invites').doc(myInvite.key).delete(); } catch { /* ignore */ }
+    myInvite = null; note = ''; mountShelf(); render();
+  }
+
+  async function leaveTeam() {
+    try {
+      await db().collection('team_members').doc(`${team.id}_${state.user.team_slot}`).delete();
+      await db().collection('users').doc(uidNow()).update({ team: '', team_slot: -1 });
+      state.user.team = ''; state.user.team_slot = -1;
+      stopChatNow(); note = '';
+      await loadTeam(); applyTeamPlan(); mountShelf(); render();
+    } catch { say('Could not leave the team.'); }
+  }
+
+  async function removeMember(id) {
+    const m = members.find((x) => x.id === id);
+    if (!m || m.uid === uidNow()) return;
+    try { await db().collection('team_members').doc(id).delete(); say(`${m.name} was removed. Their seat is free.`); await loadTeam(); renderBody(); } catch { say('Could not remove them.'); }
+  }
+
+  async function cancelInvite(key) {
+    try { await db().collection('team_invites').doc(key).delete(); await loadTeam(); renderBody(); } catch { say('Could not cancel it.'); }
   }
 
   async function put(kind, name, payload) {
-    if (!myTeam()) { notify('Your team is not set up yet.', 'warning', 4000); return false; }
-    if (!state.user?.email_verified) { notify('Please verify your email first.', 'warning', 4000); return false; }
+    if (!team) { notify('Join or create a team first.', 'warning', 4000); return false; }
     const text = JSON.stringify(payload);
     if (text.length > 900000) { notify('That is too big to share. Train it with fewer trees and try again.', 'warning', 5000); return false; }
     try {
-      await window.MH_FIREBASE.initFirebase();
-      await db().collection('team_items').add({ team: myTeam(), kind, name: String(name).slice(0, 80), owner: window.MH_FIREBASE.auth.currentUser.uid, owner_name: who(), payload: text, created_at: FV().serverTimestamp() });
+      await db().collection('team_items').add({ team: team.id, kind, name: String(name).slice(0, 80), owner: uidNow(), owner_name: who(), payload: text, created_at: FV().serverTimestamp() });
       notify('Shared with your team.', 'success', 3000);
-      await loadShelf();
+      await loadItems();
       return true;
     } catch { notify('Could not share it. Your team plan may have ended.', 'error', 4500); return false; }
   }
@@ -322,32 +343,147 @@
   async function shareDesign() {
     const snap = window.MH_DESIGNS?.snapshot?.();
     if (!snap) { notify('Run a simulation first, then share it.', 'info', 3500); return; }
-    const name = (q('#teamName')?.value || '').trim() || 'Untitled design';
-    await put('design', name, snap);
+    await put('design', (q('#teamName')?.value || '').trim() || 'Untitled design', snap);
   }
   async function shareModel(m) {
     if (!canShareModels()) { notify('Sharing models needs Team Max or Team Ultra.', 'info', 4000); return; }
     await put('model', m.name, { format: 'materialhunt-ml-1', prop: m.prop || 'y', model: m.model });
   }
 
-  async function onShelfClick(e) {
-    if (e.target.closest('#teamShare')) { await shareDesign(); return; }
-    if (e.target.closest('#teamRefresh')) { await loadShelf(); return; }
-    const t = e.target.closest('[data-ti]');
-    if (!t) return;
-    const it = items.find((x) => x.id === t.dataset.id);
-    if (!it) return;
-    if (t.dataset.ti === 'del') {
-      if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Sure?'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Remove'; } }, 3000); return; }
-      await db().collection('team_items').doc(it.id).delete(); items = items.filter((x) => x.id !== it.id); renderShelf(); return;
+  async function loadItems() {
+    items = [];
+    if (!team) return;
+    try {
+      const s = await db().collection('team_items').where('team', '==', team.id).limit(100).get();
+      items = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.created_at) - ms(a.created_at));
+    } catch { /* leave empty */ }
+    renderBody();
+  }
+
+  async function sendMessage() {
+    const box = q('#chatText');
+    const text = (box?.value || '').trim().slice(0, 500);
+    if (!text || !team) return;
+    try {
+      box.value = '';
+      await db().collection('team_messages').add({ team: team.id, owner: uidNow(), owner_name: who(), text, created_at: FV().serverTimestamp() });
+    } catch { box.value = text; notify('Could not send. Your team plan may have ended.', 'error', 3500); }
+  }
+
+  function startChatNow() {
+    stopChatNow();
+    if (!team || !db()) return;
+    try {
+      stopChat = db().collection('team_messages').where('team', '==', team.id).limit(200).onSnapshot((snap) => {
+        messages = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (ms(a.created_at) || Date.now()) - (ms(b.created_at) || Date.now()));
+        renderChat();
+      }, () => { /* no access */ });
+    } catch { stopChat = null; }
+  }
+  function stopChatNow() { if (stopChat) { try { stopChat(); } catch { /* ignore */ } stopChat = null; } }
+
+  /* ---------------- drawing ---------------- */
+  function renderChat() {
+    const l = q('#chatList');
+    if (!l) return;
+    const stick = l.scrollTop + l.clientHeight >= l.scrollHeight - 40;
+    l.innerHTML = messages.length ? messages.map((m) => `<div class="chat-msg${m.owner === uidNow() ? ' mine' : ''}"><small>${esc(m.owner_name || 'Member')} · ${esc(ago(m.created_at))}</small><p>${esc(m.text).replace(/\n/g, '<br>')}</p>${(m.owner === uidNow() || isOwner()) ? `<button class="text-btn" data-t="delmsg" data-id="${esc(m.id)}">delete</button>` : ''}</div>`).join('') : '<p class="micro-note">No messages yet. Say hello to your team.</p>';
+    if (stick) l.scrollTop = l.scrollHeight;
+  }
+
+  function renderBody() {
+    const b = q('#teamBody');
+    if (!b || !team) return;
+    const seatsLeft = seatsOf() - members.length;
+    if (tab === 'chat') {
+      b.innerHTML = `<div id="chatList" class="chat-list"></div>
+        <div class="ml-save-row"><input id="chatText" type="text" maxlength="500" placeholder="Message your team" /><button class="btn btn-primary small" data-t="send">Send</button></div>
+        <p class="micro-note">Only people in your team can see this. Be kind. Team owners can delete messages.</p>`;
+      renderChat();
+      startChatNow();
+      return;
     }
-    let data;
-    try { data = JSON.parse(it.payload); } catch { notify('That item is damaged.', 'error', 3000); return; }
-    if (it.kind === 'design') { window.MH_DESIGNS?.open?.({ ...data, name: it.name }); }
-    else {
-      setView('ml');
-      if (window.MH_ML?.loadLab?.(data.model, data.prop)) notify('Model loaded in the ML Lab. Press "Use as My ML" to use it in the other tabs.', 'success', 5000);
-      else notify('That model could not be loaded.', 'error', 3500);
+    stopChatNow();
+    if (tab === 'shelf') {
+      b.innerHTML = `<div class="ml-save-row"><input id="teamName" type="text" maxlength="80" placeholder="Name for the design you want to share" /><button class="btn btn-primary small" data-t="share">Share current design</button><button class="btn btn-ghost small" data-t="refresh">Refresh</button></div>
+        ${canShareModels() ? '<p class="micro-note">To share a trained model, save it in the ML Lab under My models, then press "Share with team".</p>' : '<p class="micro-note">Sharing trained models is part of Team Max and Team Ultra.</p>'}
+        ${items.length ? items.map((i) => `<article class="forum-thread glass"><div class="forum-body" style="padding-top:14px"><span class="forum-cat">${i.kind === 'model' ? 'Trained model' : 'Design'}</span>
+          <p><b>${esc(i.name)}</b><br><small>${esc(i.owner_name || 'Member')} · ${esc(ago(i.created_at))}</small></p>
+          <div class="admin-actions"><button class="btn btn-primary small" data-t="open" data-id="${esc(i.id)}">${i.kind === 'model' ? 'Open in ML Lab' : 'Open in Simulator'}</button>
+          ${(i.owner === uidNow() || isOwner()) ? `<button class="btn btn-ghost small" data-t="delitem" data-id="${esc(i.id)}">Remove</button>` : ''}</div></div></article>`).join('') : '<div class="empty-state"><strong>Nothing shared yet</strong><span>Share a design from the Simulator, or a trained model from the ML Lab.</span></div>'}`;
+      return;
+    }
+    b.innerHTML = `<p class="micro-note">${members.length} of ${seatsOf()} seats used${full() ? ' · <b>Team full</b>' : ` · ${seatsLeft} free`}. Everyone you add gets the ${esc(PLAN_LABEL[team.plan] || 'team')} plan while the team's plan is active.</p>
+      <div class="admin-table-wrap"><table class="ml-table"><thead><tr><th>Seat</th><th>Member</th><th></th></tr></thead><tbody>${members.map((m) => `<tr><td>${m.slot + 1}</td><td>${esc(m.name)}${m.uid === team.owner ? ' <small>(owner)</small>' : ''}${m.uid === uidNow() ? ' <small>(you)</small>' : ''}</td><td>${isOwner() && m.uid !== uidNow() ? `<button class="btn btn-ghost small" data-t="remove" data-id="${esc(m.id)}">Remove</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+      ${isOwner() ? `<h4>Add someone</h4>
+        <div class="ml-save-row"><input id="teamEmail" type="email" maxlength="200" placeholder="Their email address" ${full() ? 'disabled' : ''} /><button class="btn btn-primary small" data-t="invite" ${full() ? 'disabled' : ''}>${full() ? 'Team full' : 'Add'}</button></div>
+        <p class="micro-note">They need a MaterialHunt account with this verified email. When they sign in they see an invitation and accept it in one tap.</p>
+        ${sentInvites.length ? `<h4>Waiting for a reply</h4><ul class="dr-evidence">${sentInvites.map((i) => `<li>${esc(i.key.replace(/,/g, '.'))} <button class="text-btn" data-t="cancel" data-id="${esc(i.key)}">cancel</button></li>`).join('')}</ul>` : ''}` : `<button class="btn btn-ghost small" data-t="leave">Leave this team</button>`}`;
+  }
+
+  function render() {
+    const root = q('#teamRoot');
+    if (!root) return;
+    if (!state.user?.email_verified) { root.innerHTML = '<div class="empty-state"><strong>Verify your email first</strong><span>Teams need a verified email address.</span></div>'; return; }
+    if (team) {
+      root.innerHTML = `<div class="glass team-head"><p><b>${esc(team.display)}</b> <small>(<code>${esc(team.id)}</code>) · ${esc(PLAN_LABEL[team.plan] || 'Team')} · ${members.length} of ${seatsOf()} seats${full() ? ' · <b>Team full</b>' : ''}</small></p>
+        <div class="forum-chips"><button class="forum-chip${tab === 'chat' ? ' on' : ''}" data-t="tab" data-id="chat">Chat</button><button class="forum-chip${tab === 'shelf' ? ' on' : ''}" data-t="tab" data-id="shelf">Shelf</button><button class="forum-chip${tab === 'members' ? ' on' : ''}" data-t="tab" data-id="members">Members${isOwner() ? ' and invitations' : ''}</button></div>
+        <p class="micro-note" id="teamMsg" aria-live="polite">${esc(note)}</p></div><div id="teamBody"></div>`;
+      renderBody();
+      if (tab === 'shelf') loadItems();
+      return;
+    }
+    stopChatNow();
+    if (myInvite) {
+      root.innerHTML = `<div class="glass team-head"><h3>You have been invited</h3><p><b>${esc(myInvite.by_name || 'Someone')}</b> invited you to join <b>${esc(myInvite.display || myInvite.team)}</b>${myInvite.plan ? ` (${esc(PLAN_LABEL[myInvite.plan] || 'team')} plan)` : ''}. When you join, you get the team's plan while it is active.</p>
+        <div class="admin-actions"><button class="btn btn-primary small" data-t="accept">Accept</button><button class="btn btn-ghost small" data-t="decline">Decline</button></div><p class="micro-note" id="teamMsg" aria-live="polite">${esc(note)}</p></div>`;
+      return;
+    }
+    root.innerHTML = SEATS[state.user._ownTier]
+      ? `<div class="glass team-head"><h3>Create your team</h3>
+        <p class="micro-note">Pick a name. It works like a user name: the first person to take it keeps it, and if it is taken you pick another. Your ${esc(PLAN_LABEL[state.user._ownTier])} plan has ${SEATS[state.user._ownTier]} seats, including yours.</p>
+        <div class="ml-save-row"><input id="teamNew" type="text" maxlength="40" placeholder="e.g. SEA Robotics Club" /><button class="btn btn-glass small" data-t="check">Check name</button><button class="btn btn-primary small" data-t="create">Create team</button></div>
+        <p class="micro-note" id="teamMsg" aria-live="polite">${esc(note)}</p></div>`
+      : '<div class="glass team-head"><h3>You are not in a team</h3><p class="micro-note">A team owner can add you by email using the email address of your MaterialHunt account. Come back here when they have. Team plans are on the Pricing page.</p></div>';
+  }
+
+  async function onTeamClick(e) {
+    const t = e.target.closest('[data-t]');
+    if (!t) return;
+    const a = t.dataset.t;
+    if (a === 'tab') { tab = t.dataset.id; render(); return; }
+    if (a === 'send') { await sendMessage(); return; }
+    if (a === 'share') { await shareDesign(); return; }
+    if (a === 'refresh') { await loadItems(); return; }
+    if (a === 'create') { await createTeam(); return; }
+    if (a === 'check') {
+      const id = slugTeam(q('#teamNew')?.value || '');
+      if (!TEAM_RE.test(id)) { say('Use 3 to 40 letters or numbers. Spaces become dashes.'); return; }
+      try { say((await db().collection('team_names').doc(id).get()).exists ? `"${id}" is taken. Try another name.` : `"${id}" is free. Press "Create team" to take it.`); } catch { say('Could not check. Are you online?'); }
+      return;
+    }
+    if (a === 'invite') { await inviteByEmail(); return; }
+    if (a === 'accept') { await acceptInvite(); return; }
+    if (a === 'decline') { await declineInvite(); return; }
+    if (a === 'remove') { await removeMember(t.dataset.id); return; }
+    if (a === 'cancel') { await cancelInvite(t.dataset.id); return; }
+    if (a === 'leave') {
+      if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Sure? Press again'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Leave this team'; } }, 3000); return; }
+      await leaveTeam(); return;
+    }
+    if (a === 'delmsg') { try { await db().collection('team_messages').doc(t.dataset.id).delete(); } catch { /* ignore */ } return; }
+    if (a === 'delitem') { try { await db().collection('team_items').doc(t.dataset.id).delete(); items = items.filter((x) => x.id !== t.dataset.id); renderBody(); } catch { /* ignore */ } return; }
+    if (a === 'open') {
+      const it = items.find((x) => x.id === t.dataset.id);
+      if (!it) return;
+      let data;
+      try { data = JSON.parse(it.payload); } catch { notify('That item is damaged.', 'error', 3000); return; }
+      if (it.kind === 'design') { window.MH_DESIGNS?.open?.({ ...data, name: it.name }); }
+      else {
+        setView('ml');
+        if (window.MH_ML?.loadLab?.(data.model, data.prop)) notify('Model loaded in the ML Lab. Press "Use as My ML" to use it in the other tabs.', 'success', 5000);
+        else notify('That model could not be loaded.', 'error', 3500);
+      }
     }
   }
 
@@ -355,38 +491,42 @@
     const main = q('main');
     if (!main) return;
     const nav = q('.main-nav');
-    const want = isTeam();
+    const want = isTeam() || Boolean(myInvite) || Boolean(team);
     if (want && nav && !q('[data-view="team"]', nav)) {
       const b = document.createElement('button');
-      b.className = 'nav-link'; b.dataset.view = 'team'; b.title = 'Designs and models shared with your team'; b.textContent = 'Team';
+      b.className = 'nav-link'; b.dataset.view = 'team'; b.title = 'Your team: chat, shared designs and members'; b.textContent = myInvite && !team ? 'Team •' : 'Team';
       b.addEventListener('click', () => setView('team'));
       nav.insertBefore(b, q('[data-view="pricing"]', nav));
+    } else if (want && nav) {
+      const b = q('[data-view="team"]', nav);
+      if (b) b.textContent = myInvite && !team ? 'Team •' : 'Team';
     }
-    if (!want) { q('[data-view="team"]', nav)?.remove(); return; }
+    if (!want) { q('[data-view="team"]', nav)?.remove(); stopChatNow(); return; }
     if (q('#view-team')) return;
     const sec = document.createElement('section');
     sec.className = 'view';
     sec.id = 'view-team';
-    sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">TEAM SHELF</span><h2>Shared with your team</h2>
-        <p>Designs${canShareModels() ? ' and trained models' : ''} that people on your team have shared. Only your team can see them.</p></div></div>
-      <div id="teamHead"></div>
-      <div class="ml-save-row"><input id="teamName" type="text" maxlength="80" placeholder="Name for the design you want to share" /><button class="btn btn-primary small" id="teamShare" type="button">Share current design</button><button class="btn btn-ghost small" id="teamRefresh" type="button">Refresh</button></div>
-      ${canShareModels() ? '<p class="micro-note">To share a trained model, save it in the ML Lab under My models, then press "Share with team".</p>' : '<p class="micro-note">Sharing trained models is part of Team Max and Team Ultra.</p>'}
-      <div id="teamList"><div class="empty-state"><strong>Loading…</strong></div></div>`;
+    sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">TEAM</span><h2>Your team</h2>
+        <p>Chat with your team, share designs${canShareModels() ? ' and trained models' : ''}, and add people by email. Everyone in the team gets the team's plan. Only your team can see what is shared.</p></div></div><div id="teamRoot"><div class="empty-state"><strong>Loading…</strong></div></div>`;
     main.appendChild(sec);
-    sec.addEventListener('click', (e) => { const t = e.target.closest('[data-t]'); if (t) { teamAction(t); return; } onShelfClick(e); });
-    let first = true;
-    const check = () => { if (sec.classList.contains('active') && first) { first = false; loadShelf(); } };
-    new MutationObserver(check).observe(sec, { attributes: true, attributeFilter: ['class'] });
-    check();
+    sec.addEventListener('click', onTeamClick);
+    sec.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'chatText') { e.preventDefault(); sendMessage(); } });
+    new MutationObserver(() => { if (sec.classList.contains('active')) loadTeam().then(() => { mountShelf(); render(); }); else stopChatNow(); }).observe(sec, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  async function onSession() {
+    stopChatNow();
+    await loadTeam();
+    mountShelf();
+    if (q('#view-team')?.classList.contains('active')) render();
+    if (myInvite && !team) notify(`You have been invited to join the team "${myInvite.display || myInvite.team}". Open the Team tab to accept.`, 'info', 7000);
   }
 
   /* ------------------------------------------------------------------ */
   function boot() {
     let tries = 0;
     const t = setInterval(() => { tries += 1; if (mountModels() || tries > 60) clearInterval(t); }, 500);
-    mountShelf();
-    window.addEventListener('mh:session', () => { setTimeout(() => { mountShelf(); refreshSaved(); }, 600); });
+    window.addEventListener('mh:session', () => { setTimeout(() => { onSession(); refreshSaved(); }, 600); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
