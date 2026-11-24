@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.11.1" />
+  <link rel="stylesheet" href="growth.css?v=4.12.0" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -169,7 +169,7 @@
               <div class="viewport-readout">
                 <div><span>Applied ≤</span><strong id="heroStress">250 MPa</strong></div>
                 <div><span>Derated strength</span><strong id="heroDerated">—</strong></div>
-                <div><span>Confidence</span><strong id="heroConfidence">—</strong></div>
+                <div><span>Estimate quality</span><strong id="heroConfidence">—</strong></div>
               </div>
             </div>
             <p class="viewport-note" id="latticeNote">The lattice is for representation purposes only.</p>
@@ -353,7 +353,7 @@
 
             <button class="btn btn-primary full" id="runSimulation">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>
-              Run AI Metallurgy Simulation
+              Run simulation
             </button>
             <div class="sim-quick-actions">
               <button class="btn btn-glass full small" id="autoOptimize" title="Iterate 200 mixes to find a cheaper, lighter alloy that still passes the exact temperature and pressure envelope">
@@ -374,7 +374,7 @@
                 <strong class="verdict-word" id="simVerdict">READY</strong>
                 <span class="verdict-sub" id="simVerdictSub">Run the simulation to see the design envelope.</span>
                 <div class="verdict-pills">
-                  <span class="pill" id="simConfidence">Confidence —</span>
+                  <span class="pill" id="simConfidence">Rough estimate</span>
                   <span class="pill" id="simStructure">—</span>
                   <span class="pill" id="simHazard">Guardrail clear</span>
                 </div>
@@ -497,7 +497,7 @@
               <p id="benchmarkVerdictSub">Select a blueprint and run the stress test.</p>
               <div class="forge-medal hidden" id="benchmarkMedal"></div>
               <ul class="forge-fixes" id="benchmarkFixes"></ul>
-              <button class="btn btn-primary full small" id="benchmarkAutoFix" disabled>⚡ Apply AI Fix</button>
+              <button class="btn btn-primary full small" id="benchmarkAutoFix" disabled>Apply suggested fix</button>
               <button class="btn btn-glass full small" id="benchmarkPublish" disabled>Submit to leaderboard</button>
             </div>
           </div>
@@ -777,7 +777,7 @@
         <span>Find the right metal for the job, and check it before you build.</span>
       </div>
       <div class="footer-meta">
-        <span><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
+        <span><a href="how-it-works.html">Method &amp; accuracy</a> &middot; <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
         <span class="footer-warning">Screening hypothesis only — not a certified test report.</span>
       </div>
     </footer>
@@ -817,7 +817,7 @@
       </div>
     </div>
     <div class="ef-bottom">
-      <span class="ef-copy"><img src="favicon.svg" alt="" width="18" height="18" /> © <span id="footerYear">2026</span> MaterialHunt · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
+      <span class="ef-copy"><img src="favicon.svg" alt="" width="18" height="18" /> © <span id="footerYear">2026</span> MaterialHunt · <a href="how-it-works.html">Method &amp; accuracy</a> &middot; <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
       <span>Engineering estimates. Confirm critical specifications with your supplier or an accredited lab.</span>
       <span class="ef-offline"><i class="dot dot-emerald"></i> <span class="mh-counter" data-counter-copy="footer">Verified members joining</span></span>
     </div>
@@ -1124,22 +1124,22 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.11.1"></script>
-  <script src="app.js?v=4.11.1"></script>
-  <script src="config.js?v=4.11.1"></script>
-  <script src="tools.js?v=4.11.1"></script>
-  <script src="growth.js?v=4.11.1"></script>
-  <script src="ai.js?v=4.11.1"></script>
-  <script src="admin.js?v=4.11.1"></script>
-  <script src="designs.js?v=4.11.1"></script>
-  <script src="profile.js?v=4.11.1"></script>
-  <script src="promo.js?v=4.11.1"></script>
-  <script src="community.js?v=4.11.1"></script>
-  <script src="showcase.js?v=4.11.1"></script>
-  <script src="brain.js?v=4.11.1"></script>
-  <script src="vision.js?v=4.11.1"></script>
-  <script src="account.js?v=4.11.1"></script>
-  <script src="endorse.js?v=4.11.1"></script>
-  <script src="notifications.js?v=4.11.1"></script>
+  <script src="firebase-bridge.js?v=4.12.0"></script>
+  <script src="app.js?v=4.12.0"></script>
+  <script src="config.js?v=4.12.0"></script>
+  <script src="tools.js?v=4.12.0"></script>
+  <script src="growth.js?v=4.12.0"></script>
+  <script src="ai.js?v=4.12.0"></script>
+  <script src="admin.js?v=4.12.0"></script>
+  <script src="designs.js?v=4.12.0"></script>
+  <script src="profile.js?v=4.12.0"></script>
+  <script src="promo.js?v=4.12.0"></script>
+  <script src="community.js?v=4.12.0"></script>
+  <script src="showcase.js?v=4.12.0"></script>
+  <script src="brain.js?v=4.12.0"></script>
+  <script src="vision.js?v=4.12.0"></script>
+  <script src="account.js?v=4.12.0"></script>
+  <script src="endorse.js?v=4.12.0"></script>
+  <script src="notifications.js?v=4.12.0"></script>
 </body>
 </html>

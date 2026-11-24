@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Method &amp; accuracy — MaterialHunt</title>
+  <meta name="description" content="How MaterialHunt works, what it was checked against, how accurate each part is, and its limits." />
+  <link rel="canonical" href="https://materialhunt-2026.web.app/how-it-works.html" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="legal.css" />
+</head>
+<body>
+  <main class="legal wide">
+    <p><a href="/">← Back to MaterialHunt</a></p>
+    <h1>Method &amp; accuracy</h1>
+    <p class="updated">Last updated: 24 November 2026</p>
+
+    <div class="callout"><strong>MaterialHunt is a preliminary screening tool.</strong> It helps you narrow down which metals to look at. It does not replace an accredited laboratory test, a supplier certificate or an engineer's sign-off. This page shows what each part does, what it was checked against, and where it is weak.</div>
+
+    <h2>1. What is inside (and what is not)</h2>
+    <table>
+      <thead><tr><th>Part</th><th>How it works</th><th>Machine learning?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Alloy Finder</strong></td><td>Reads your sentence, pulls out limits (temperature, load, cost, density, environment, "non-magnetic" and so on), and filters a curated library of <strong>48 commercial grades</strong>. Each grade is checked against every limit and ranked.</td><td>No. Rules over a table of grades.</td></tr>
+        <tr><td><strong>Failure Doctor</strong></td><td>Matches the metal, what happened and the environment to a table of failure mechanisms (rust, fatigue, cold brittleness, over-temperature), using the grade's data.</td><td>No. Rule table.</td></tr>
+        <tr><td><strong>Photo check</strong></td><td>Runs on your device. A basic colour-and-texture check suggests rust, heat damage or a fresh break. It is a hint, not a trained model. You can plug in your own trained model.</td><td>No (basic heuristic).</td></tr>
+        <tr><td><strong>Simulator and weekly challenge</strong></td><td>Mixes elements by weight. Density is the standard rule of mixtures. Strength, melting point and cost are rough estimates from composition (see the results below).</td><td>No. Formulas and rules.</td></tr>
+        <tr><td><strong>Cost-Down Scanner</strong></td><td>For each part in a list, finds cheaper grades from the library that still meet your safety factor, using indicative price ranges.</td><td>No. Rules and arithmetic.</td></tr>
+        <tr><td><strong>Assistant</strong></td><td>About 60 written answers are looked up on your device. Open-ended questions go to an AI service (a language model), which can be wrong.</td><td>Language model for open questions only.</td></tr>
+      </tbody>
+    </table>
+    <p>We do not claim a trained prediction model with published accuracy. Older versions of the site showed benchmark figures from a research dataset that did not describe this tool; those pages have been removed.</p>
+
+    <h2>2. What we checked against</h2>
+    <p>For the checks below we compared what the simulator estimates from a grade's chemical composition with the typical values stored for that grade in our library (taken from common standards and datasheets such as ASTM, AMS and supplier datasheets), for <strong>all 48 grades</strong>. These are our own comparisons, not an independent audit. The values are typical, not guaranteed minimums, and standards often quote lower minimums. Check a number against your own datasheet before relying on it.</p>
+
+    <h3>Density (works well)</h3>
+    <table>
+      <thead><tr><th>Grade</th><th>Library (g/cm³)</th><th>Estimated</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr><td>Stainless steel 316L</td><td>8.00</td><td>7.90</td><td>−1.3%</td></tr>
+        <tr><td>Aluminium 6061-T6</td><td>2.70</td><td>2.71</td><td>+0.4%</td></tr>
+        <tr><td>Titanium Ti-6Al-4V</td><td>4.43</td><td>4.46</td><td>+0.7%</td></tr>
+        <tr><td>Steel EN19 (4140)</td><td>7.85</td><td>7.83</td><td>−0.3%</td></tr>
+        <tr><td>Inconel 718</td><td>8.19</td><td>8.35</td><td>+2.0%</td></tr>
+        <tr><td>Aluminium 7075-T6</td><td>2.81</td><td>3.04</td><td>+8.2%</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Across all 48 grades the average error is about 1.9%.</strong> Density is reliable for screening.</p>
+
+    <h3>Yield strength (rough: do not rely on it)</h3>
+    <table>
+      <thead><tr><th>Grade</th><th>Library (MPa)</th><th>Estimated</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr><td>Stainless steel 316L</td><td>200</td><td>563</td><td>+182%</td></tr>
+        <tr><td>Stainless steel 304</td><td>215</td><td>545</td><td>+153%</td></tr>
+        <tr><td>Aluminium 6061-T6</td><td>275</td><td>357</td><td>+30%</td></tr>
+        <tr><td>Aluminium 7075-T6</td><td>503</td><td>365</td><td>−27%</td></tr>
+        <tr><td>Titanium Ti-6Al-4V</td><td>880</td><td>782</td><td>−11%</td></tr>
+        <tr><td>Steel EN19 (4140)</td><td>900</td><td>521</td><td>−42%</td></tr>
+        <tr><td>Inconel 718</td><td>1035</td><td>870</td><td>−16%</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Across all 48 grades the average error is about 105%.</strong> Strength depends on heat treatment and processing, which a composition-only formula cannot capture. That is why the simulator labels its strength "Rough estimate". <strong>For real strength numbers use the matched grade in the Alloy Finder, or a lab test.</strong></p>
+
+    <h3>Melting temperature (usable for screening)</h3>
+    <table>
+      <thead><tr><th>Grade</th><th>Estimated liquidus</th><th>Typical published range</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Aluminium 6061-T6</td><td>615 °C</td><td>582–652 °C</td><td>inside the range</td></tr>
+        <tr><td>Aluminium 7075-T6</td><td>604 °C</td><td>477–635 °C</td><td>inside the range</td></tr>
+        <tr><td>Stainless steel 316L</td><td>1484 °C</td><td>1375–1400 °C</td><td>about 6% high</td></tr>
+        <tr><td>Titanium Ti-6Al-4V</td><td>1488 °C</td><td>about 1604–1660 °C</td><td>about 7–10% low</td></tr>
+        <tr><td>Inconel 718</td><td>1509 °C</td><td>1260–1336 °C</td><td>about 13–20% high</td></tr>
+      </tbody>
+    </table>
+    <p>The published ranges are typical figures from manufacturer datasheets, quoted from memory of common values, so confirm them against your own source before you cite them.</p>
+
+    <h3>Cost</h3>
+    <p>The simulator adds up the raw-element prices of a mix. That is not the price of a finished bar or plate, so it can be off by a factor of two or more. Use the <strong>indicative price range</strong> shown for a matched grade, and ask a supplier for a real quote.</p>
+
+    <h2>3. Data sources</h2>
+    <ul>
+      <li><strong>Grade library (48 grades):</strong> typical composition, strength, temperature rating, density and Indian price range for each grade, with ASTM, IS and EN designations. Entered from common standards and datasheets. Prices are indicative ranges and not quotes.</li>
+      <li><strong>Element data (118 elements):</strong> density, atomic radius and indicative raw cost per element.</li>
+      <li><strong>Failure rules:</strong> standard materials-engineering rules of thumb (for example chloride pitting, fatigue, BCC cold brittleness).</li>
+    </ul>
+
+    <h2>4. Limits you should know</h2>
+    <ul>
+      <li>It is a screening tool. Critical parts need an engineer and an accredited laboratory (for example NABL).</li>
+      <li>Strength in the simulator is a rough estimate. Use grade values for planning.</li>
+      <li>Prices are indicative ranges and change; supplier listings are for information only.</li>
+      <li>The grade library has 48 grades and does not cover every alloy, heat treatment or product form.</li>
+      <li>Some effects are not modelled (fatigue life, creep life, fracture toughness, specific standards). The Alloy Finder tells you when your request includes things it cannot check.</li>
+      <li>The lattice pictures and 3D shapes are for representation only.</li>
+      <li>The photo check is a basic heuristic and can be wrong.</li>
+    </ul>
+
+    <h2>5. A hypothetical business case (assumptions, not measured savings)</h2>
+    <p><strong>Nothing in this section is a measured saving.</strong> It shows how the tool's arithmetic works, so you can replace the assumptions with your own numbers.</p>
+    <h3>A. Cost-Down Scanner on an example parts list</h3>
+    <p>Example list (built into the tool): drone motor mount (titanium, 2 kg), landing gear leg (7075, 3.5 kg), gearbox housing (Inconel 625, 4 kg), fuel-line bracket (316L, 1.2 kg), chassis plate (6061, 6 kg). With the tool's default assumptions (dry, room temperature, stated or assumed loads, price = middle of the indicative range, safety factor target 1.5) it suggests cheaper grades for four of the five parts. The arithmetic gives a large "paper saving" for this list.</p>
+    <p><strong>Why not to quote that number as a result:</strong> the assumptions are generous (room temperature and a dry environment, assumed loads on three parts, mid-range prices, ideal batch sizes). A real engineer would check temperature, corrosion, fatigue and manufacturing for each swap, and many would be rejected. The tool says the same: <em>"Validate every change with your own stress analysis and a supplier quote."</em></p>
+    <h3>B. Testing-cost example (all numbers assumed)</h3>
+    <table>
+      <thead><tr><th>Item</th><th>Value</th><th>Kind</th></tr></thead>
+      <tbody>
+        <tr><td>Candidate alloys you might otherwise test</td><td>20</td><td>Assumption</td></tr>
+        <tr><td>Candidates ruled out on paper by temperature, cost or environment</td><td>12</td><td>Assumption</td></tr>
+        <tr><td>Cost of one lab test (coupon and report)</td><td>₹6,000</td><td>Assumption: replace with your lab's quote</td></tr>
+        <tr><td>Tests avoided</td><td>12</td><td>Calculated</td></tr>
+        <tr><td>Possible testing cost avoided</td><td>12 × ₹6,000 = ₹72,000</td><td>Calculated from the assumptions above</td></tr>
+      </tbody>
+    </table>
+    <p>The real saving depends on how many candidates really get ruled out and on your lab's price. It also assumes that the ruled-out candidates were truly unsuitable, which only a test can confirm.</p>
+
+    <h2>6. What would make the validation stronger</h2>
+    <ul>
+      <li>Test real coupons of a few grades at an accredited lab and compare them with the numbers shown here.</li>
+      <li>Compare the strength estimate with a larger public dataset, and publish the errors.</li>
+      <li>Replace the strength estimate with grade-based values wherever a grade is matched.</li>
+      <li>Train and test an image model on real photos of damaged metal, and publish its accuracy.</li>
+    </ul>
+    <p>Spotted something wrong? Please tell us with the <a href="/" data-contact>Contact</a> link. We will correct it.</p>
+  </main>
+  <script src="legal.js"></script>
+</body>
+</html>

@@ -1166,7 +1166,7 @@ function renderSimulationCharts() {
       },
     ], layout);
     const tag = $('#simRadarTag');
-    if (tag) tag.textContent = `Confidence ${state.simulation?.prediction?.confidence || '—'}`;
+    if (tag) tag.textContent = 'Rough estimate';
   }
 }
 
@@ -1548,8 +1548,9 @@ function renderSimulation(sim) {
 
   set('#simVerdict', derived.verdict);
   set('#simVerdictSub', derived.verdict_label);
-  set('#simConfidence', `Confidence ${prediction.confidence}`);
-  $('#simConfidence').className = `pill pill-${prediction.confidence === 'High' ? 'emerald' : prediction.confidence === 'Medium' ? 'amber' : 'rose'}`;
+  set('#simConfidence', 'Rough estimate');
+  $('#simConfidence').className = 'pill pill-amber';
+  $('#simConfidence').title = 'Strength is estimated from the composition and can be far from a real grade. See Method & accuracy.';
   set('#simStructure', `${derived.crystal_structure} lattice`);
   set('#simHazard', derived.hazard_cleared ? 'Guardrail cleared' : 'Guardrail clear');
   $('#simHazard').className = derived.hazard_cleared ? 'pill pill-amber' : 'pill pill-emerald';
@@ -1581,7 +1582,7 @@ function renderSimulation(sim) {
   set('#heroTempChip', `${fmt(sim.conditions.temperature_c)}°C`);
   set('#heroStress', `${fmt(derived.applied_stress_mpa)} MPa`);
   set('#heroDerated', `${fmt(derived.operating_strength_mpa)} MPa`);
-  set('#heroConfidence', `${prediction.confidence} · ±${fmt(prediction.uncertainty)}`);
+  set('#heroConfidence', 'Rough estimate');
 
   const guardrailNote = $('#guardrailNote');
   if (guardrailNote) {
@@ -4711,7 +4712,7 @@ function copilotPush(role, html, action = null) {
     const button = document.createElement('button');
     button.className = 'btn btn-primary small copilot-action';
     button.dataset.copilotAction = action;
-    button.textContent = '⚡ Apply AI Fix';
+    button.textContent = 'Apply suggested fix';
     message.appendChild(button);
   }
   box.appendChild(message);

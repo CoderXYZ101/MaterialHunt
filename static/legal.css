@@ -16,3 +16,11 @@ body { margin: 0; background: #070b14; color: #dbe5f2; font: 16px/1.65 system-ui
   .legal p, .legal li { color: #2b3a4b; }
   .legal a { color: #0f766e; }
 }
+.legal.wide { max-width: 900px; }
+.legal h3 { font-size: 17px; margin: 22px 0 6px; color: #fff; }
+.legal table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 14.5px; }
+.legal th, .legal td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(148,163,184,.25); vertical-align: top; }
+.legal th { color: #67e8f9; font-weight: 600; }
+.callout { border: 1px solid rgba(34,211,238,.45); background: rgba(34,211,238,.08); border-radius: 12px; padding: 14px 16px; margin: 16px 0; }
+@media (max-width: 640px) { .legal table { display: block; overflow-x: auto; } }
+@media (prefers-color-scheme: light) { .legal h3 { color: #0b1626; } .legal th { color: #0e7490; } }
