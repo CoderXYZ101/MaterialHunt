@@ -416,7 +416,7 @@
     const order = { pending: 0, approved: 1, rejected: 2 };
     const list = endorsements.slice().sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3));
     return `<p class="micro-note">Approve only what you are happy to show publicly. Press "Approve and mark identity checked" only after you have actually confirmed the person is real (for example their LinkedIn profile, a company email address, or you met them). The tick on the home page means exactly that.</p>
-      <div class="admin-list">${list.map((x) => `<div class="admin-card glass ${x.status === 'pending' ? '' : 'done'}"><header><b>${esc(x.name)}</b><span class="admin-org">${esc([x.role, x.org].filter(Boolean).join(' · '))}</span><span class="admin-status">${esc(x.status)}${x.verified ? ' · identity checked' : ''}</span><span class="admin-time">${'★'.repeat(x.rating || 0)}</span></header>
+      <div class="admin-list">${list.map((x) => `<div class="admin-card glass ${x.status === 'pending' ? '' : 'done'}"><header><b>${esc(x.name)}</b><span class="admin-org">${esc([x.role, x.org].filter(Boolean).join(' · '))}</span><span class="admin-status">${esc(x.status)}${x.verified ? ' · identity checked' : ''}</span><span class="admin-org">${x.relation && x.relation !== 'none' ? `knows the team: ${esc(x.relation)} (not shown publicly)` : 'independent'}</span><span class="admin-time">${'★'.repeat(x.rating || 0)}</span></header>
         <p class="admin-notes">${esc(x.quote)}</p>
         <div class="admin-actions">
           ${x.status !== 'approved' ? `<button class="btn btn-primary small" data-en="approve" data-id="${esc(x.id)}">Approve</button>` : ''}

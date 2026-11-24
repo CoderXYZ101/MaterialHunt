@@ -45,6 +45,8 @@
         <label class="field-label" for="endName">Your name (shown publicly)</label><input id="endName" type="text" maxlength="60" value="${esc(old?.name || mine)}" required />
         <label class="field-label" for="endRole">Your role</label><input id="endRole" type="text" maxlength="80" placeholder="e.g. Mechanical design engineer" value="${esc(old?.role || '')}" required />
         <label class="field-label" for="endOrg">Company or institute (optional)</label><input id="endOrg" type="text" maxlength="80" value="${esc(old?.org || '')}" />
+        <label class="field-label" for="endRel">How do you know the MaterialHunt team?</label>
+        <select id="endRel" class="field-select"><option value="none"${(old?.relation || 'none') === 'none' ? ' selected' : ''}>I do not know them (found it myself or got a link)</option><option value="friend"${old?.relation === 'friend' ? ' selected' : ''}>Friend or classmate</option><option value="family"${old?.relation === 'family' ? ' selected' : ''}>Family</option><option value="mentor"${old?.relation === 'mentor' ? ' selected' : ''}>Teacher, mentor or colleague</option></select>
         <label class="field-label" for="endRating">How useful was it?</label>
         <select id="endRating" class="field-select">${[5, 4, 3, 2, 1].map((n) => `<option value="${n}"${(old?.rating || 5) === n ? ' selected' : ''}>${'★'.repeat(n)}${'☆'.repeat(5 - n)} (${n}/5)</option>`).join('')}</select>
         <label class="field-label" for="endQuote">Your endorsement (<span id="endCount">0</span>/400)</label>
@@ -63,7 +65,7 @@
       err.textContent = '';
       const doc = {
         user_id: window.MH_FIREBASE.auth.currentUser.uid, name: q('#endName', m).value.trim().slice(0, 60), role: q('#endRole', m).value.trim().slice(0, 80), org: q('#endOrg', m).value.trim().slice(0, 80),
-        rating: Number(q('#endRating', m).value), quote: q('#endQuote', m).value.trim().slice(0, 400), status: 'pending', verified: false,
+        relation: q('#endRel', m).value, rating: Number(q('#endRating', m).value), quote: q('#endQuote', m).value.trim().slice(0, 400), status: 'pending', verified: false,
       };
       if (doc.quote.length < 20) { err.textContent = 'Please write at least a sentence or two (20 characters).'; return; }
       const btn = q('button[type=submit]', m);
@@ -87,14 +89,15 @@
       await window.MH_FIREBASE.initFirebase();
       if (!db()) return;
       const snap = await db().collection('endorsements').where('status', '==', 'approved').limit(12).get();
-      const rows = snap.docs.map((d) => d.data());
+      // only independent people are shown publicly: anyone who knows the team is kept off the home page
+      const rows = snap.docs.map((d) => d.data()).filter((r) => (r.relation || 'none') === 'none');
       q('#endorseStrip')?.remove();
       if (!rows.length) return;
       rows.sort((a, b) => Number(b.verified) - Number(a.verified));
       const sec = document.createElement('section');
       sec.id = 'endorseStrip';
       sec.className = 'endorse-strip';
-      sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">WHAT PEOPLE SAY</span><h2>Tried by engineers, makers and students</h2><p>Every note is written by a real member and approved by our team${rows.some((r) => r.verified) ? '. A tick means we checked who they are' : ''}.</p></div></div>
+      sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">WHAT PEOPLE SAY</span><h2>Tried by engineers, makers and students</h2><p>Every note is written by a member who does not know our team, and approved by us${rows.some((r) => r.verified) ? '. A tick means we checked who they are' : ''}.</p></div></div>
         <div class="endorse-grid">${rows.map((r) => `<figure class="endorse-card glass"><div class="endorse-stars">${'★'.repeat(r.rating || 5)}</div><blockquote>${esc(r.quote)}</blockquote><figcaption><b>${esc(r.name)}${r.verified ? ' <span class="endorse-tick" title="Identity checked by the MaterialHunt team">✔</span>' : ''}</b><span>${esc([r.role, r.org].filter(Boolean).join(' · '))}</span></figcaption></figure>`).join('')}</div>`;
       host.appendChild(sec);
     } catch { /* leave the page as it is */ }
