@@ -281,15 +281,16 @@
     const burstRatio = totalPressure / Math.max(1, burstPressure);
     const isBurst = totalPressure >= burstPressure;
 
-    let density = 0;
+    let specificVolume = 0; // cm³ per gram: volumes add, densities do not (checked against the 48 library grades)
     let cost = 0;
     let liquidus = 0;
     Object.entries(fractions).forEach(([sym, frac]) => {
       const info = elementData(sym);
-      density += (Number(info.density) || 7.5) * frac;
+      specificVolume += frac / Math.max(0.01, Number(info.density) || 7.5);
       cost += (Number(info.cost) || 1500) * frac;
       liquidus += meltingPoint(sym) * frac;
     });
+    const density = 1 / Math.max(1e-6, specificVolume);
     if (Object.keys(fractions).length > 1) liquidus *= 0.92;
     liquidus = clamp(liquidus, -273.15, 4500);
     const isMelted = temperature >= liquidus;

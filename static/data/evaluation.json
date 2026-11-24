@@ -200,5 +200,221 @@
    "error_pct": 0.9
   }
  ],
- "validation_note": "Every prediction here was made by a model that did not see that material (out-of-fold for the steels, leave-one-out for the library grades)."
+ "validation_note": "Every prediction here was made by a model that did not see that material (out-of-fold for the steels, leave-one-out for the library grades).",
+ "family_holdout": {
+  "overall": {
+   "mae": 267.9,
+   "mape": 85.1,
+   "r2": 0.308
+  },
+  "families": [
+   {
+    "family": "Carbon steel",
+    "n": 3,
+    "mape": 55.6,
+    "guess_mape": 44.6
+   },
+   {
+    "family": "Low-alloy steel",
+    "n": 3,
+    "mape": 33.3,
+    "guess_mape": 43.2
+   },
+   {
+    "family": "Tool steel",
+    "n": 2,
+    "mape": 36.6,
+    "guess_mape": 69.2
+   },
+   {
+    "family": "Specialty steel",
+    "n": 1,
+    "mape": 38.5,
+    "guess_mape": 76.9
+   },
+   {
+    "family": "Cast iron",
+    "n": 1,
+    "mape": 224.4,
+    "guess_mape": 137.7
+   },
+   {
+    "family": "Stainless steel",
+    "n": 12,
+    "mape": 164.3,
+    "guess_mape": 112.3
+   },
+   {
+    "family": "Aluminium",
+    "n": 7,
+    "mape": 49.6,
+    "guess_mape": 95.7
+   },
+   {
+    "family": "Titanium",
+    "n": 2,
+    "mape": 70.5,
+    "guess_mape": 58.1
+   },
+   {
+    "family": "Copper alloy",
+    "n": 5,
+    "mape": 101.1,
+    "guess_mape": 142.8
+   },
+   {
+    "family": "Nickel superalloy",
+    "n": 5,
+    "mape": 31.4,
+    "guess_mape": 41.2
+   },
+   {
+    "family": "Nickel alloy",
+    "n": 3,
+    "mape": 50.6,
+    "guess_mape": 118.1
+   },
+   {
+    "family": "Cobalt alloy",
+    "n": 1,
+    "mape": 42.3,
+    "guess_mape": 28.3
+   },
+   {
+    "family": "Refractory metal",
+    "n": 2,
+    "mape": 43.3,
+    "guess_mape": 28.0
+   },
+   {
+    "family": "Magnesium",
+    "n": 1,
+    "mape": 77.9,
+    "guess_mape": 137.7
+   }
+  ],
+  "method": "leave-one-family-out: every grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels"
+ },
+ "calc_checks": {
+  "density": {
+   "n": 48,
+   "mean_error_pct": 1.37,
+   "worst_error_pct": 4.59,
+   "worst_grade": "Aluminium bronze (C95400)",
+   "within_3pct": 44,
+   "previous_mean_error_pct": 1.88,
+   "previous_worst_error_pct": 11.45,
+   "method": "density of the mix from element densities (volumes add) against the datasheet density of each of the 48 library grades"
+  },
+  "liquidus": [
+   {
+    "name": "Stainless steel 304",
+    "ref_low": 1400,
+    "ref_high": 1450,
+    "calculated": 1467,
+    "error_c": 42,
+    "inside": false,
+    "close": true
+   },
+   {
+    "name": "Stainless steel 316",
+    "ref_low": 1375,
+    "ref_high": 1400,
+    "calculated": 1484,
+    "error_c": 97,
+    "inside": false,
+    "close": false
+   },
+   {
+    "name": "Aluminium 6061-T6",
+    "ref_low": 582,
+    "ref_high": 652,
+    "calculated": 615,
+    "error_c": -2,
+    "inside": true,
+    "close": true
+   },
+   {
+    "name": "Aluminium 7075-T6",
+    "ref_low": 477,
+    "ref_high": 635,
+    "calculated": 604,
+    "error_c": 48,
+    "inside": true,
+    "close": true
+   },
+   {
+    "name": "Titanium Ti-6Al-4V (Grade 5)",
+    "ref_low": 1604,
+    "ref_high": 1660,
+    "calculated": 1488,
+    "error_c": -144,
+    "inside": false,
+    "close": false
+   },
+   {
+    "name": "Brass 70/30 (C26000)",
+    "ref_low": 915,
+    "ref_high": 955,
+    "calculated": 814,
+    "error_c": -121,
+    "inside": false,
+    "close": false
+   },
+   {
+    "name": "Inconel 718",
+    "ref_low": 1260,
+    "ref_high": 1336,
+    "calculated": 1509,
+    "error_c": 211,
+    "inside": false,
+    "close": false
+   },
+   {
+    "name": "Nickel 200",
+    "ref_low": 1435,
+    "ref_high": 1446,
+    "calculated": 1455,
+    "error_c": 14,
+    "inside": false,
+    "close": true
+   },
+   {
+    "name": "Copper (ETP, C11000)",
+    "ref_low": 1083,
+    "ref_high": 1083,
+    "calculated": 1085,
+    "error_c": 2,
+    "inside": false,
+    "close": true
+   },
+   {
+    "name": "Tungsten (pure)",
+    "ref_low": 3410,
+    "ref_high": 3422,
+    "calculated": 3422,
+    "error_c": 6,
+    "inside": true,
+    "close": true
+   }
+  ],
+  "liquidus_note": "Reference: typical published melting ranges (handbook values). The simulator uses a weighted average of the element melting points times 0.92, not a phase diagram.",
+  "pressure": [
+   {
+    "case": "Air at 100 m/s (360 km/h)",
+    "hand_pa": 6125.0,
+    "calculated_pa": 6125.0
+   },
+   {
+    "case": "Seawater at 10 m/s (36 km/h)",
+    "hand_pa": 51250.0,
+    "calculated_pa": 51250.0
+   },
+   {
+    "case": "Water at 5 m/s (18 km/h)",
+    "hand_pa": 12475.0,
+    "calculated_pa": 12475.0
+   }
+  ]
+ }
 }

@@ -47,7 +47,7 @@ def parse_library():
             comp[bal] = max(0.0, 100 - sum(comp.values()))
         y = float(re.search(r"[ ,{]y: ([\d.]+)", s).group(1))
         st = re.search(r"\bs: '(\w+)'", s)
-        rows.append(dict(id=gid, name=name, comp=comp, y=y, s=st.group(1) if st else 'BCC'))
+        rows.append(dict(id=gid, name=name, fam=fam, comp=comp, y=y, d=float(re.search(r"[ ,{]d: ([\d.]+)", s).group(1)), s=st.group(1) if st else 'BCC'))
     return rows
 
 
@@ -164,6 +164,59 @@ def steel_formula(i):
 out['validation_steels'] = [dict(composition=steel_formula(i), measured=round(float(ys[i])), predicted=round(float(oof[i])), error_pct=pct(ys[i], oof[i])) for i in chosen]
 out['validation_note'] = 'Every prediction here was made by a model that did not see that material (out-of-fold for the steels, leave-one-out for the library grades).'
 
+# 5. stronger validation: leave one material FAMILY out (the model never saw anything like it)
+fams = {}
+for i, r in enumerate(lib):
+    fams.setdefault(r['fam'], []).append(i)
+pfam = np.zeros(len(lib))
+for fam, idx in fams.items():
+    tr = [k for k in range(len(lib)) if k not in idx]
+    m = RandomForestRegressor(n_estimators=80, max_features=0.4, random_state=7).fit(np.vstack([Xl[tr], Xe]), np.concatenate([yl[tr], ys]))
+    pfam[idx] = m.predict(Xl[idx])
+fam_rows = []
+for fam, idx in fams.items():
+    fam_rows.append(dict(family=fam, n=len(idx), mape=round(float(np.mean(np.abs(yl[idx] - pfam[idx]) / yl[idx]) * 100), 1),
+                         guess_mape=round(float(np.mean(np.abs(yl[idx] - np.delete(yl, idx).mean()) / yl[idx]) * 100), 1)))
+out['family_holdout'] = dict(overall=metrics(yl, pfam), families=fam_rows,
+                             method='leave-one-family-out: every grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels')
+
+# 6. calculation checks against reference values
+hb = json.loads((SRC / 'data' / 'handbook.json').read_text(encoding='utf-8'))
+EL = hb['elements']
+PER = {r['symbol']: r for r in hb['periodic']}
+def dens_el(e):
+    return EL.get(e, {}).get('density') or PER.get(e, {}).get('density') or 7.5
+def mix_density(comp):
+    t = sum(comp.values())
+    return 1 / sum((v / t) / dens_el(e) for e, v in comp.items())
+def mix_density_old(comp):
+    t = sum(comp.values())
+    return sum(dens_el(e) * v / t for e, v in comp.items())
+def mix_liquidus(comp):
+    t = sum(comp.values())
+    v = sum(PER[e]['melting_point_c'] * x / t for e, x in comp.items())
+    return v * 0.92 if len(comp) > 1 else v
+de = [abs(mix_density(r['comp']) - r['d']) / r['d'] * 100 for r in lib]
+de_old = [abs(mix_density_old(r['comp']) - r['d']) / r['d'] * 100 for r in lib]
+worst = int(np.argmax(de))
+dens_check = dict(n=len(lib), mean_error_pct=round(float(np.mean(de)), 2), worst_error_pct=round(float(max(de)), 2), worst_grade=lib[worst]['name'],
+                  within_3pct=int(sum(1 for e in de if e <= 3)), previous_mean_error_pct=round(float(np.mean(de_old)), 2), previous_worst_error_pct=round(float(max(de_old)), 2),
+                  method='density of the mix from element densities (volumes add) against the datasheet density of each of the 48 library grades')
+melt_ref = [('ss304', 1400, 1450), ('ss316', 1375, 1400), ('al6061', 582, 652), ('al7075', 477, 635), ('ti64', 1604, 1660),
+            ('brass70', 915, 955), ('in718', 1260, 1336), ('ni200', 1435, 1446), ('cuetp', 1083, 1083), ('tungsten', 3410, 3422)]
+ids = [r['id'] for r in lib]
+liq = []
+for g, lo, hi in melt_ref:
+    r = lib[ids.index(g)]
+    v = mix_liquidus(r['comp'])
+    mid = (lo + hi) / 2
+    liq.append(dict(name=r['name'], ref_low=lo, ref_high=hi, calculated=round(v), error_c=round(v - mid), inside=bool(lo <= v <= hi), close=bool(lo - 25 <= v <= hi + 25)))
+out['calc_checks'] = dict(density=dens_check, liquidus=liq,
+                          liquidus_note='Reference: typical published melting ranges (handbook values). The simulator uses a weighted average of the element melting points times 0.92, not a phase diagram.')
+# exact formulas: dynamic pressure q = 1/2 rho v^2 and applied stress = load x safety factor, against hand calculation
+hand = [('Air at 100 m/s (360 km/h)', 1.225, 360, 0.5 * 1.225 * 100 ** 2), ('Seawater at 10 m/s (36 km/h)', 1025, 36, 0.5 * 1025 * 10 ** 2), ('Water at 5 m/s (18 km/h)', 998, 18, 0.5 * 998 * 5 ** 2)]
+out['calc_checks']['pressure'] = [dict(case=n, hand_pa=round(h, 1), calculated_pa=round(0.5 * rho * (kmh / 3.6) ** 2, 1)) for n, rho, kmh, h in hand]
+
 dest = SRC / 'data' / 'evaluation.json'
 dest.write_text(json.dumps(out, indent=1), encoding='utf-8')
 
@@ -195,6 +248,17 @@ block('lib', ''.join(f"<tr><td>{n}</td><td>{f(m['mae'])}</td><td>{f(m['mape'])}%
     ('Same, predicting on a log scale (tried, not adopted)', L['tried_log_scale_not_adopted'])]))
 block('vlib', rows(out['validation_library'], [lambda g: g['name'], lambda g: f(g['reference']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
 block('vsteel', rows(out['validation_steels'], [lambda g: g['composition'], lambda g: f(g['measured']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
+
+fh, cc = out['family_holdout'], out['calc_checks']
+block('famsum', f"Overall, with whole families hidden, the library model's average error is <strong>{f(fh['overall']['mape'])}%</strong> and R² is <strong>{f(fh['overall']['r2'], 2)}</strong> (compare {f(L['trained_on_47_grades_plus_312_steels']['mape'])}% and {f(L['trained_on_47_grades_plus_312_steels']['r2'], 2)} when only single grades are hidden).")
+block('fam', rows(fh['families'], [lambda g: g['family'], lambda g: str(g['n']), lambda g: f"{g['mape']:.0f}%", lambda g: f"{g['guess_mape']:.0f}%"]))
+dc = cc['density']
+block('dens', f"The simulator mixes densities so that volumes add. Across all {dc['n']} grades the mean difference from the datasheet density is <strong>{dc['mean_error_pct']}%</strong> (worst {dc['worst_error_pct']}%, {dc['worst_grade']}); {dc['within_3pct']} of {dc['n']} are within 3%. An earlier version averaged densities by weight and was off by {dc['previous_mean_error_pct']}% on average and up to {dc['previous_worst_error_pct']}%; the check found that, and it was fixed.")
+block('liq', rows(cc['liquidus'], [lambda g: g['name'], lambda g: f"{g['ref_low']}" if g['ref_low'] == g['ref_high'] else f"{g['ref_low']}–{g['ref_high']}", lambda g: f"{g['calculated']}", lambda g: 'yes' if g['inside'] else ('close (within 25 °C)' if g['close'] else f"no ({g['error_c']:+d} °C from the middle)")]))
+n_in = sum(1 for g in cc['liquidus'] if g['inside'])
+n_close = sum(1 for g in cc['liquidus'] if g['close'])
+block('liqnote', f"The simulator's estimate is a weighted average of the element melting points times 0.92, so it is only rough: <strong>{n_in} of {len(cc['liquidus'])}</strong> landed inside the published range and <strong>{n_close}</strong> were inside it or within 25 °C. The worst miss was {max(abs(g['error_c']) for g in cc['liquidus'])} °C. Nickel superalloys, titanium, brass and stainless steels are the weak spots.")
+block('pres', rows(cc['pressure'], [lambda g: g['case'], lambda g: f"{g['hand_pa']:,.0f}", lambda g: f"{g['calculated_pa']:,.0f}"]))
 page_path.write_text(page, encoding='utf-8')
 print(json.dumps({k: out[k] for k in ('steel_cv', 'library_loo', 'validation_library', 'validation_steels')}, indent=1))
 print('wrote', dest, 'and', page_path)
