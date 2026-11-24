@@ -65,6 +65,16 @@
     setTimeout(() => { const box = q('#aiDesignPrompt'); if (box && text) { box.value = text; q('#runAIDesign')?.click(); } else box?.focus(); }, 200);
   }
   document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'jobPrompt') { e.preventDefault(); goFind(); } });
+  /* Booth mode: open the site with ?booth=1 on the stall device. No cookie box, and after 2 minutes with nobody touching it,
+     it returns to the home page, so the next visitor starts clean. */
+  const BOOTH = new URLSearchParams(location.search).get('booth') === '1';
+  if (BOOTH) {
+    if (!localStorage.getItem('mh_consent')) localStorage.setItem('mh_consent', 'no');
+    let idle = null;
+    const arm = () => { clearTimeout(idle); idle = setTimeout(() => { location.replace('/?booth=1'); }, 120000); };
+    ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach((t) => window.addEventListener(t, arm, { passive: true }));
+    arm();
+  }
   function consentBanner() {
     const choice = localStorage.getItem('mh_consent');
     if (choice === 'yes') { enableAnalytics(); return; }
