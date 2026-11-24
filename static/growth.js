@@ -21,7 +21,7 @@
     paymentLinks: { pro_month: '', pro_year: '', team_month: '', team_year: '', credits: '' },
     prices: { pro: { month: 1499, year: 14990 }, team: { month: 4999, year: 49990 }, credits: 999 },
     limits: {
-      guest: { sim: 3, bom: 1, report: 0, batch: 0, ai: 5 },  // per day: sim, bom, ai; report/batch: not available
+      guest: { sim: 25, bom: 6, report: 3, batch: 0, ai: 5 }, // without an account: per day sim, bom, ai; per month report (so a visitor or judge can finish a whole workflow)
       free: { report: 3, batch: 2, ai: 40 },                  // reports/batch per month, ai per day
     },
     payments: { razorpayKeyId: '', upiId: '', payeeName: 'MaterialHunt' },
