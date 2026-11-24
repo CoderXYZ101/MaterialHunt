@@ -674,3 +674,14 @@ button.term-hint { background: transparent; padding: 0; line-height: 1; font-fam
 .ai-mode-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 12px; }
 .ai-mode-row label { white-space: nowrap; color: var(--text-soft); font-weight: 700; }
 .ai-mode-row select { flex: 1; min-width: 0; font-size: 12px; padding: 5px 8px; }
+
+/* ---- reliability of the verdict, and the model map list ---- */
+.reliability { margin-top: 10px; padding: 9px 12px; border-radius: 10px; font-size: 11.5px; line-height: 1.45; border: 1px solid rgba(148,163,184,.3); background: rgba(148,163,184,.07); }
+.reliability ul { margin: 6px 0 0; padding-left: 18px; }
+.reliability li { margin: 2px 0; }
+.reliability span { opacity: .75; }
+.reliability.rel-higher { border-color: rgba(16,185,129,.45); background: rgba(16,185,129,.08); }
+.reliability.rel-medium { border-color: rgba(245,158,11,.45); background: rgba(245,158,11,.08); }
+.reliability.rel-low { border-color: rgba(244,63,94,.45); background: rgba(244,63,94,.07); }
+.model-map { padding-left: 22px; }
+.model-map li { margin: 6px 0; }

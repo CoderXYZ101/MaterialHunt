@@ -17,6 +17,16 @@
 
     <div class="callout"><strong>Read this first.</strong> These models are small and trained on little data. They are a screening aid. The results below say exactly how rough they are, including where they did badly. Nothing here replaces a datasheet or a lab test.</div>
 
+    <h2>Which model is used when</h2>
+    <ol class="model-map">
+      <li><strong>Your mix matches a library grade</strong> (total difference within 6 weight-percent): the grade's typical <strong>datasheet yield</strong>. This is a table value, not machine learning.</li>
+      <li><strong>Otherwise, an iron-based alloyed steel inside the steel model's range</strong> (at least 40 atomic-% iron, only elements the model knows, and close to the 312 steels it learned from, whose yield strengths run from about 1,000 to 2,500 MPa): the <strong>steel model</strong> (extra-trees, 80 trees, trained on 312 measured steels).</li>
+      <li><strong>Otherwise, a mix inside the library model's range</strong> (close to compositions among the 48 library grades and the 312 steels): the <strong>library model</strong> (random forest, 80 trees, trained on the 48 library grades plus the 312 steels). A rough guide.</li>
+      <li><strong>Otherwise</strong> (outside both models' ranges, or the Estimator switch is on Rules): <strong>no ML estimate is made</strong>. The rough composition formula is used (average error about 105%) and the verdict is marked low reliability.</li>
+    </ol>
+    <p>If you switch to <strong>My ML</strong>, the model you trained replaces steps 2 and 3 for the property it predicts.</p>
+    <p>The sections below test the <strong>steel model</strong> (step 2) and the <strong>library model</strong> (step 3).</p>
+
     <h2>1. Steel strength model (pre-trained)</h2>
     <p>An extra-trees ensemble (80 trees) trained offline on <strong>312 measured high-strength steels</strong> (public Matbench steels data, Dunn et al., npj Comput. Mater. 6, 138, 2020), shipped with the site and run in your browser.</p>
     <table id="steelTable"><thead><tr><th>Test</th><th>Average error</th><th>R²</th><th>Guess-the-average error</th></tr></thead><tbody><tr><td colspan="4">Loading…</td></tr></tbody></table>
@@ -42,7 +52,7 @@ python evaluation/evaluate.py</pre>
     <h2>5. Known limits</h2>
     <ul>
       <li>The library has only 48 grades. Library values are typical datasheet numbers, and real strength depends on heat treatment.</li>
-      <li>The steel model only covers iron-based alloyed steels in roughly the 1,000 to 2,500 MPa range. For anything else it refuses and the simulator uses a library value or the weaker library model.</li>
+      <li>The steel model only covers iron-based alloyed steels in roughly the 1,000 to 2,500 MPa range. For anything else it refuses, and the simulator tries the library model. If the mix is outside that model's range too, no ML estimate is made at all.</li>
       <li>The independent check is tiny (see the table). We publish it because it is the honest result, not because it is flattering.</li>
       <li>The "spread" between trees is a rough sign of uncertainty, not a calibrated confidence interval.</li>
     </ul>

@@ -14,7 +14,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const notify = (m, t = 'info', ms) => { if (typeof toast === 'function') toast(m, t, ms); };
   const STRUCT = ['BCC', 'FCC', 'HCP'];
-  const STORE = 'mh_ml_v2';
+  const STORE = 'mh_ml_v3';
   const TARGETS = {
     y: { label: 'Yield strength (MPa)', unit: 'MPa', get: (g) => g.y },
     uts: { label: 'Tensile strength (MPa)', unit: 'MPa', get: (g) => g.uts },
@@ -149,6 +149,16 @@
     return { mae, mape, r2: 1 - ssr / sst };
   };
 
+  /* how far from the training compositions a new mix may be before the model refuses to answer:
+     the 95th percentile of each training sample's distance to its nearest neighbour, with 25% headroom */
+  const dist2 = (a, b) => { let s = 0; for (let i = 0; i < a.length; i += 1) s += (a[i] - b[i]) ** 2; return Math.sqrt(s); };
+  function buildDomain(vectors) {
+    let pts = vectors;
+    if (pts.length > 800) { const step = pts.length / 800; pts = Array.from({ length: 800 }, (_, i) => vectors[Math.floor(i * step)]); }
+    const nn = pts.map((a, i) => { let m = Infinity; for (let k = 0; k < pts.length; k += 1) if (k !== i) { const v = dist2(a, pts[k]); if (v < m) m = v; } return Number.isFinite(m) ? m : 0; }).sort((a, b) => a - b);
+    return { X: pts.map((r) => r.map((v) => Math.round(v * 100) / 100)), thr: Math.max(2, nn[Math.floor(nn.length * 0.95)] * 1.25) };
+  }
+
   /* rows are tested; extraRows (optional) are only ever added to the training side, so they can never flatter the score.
      folds = 0 means leave-one-out; folds = k means k-fold. onProgress may be async (the live demo uses it to slow down). */
   async function trainAndEvaluate({ rows, extraRows = [], folds = 0, targetLabel, unit, params, onProgress }) {
@@ -181,11 +191,12 @@
       if (onProgress) await onProgress((f + 1) / k, info);
       else if (f % 4 === 0) await tick();
     }
+    const domain = buildDomain(X.concat(Xe));
     const meanBaseline = y.map((_, i) => y.filter((__, kk) => kk !== i).reduce((a2, b2) => a2 + b2, 0) / (n - 1));
     const finalTrees = trainForest([...X, ...Xe], [...y, ...ye], params, 99);
     const within = y.filter((a2, i) => Math.abs(a2 - loo[i]) <= looSpread[i] * 2).length / n * 100;
     return {
-      features, trees: finalTrees, params, n, extra: extraRows.length, evalMethod: folds ? `${k}-fold` : 'leave-one-out', targetLabel, unit, trainedAt: Date.now(),
+      features, domain, trees: finalTrees, params, n, extra: extraRows.length, evalMethod: folds ? `${k}-fold` : 'leave-one-out', targetLabel, unit, trainedAt: Date.now(),
       cv: { ...metrics(y, loo), within },
       baseline: metrics(y, meanBaseline),
       points: rows.map((r, i) => ({ name: r.name, actual: y[i], pred: loo[i], spread: looSpread[i] })),
@@ -205,7 +216,14 @@
   function estimate(model, comp, structure) {
     if (!model) return null;
     const x = vectorise(comp, structure, model.features);
-    return predictForest(model.trees, x);
+    const p = predictForest(model.trees, x);
+    if (model.domain && model.domain.X) {
+      let nearest = Infinity;
+      for (const r of model.domain.X) { const v = dist2(x, r); if (v < nearest) nearest = v; }
+      p.nearest = nearest; p.limit = model.domain.thr;
+      if (nearest > model.domain.thr) p.outside = true;
+    }
+    return p;
   }
 
   function libraryMatch(fractions) {
@@ -321,7 +339,7 @@
     try { await loadSteel(); } catch { /* offline without the file: the library model still works on its own */ }
     renderDefault(); rerun();
     const saved = load();
-    if (saved && saved.kind === 'library-y' && saved.trees && Boolean(saved.extra) === Boolean(steel)) { current = saved; renderDefault(); rerun(); return; }
+    if (saved && saved.kind === 'library-y' && saved.trees && saved.domain && Boolean(saved.extra) === Boolean(steel)) { current = saved; renderDefault(); rerun(); return; }
     const rows = libraryRows('y');
     if (rows.length < 10) return;
     const m = await trainAndEvaluate({ rows, extraRows: steelRows(), folds: 8, targetLabel: TARGETS.y.label, unit: 'MPa', params: { trees: 80 } });

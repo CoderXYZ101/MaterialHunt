@@ -552,6 +552,34 @@ function updateHealthBadge(health) {
   }
 }
 
+/* How far to trust the verdict, and why. Shown under the verdict so the limits are not buried. */
+function renderReliability(sim) {
+  const box = $('#simReliability');
+  if (!box) return;
+  const pr = sim.prediction || {};
+  const d = sim.derived || {};
+  const T = Number(sim.conditions?.temperature_c ?? 25);
+  const src = pr.source;
+  let level; let basis;
+  if (src === 'grade') { level = 'Higher'; basis = 'Strength is the typical datasheet value of a matching library grade.'; }
+  else if (src === 'steel-ml') { level = 'Medium'; basis = 'Strength is a machine-learning estimate from the steel model (typically about 84 MPa off on steels it knows).'; }
+  else if (src === 'custom') { level = 'Low'; basis = 'Strength is an estimate from the model you trained yourself; its accuracy depends on your data.'; }
+  else if (src === 'ml') { level = 'Low'; basis = 'Strength is a machine-learning estimate from small data (typically about 50% off).'; }
+  else { level = 'Low'; basis = `${pr.ml_note ? `No ML estimate was made: ${pr.ml_note} ` : ''}Strength is a rough composition formula (average error about 105%).`; }
+  const liq = Number(d.liquidus_c);
+  const hot = Number.isFinite(liq) && liq > 0 && T > 0.6 * liq;
+  if (hot) level = 'Low';
+  const notes = [
+    basis,
+    hot ? 'The operating temperature is above 60% of the estimated melting point, where creep and softening dominate. This is where the estimate is least reliable.' : '',
+    'Melting (liquidus) is a weighted average of the elements, not a phase diagram. Real alloys can soften or melt far from it.',
+    'Cost uses typical element prices, not a market quote. Pressure is static plus ½ρv² only.',
+    'Not included: heat treatment, fatigue, creep, corrosion, welds, product form, certification.',
+  ].filter(Boolean);
+  box.className = `reliability rel-${level.toLowerCase()}`;
+  box.innerHTML = `<strong>Reliability of this verdict: ${level}</strong> <span>(screening result only)</span><ul>${notes.map((n) => `<li>${n}</li>`).join('')}</ul>`;
+}
+
 function applyMeta(meta) {
   // every step is independent: a missing element or one failing chart must never stop the rest from starting
   const safe = (fn) => { try { fn(); } catch (err) { console.warn('Start-up step skipped:', err.message || err); } };
@@ -1555,6 +1583,7 @@ function renderSimulation(sim) {
   $('#simHazard').className = derived.hazard_cleared ? 'pill pill-amber' : 'pill pill-emerald';
 
   set('#simStrength', `${fmt(prediction.predicted)} MPa`);
+  renderReliability(sim);
   set('#simStrengthSrc', { grade: 'library datasheet value', 'steel-ml': 'steel ML model (312 steels)', ml: 'library ML model', custom: 'your own ML model (My ML)' }[prediction.source] || 'rough formula, not ML');
   set('#simUncertainty', (prediction.source === 'steel-ml' || prediction.source === 'ml') && prediction.ml_spread != null ? `±${fmt(prediction.ml_spread)} MPa` : prediction.source === 'grade' ? 'library value' : 'not estimated');
   set('#simWorking', `${fmt(derived.operating_strength_mpa)} MPa`);

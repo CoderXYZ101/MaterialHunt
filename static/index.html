@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.14.5" />
+  <link rel="stylesheet" href="growth.css?v=4.15.0" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -237,7 +237,7 @@
         </div>
 
         <section class="glass ml-home" aria-label="Machine learning on this site">
-          <p><b>Where is the machine learning?</b> Two small models run on your device and work offline: a <b>steel strength model</b> trained on 312 measured steels, and a <b>library model</b> you can retrain yourself. The Simulator uses them when your mix is not a known grade, and says so. Everything else (Alloy Finder, Failure Doctor) is rule-based, and labelled that way.</p>
+          <p><b>Where is the machine learning?</b> Two small models run on your device and work offline. For yield strength the Simulator uses, in order: <b>1)</b> a library grade's datasheet value if your mix matches one, <b>2)</b> the <b>steel model</b> (312 measured steels) for alloyed steels inside its range, <b>3)</b> the <b>library model</b> (48 grades + the 312 steels) inside its range, <b>4)</b> otherwise no ML estimate, only a rough formula marked low reliability. It always says which one it used. Alloy Finder and Failure Doctor are rule-based, with an optional ML cross-check.</p>
           <button class="btn btn-primary" type="button" data-view="ml">Open the ML Lab</button>
         </section>
 
@@ -384,6 +384,7 @@
                   <span class="pill" id="simStructure">—</span>
                   <span class="pill" id="simHazard">Guardrail clear</span>
                 </div>
+                <div class="reliability" id="simReliability" aria-live="polite"></div>
               </div>
               <div class="util-ring-wrap">
                 <svg viewBox="0 0 120 120" class="util-ring">
@@ -1134,25 +1135,25 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.14.5"></script>
-  <script src="app.js?v=4.14.5"></script>
-  <script src="config.js?v=4.14.5"></script>
-  <script src="tools.js?v=4.14.5"></script>
-  <script src="growth.js?v=4.14.5"></script>
-  <script src="ai.js?v=4.14.5"></script>
-  <script src="admin.js?v=4.14.5"></script>
-  <script src="designs.js?v=4.14.5"></script>
-  <script src="profile.js?v=4.14.5"></script>
-  <script src="promo.js?v=4.14.5"></script>
-  <script src="community.js?v=4.14.5"></script>
-  <script src="showcase.js?v=4.14.5"></script>
-  <script src="brain.js?v=4.14.5"></script>
-  <script src="vision.js?v=4.14.5"></script>
-  <script src="ml.js?v=4.14.5"></script>
-  <script src="engine.js?v=4.14.5"></script>
-  <script src="hints.js?v=4.14.5"></script>
-  <script src="account.js?v=4.14.5"></script>
-  <script src="endorse.js?v=4.14.5"></script>
-  <script src="notifications.js?v=4.14.5"></script>
+  <script src="firebase-bridge.js?v=4.15.0"></script>
+  <script src="app.js?v=4.15.0"></script>
+  <script src="config.js?v=4.15.0"></script>
+  <script src="tools.js?v=4.15.0"></script>
+  <script src="growth.js?v=4.15.0"></script>
+  <script src="ai.js?v=4.15.0"></script>
+  <script src="admin.js?v=4.15.0"></script>
+  <script src="designs.js?v=4.15.0"></script>
+  <script src="profile.js?v=4.15.0"></script>
+  <script src="promo.js?v=4.15.0"></script>
+  <script src="community.js?v=4.15.0"></script>
+  <script src="showcase.js?v=4.15.0"></script>
+  <script src="brain.js?v=4.15.0"></script>
+  <script src="vision.js?v=4.15.0"></script>
+  <script src="ml.js?v=4.15.0"></script>
+  <script src="engine.js?v=4.15.0"></script>
+  <script src="hints.js?v=4.15.0"></script>
+  <script src="account.js?v=4.15.0"></script>
+  <script src="endorse.js?v=4.15.0"></script>
+  <script src="notifications.js?v=4.15.0"></script>
 </body>
 </html>

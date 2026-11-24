@@ -24,3 +24,4 @@ body { margin: 0; background: #070b14; color: #dbe5f2; font: 16px/1.65 system-ui
 .callout { border: 1px solid rgba(34,211,238,.45); background: rgba(34,211,238,.08); border-radius: 12px; padding: 14px 16px; margin: 16px 0; }
 @media (max-width: 640px) { .legal table { display: block; overflow-x: auto; } }
 @media (prefers-color-scheme: light) { .legal h3 { color: #0b1626; } .legal th { color: #0e7490; } }
+.model-map li { margin: 8px 0; }

@@ -63,16 +63,25 @@
     if (m === 'rules' || !ML) return null;
     if (m === 'custom' && custom && custom.prop === prop) {
       const e = ML.estimate(custom.model, comp, structure || 'BCC');
+      if (e && e.outside) return { refused: true, why: 'it is outside the range of compositions your own model was trained on', source: 'refused', label: 'My ML' };
       return e ? { value: e.value, spread: e.spread, source: 'custom', label: 'My ML' } : null;
     }
     if (prop === 'y') {
       const s = ML.steelEstimate && ML.steelEstimate(comp);
       if (s && s.ok) return { value: s.value, spread: s.spread, source: 'steel-ml', label: 'Steel ML' };
-      if (ML.model) { const e = ML.estimate(ML.model, comp, structure || 'BCC'); if (e) return { value: e.value, spread: e.spread, source: 'ml', label: 'Library ML' }; }
+      if (ML.model) {
+        const e = ML.estimate(ML.model, comp, structure || 'BCC');
+        if (e && e.outside) return { refused: true, why: `${s && s.why && s.why !== 'loading' ? s.why + ' ' : ''}It is also outside the range of compositions the library model learned from.`, source: 'refused', label: 'Library ML' };
+        if (e) return { value: e.value, spread: e.spread, source: 'ml', label: 'Library ML' };
+      }
       return null;
     }
     const d = defaults[prop];
-    if (d && d.model) { const e = ML.estimate(d.model, comp, structure || 'BCC'); if (e) return { value: e.value, spread: e.spread, source: 'ml', label: 'Library ML' }; }
+    if (d && d.model) {
+      const e = ML.estimate(d.model, comp, structure || 'BCC');
+      if (e && e.outside) return { refused: true, why: 'it is outside the range of compositions the library model learned from', source: 'refused', label: 'Library ML' };
+      if (e) return { value: e.value, spread: e.spread, source: 'ml', label: 'Library ML' };
+    }
     return null;
   }
 
@@ -123,7 +132,9 @@
     const grade = ML && ML.libraryMatch ? ML.libraryMatch(wt) : null;
     if (grade) lines.push(`That is close to the library grade **${grade.name}**, whose typical yield strength is ${grade.y} MPa (a datasheet value).`);
     const e = estimate(wt, 'BCC', 'y', mode === 'rules' ? 'ml' : mode);
-    if (e) {
+    if (e && e.refused) {
+      lines.push(`No ML estimate for ${formula}: ${e.why} A model should not guess outside what it has seen, so check a datasheet or a lab.`);
+    } else if (e) {
       lines.push(`${e.label} estimate of yield strength for ${formula}: about **${f0(e.value)} MPa** (spread between trees ±${f0(e.spread)}).${e.source === 'steel-ml' ? ' The steel model was typically about 84 MPa off on steels it had not seen.' : e.source === 'ml' ? ' The library model is a rough guide (roughly 50% average error on grades it had not seen).' : ' Its accuracy depends on the data you trained it on.'}`);
     } else if (!grade) lines.push('The ML models are not ready yet, or this mix is outside what they know.');
     lines.push('This is a screening estimate, not a measurement: heat treatment can change real strength a lot. Confirm with a lab test.');
@@ -158,7 +169,7 @@
     if (mode === 'rules') return 'Using fixed formulas and the library table. No machine learning is involved.';
     if (mode === 'custom' && custom) return `Using your model: ${custom.label} (${custom.n} samples, error about ${Math.round(custom.cv.mape)}%). It is used for ${PROPS[custom.prop].label}; other properties use Default ML.`;
     const m = ML && ML.model;
-    return `Using the steel model (312 measured steels) for steels, then the library model${m ? ` (${m.n} grades + ${m.extra || 0} steels)` : ''}. Library grades keep their datasheet values.`;
+    return `Order used: library grade datasheet value, then the steel model (312 measured steels), then the library model${m ? ` (${m.n} grades + ${m.extra || 0} steels)` : ''}. Outside their ranges the models refuse and the rough formula is used instead.`;
   }
 
   function barHtml(view) {
