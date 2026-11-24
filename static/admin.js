@@ -465,13 +465,31 @@
         <p class="admin-notes">${esc(x.body)}</p>
         <div class="admin-actions">
           ${x.status !== 'approved' ? `<button class="btn btn-primary small" data-fm="approve" data-k="${x.kind}" data-id="${esc(x.id)}">Approve</button>` : `<button class="btn btn-ghost small" data-fm="hide" data-k="${x.kind}" data-id="${esc(x.id)}">Hide</button>`}
-          ${x.status === 'pending' ? `<button class="btn btn-ghost small" data-fm="reject" data-k="${x.kind}" data-id="${esc(x.id)}">Reject</button>` : ''}</div></div>`).join('')}</div>`;
+          ${x.status === 'pending' ? `<button class="btn btn-ghost small" data-fm="reject" data-k="${x.kind}" data-id="${esc(x.id)}">Reject</button>` : ''}
+          <button class="btn btn-ghost small" data-fm="delete" data-k="${x.kind}" data-id="${esc(x.id)}">Delete</button></div></div>`).join('')}</div>`;
   }
 
   async function forumAction(t) {
     const list = t.dataset.k === 'forum_threads' ? fthreads : freplies;
     const x = list.find((e) => e.id === t.dataset.id);
     if (!x) return;
+    if (t.dataset.fm === 'delete') {
+      if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Sure? Press again'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Delete'; } }, 3000); return; }
+      if (t.dataset.k === 'forum_threads') {
+        const rs = freplies.filter((r) => r.thread === x.id);
+        for (const r of rs) await db().collection('forum_replies').doc(r.id).delete();
+        freplies = freplies.filter((r) => r.thread !== x.id);
+        await db().collection('forum_threads').doc(x.id).delete();
+        fthreads = fthreads.filter((r) => r.id !== x.id);
+      } else {
+        await db().collection('forum_replies').doc(x.id).delete();
+        freplies = freplies.filter((r) => r.id !== x.id);
+      }
+      window.MH_FORUM?.refresh?.();
+      notify('Deleted.', 'success', 2500);
+      render();
+      return;
+    }
     const status = t.dataset.fm === 'approve' ? 'approved' : 'rejected';
     await db().collection(t.dataset.k).doc(x.id).update({ status });
     x.status = status;
@@ -649,7 +667,7 @@
   }
 
   async function onClick(e) {
-    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],[data-ph],[data-en],#phAll,#prizeRun,#statsApply');
+    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],[data-ph],[data-en],[data-fm],#phAll,#prizeRun,#statsApply');
     if (!t) return;
     try {
       if (t.dataset.tab) { tab = t.dataset.tab; search = ''; render(); }
