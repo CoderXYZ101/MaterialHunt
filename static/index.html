@@ -6,6 +6,11 @@
   <meta name="description" content="MaterialHunt: test a metal before you build with it. Find the closest Indian grade, live ₹/kg price, manufacturability, failure diagnosis and a ready-to-send RFQ - free." />
   <meta property="og:title" content="MaterialHunt - test a metal before you build with it" />
   <meta property="og:description" content="Closest Indian grade + ₹/kg, failure doctor, BOM cost-down scanner and 1-click RFQ for engineers, makers and procurement teams." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://materialhunt-2026.web.app/" />
+  <meta property="og:image" content="https://materialhunt-2026.web.app/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="canonical" href="https://materialhunt-2026.web.app/" />
   <meta name="theme-color" content="#070B14" />
   <title>MaterialHunt — Test a metal before you build with it</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
@@ -15,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.10.4" />
+  <link rel="stylesheet" href="growth.css?v=4.11.1" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -39,7 +44,7 @@
         </span>
         <span class="brand-copy">
           <span class="brand-name">MATERIAL<span>HUNT</span></span>
-          <span class="brand-sub">MATERIALHUNT INC. · DEEP-TECH R&amp;D</span>
+          <span class="brand-sub">FREE METALS TOOLKIT</span>
         </span>
       </a>
 
@@ -108,7 +113,7 @@
             </div>
             <div class="social-proof" id="socialProof" aria-live="polite">
               <span class="sp-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-              <span id="socialProofText">Join the first verified engineers on MaterialHunt</span>
+              <span id="socialProofText">Join the first verified members</span>
             </div>
             <div class="trust-row">
               <div><strong>118</strong><span>Elements</span></div>
@@ -430,23 +435,15 @@
         <article class="glass mission-panel">
           <div class="mission-head">
             <div>
-              <span class="panel-kicker">AI MISSION CO-PILOT</span>
-              <h3>Describe the mission. Get a ranked alloy shortlist.</h3>
+              <span class="panel-kicker">ALLOY FINDER</span>
+              <h3>Describe the job. Get real grades that fit.</h3>
             </div>
-            <span class="pill pill-cyan">Natural-language intake</span>
           </div>
           <div class="mission-form">
-            <input id="missionPrompt" type="text" maxlength="500" placeholder="e.g. lightweight corrosion-resistant alloy for offshore drone airframes under 8 g/cm³" />
-            <select id="missionPersona" class="field-select">
-              <option>Aerospace</option>
-              <option>Automotive / EV</option>
-              <option>Marine</option>
-              <option>Custom Weights</option>
-            </select>
-            <button class="btn btn-primary" id="runMission">Run Mission Search</button>
+            <input id="jobPrompt" type="text" maxlength="500" aria-label="Describe the job" placeholder="e.g. non-magnetic metal for seawater under ₹1,000/kg at 300°C" />
+            <button class="btn btn-primary" id="jobGo">Find metals</button>
           </div>
-          <p class="mission-summary" id="missionSummary">Mission Co-Pilot interprets intent, then ranks validated candidates against that intent.</p>
-          <div class="mission-results" id="missionResults"></div>
+          <p class="mission-summary">It filters 48 real commercial grades by temperature, load, cost, environment and more, ranks the ones that pass, and shows what blocks the near-misses.</p>
         </article>
 
         <!-- ============ PRODUCT FORGE & STRESS-TEST BENCHMARKS ============ -->
@@ -627,451 +624,6 @@
         </div>
       </section>
 
-      <!-- ================= 3. MULTI-MATERIAL PRE-SCREENING & PDF ================= -->
-      <section class="view" id="view-dashboard">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">MULTI-MATERIAL PRE-SCREENING &amp; PDF</span>
-            <h2>Multi-Material Pre-Screening &amp; PDF</h2>
-            <p>Filter the held-out test universe, then apply an industry persona to rank candidates across strength, mass, thermal headroom, corrosion and INR/kg cost. Export a lab-grade PDF dossier.</p>
-          </div>
-          <span class="status-pill status-cyan" id="prescreenStatus">STANDBY</span>
-        </div>
-
-        <div class="workspace-grid">
-          <aside class="filter-panel glass">
-            <div class="panel-title-row"><h3>Selector Matrix</h3><button class="text-btn" id="resetFilters">Reset</button></div>
-
-            <label class="field-label">Industry persona</label>
-            <div class="persona-grid" id="personaGrid"></div>
-            <p class="field-hint" id="personaHint">Aerospace weights specific strength and thermal headroom.</p>
-
-            <div id="customWeights" class="custom-weights hidden">
-              <div class="weight-row"><span>Strength</span><input type="range" id="wStrength" min="0" max="100" value="25" /><output>25</output></div>
-              <div class="weight-row"><span>Weight</span><input type="range" id="wWeight" min="0" max="100" value="20" /><output>20</output></div>
-              <div class="weight-row"><span>Thermal</span><input type="range" id="wThermal" min="0" max="100" value="20" /><output>20</output></div>
-              <div class="weight-row"><span>Corrosion</span><input type="range" id="wCorrosion" min="0" max="100" value="15" /><output>15</output></div>
-              <div class="weight-row"><span>Cost</span><input type="range" id="wCost" min="0" max="100" value="10" /><output>10</output></div>
-              <div class="weight-row"><span>Confidence</span><input type="range" id="wConfidence" min="0" max="100" value="10" /><output>10</output></div>
-            </div>
-
-            <label class="field-label">Datasets</label>
-            <div class="check-grid">
-              <label class="check-chip"><input type="checkbox" class="dataset-check" value="steels" checked /><span>Yield Strength</span></label>
-              <label class="check-chip"><input type="checkbox" class="dataset-check" value="glass" checked /><span>Glass Forming</span></label>
-              <label class="check-chip"><input type="checkbox" class="dataset-check" value="expt_gap" checked /><span>Band Gap</span></label>
-            </div>
-
-            <label class="field-label" for="searchInput">Formula search</label>
-            <div class="search-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-              <input id="searchInput" type="search" placeholder="e.g. Fe, Ni, Cr" autocomplete="off" />
-            </div>
-
-            <label class="field-label">Minimum confidence</label>
-            <select id="confidenceFilter" class="field-select">
-              <option value="Low">Any prediction</option>
-              <option value="Medium">Medium + High</option>
-              <option value="High">High only</option>
-            </select>
-
-            <div class="range-field">
-              <div class="range-head"><label for="maxCost">Max raw cost</label><output id="maxCostOut">Any</output></div>
-              <input id="maxCost" type="range" min="0" max="8000" step="100" value="8000" />
-            </div>
-            <div class="range-field">
-              <div class="range-head"><label for="maxDensity">Max density</label><output id="maxDensityOut">Any</output></div>
-              <input id="maxDensity" type="range" min="0" max="20" step="0.5" value="20" />
-            </div>
-
-            <label class="field-label">Required elements</label>
-            <div class="element-chip-row" id="includeElements"></div>
-            <label class="field-label">Exclude elements</label>
-            <div class="element-chip-row" id="excludeElements"></div>
-
-            <button class="btn btn-primary full" id="applyFilters">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
-              Run Multi-Material Screen
-            </button>
-            <p class="micro-note">Ranking is computed live across the filtered pool. Hazardous elements are hidden unless admin clearance is active.</p>
-          </aside>
-
-          <div class="results-panel glass">
-            <div class="panel-title-row">
-              <div>
-                <h3>Candidate Matrix</h3>
-                <p class="panel-sub" id="resultsSummary">Awaiting first screen…</p>
-              </div>
-              <div class="results-actions">
-                <span class="pill pill-cyan" id="resultCount">0</span>
-                <button class="icon-btn" id="exportTableCsv" title="Export visible results as CSV">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
-                </button>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table class="data-table" id="candidateTable">
-                <thead>
-                  <tr>
-                    <th>#</th><th>Material</th><th>Task</th><th>Prediction</th><th>Uncertainty</th>
-                    <th>Cost</th><th>ρ</th><th>Score</th><th></th>
-                  </tr>
-                </thead>
-                <tbody id="candidateBody">
-                  <tr class="empty-row"><td colspan="9">Sign in and run a screen to populate the candidate matrix.</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="table-footer">
-              <span id="tableFooterNote">Confidence is derived from the 150-tree ensemble spread.</span>
-              <div class="table-footer-actions">
-                <button class="btn btn-ghost small" id="loadTopBtn">Load top candidate →</button>
-                <button class="btn btn-primary small" id="exportPdfTop">Export PDF dossier</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <article class="glass handbook-panel">
-          <div class="panel-title-row">
-            <div>
-              <h3>Validated Alloy Handbook <span class="pill pill-cyan" id="handbookCount">31 grades</span></h3>
-              <p class="panel-sub">Authentic commercial designations with ASTM / UNS / IS standards. Click any card to load it into the simulator.</p>
-            </div>
-            <div class="handbook-actions">
-              <button class="btn btn-glass small" id="requestSampleBtn">Request Sample Melt / Quote</button>
-              <button class="btn btn-glass small" id="bookLabBtn">Book NABL Lab Test</button>
-            </div>
-          </div>
-          <div class="handbook-grid" id="alloyHandbook">
-            <div class="empty-hint">Loading validated alloy handbook…</div>
-          </div>
-        </article>
-
-        <div class="risk-grid">
-          <article class="glass risk-panel">
-            <div class="panel-title-row"><h3>Supply-Chain &amp; Geopolitical Risk Radar</h3><span class="pill pill-amber">live exposure</span></div>
-            <div class="risk-list" id="riskRadar"></div>
-          </article>
-          <article class="glass risk-panel">
-            <div class="panel-title-row"><h3>Indian Alternatives &amp; Standards</h3><button class="text-btn" id="riskAskAi">Ask AI</button></div>
-            <div class="risk-alt-list" id="riskAlternatives"></div>
-          </article>
-        </div>
-
-        <div class="chart-grid">
-          <article class="chart-card glass span-2">
-            <div class="chart-head">
-              <div><span class="panel-kicker">ASHBY SELECTION MAP</span><h3>Specific Strength vs Raw Cost <button class="ask-ai tiny-ai" data-ask="Explain the Ashby map: how do I read specific strength versus raw cost when choosing an alloy">Ask AI</button></h3></div>
-              <span class="chart-tag">Bubble size = confidence</span>
-            </div>
-            <div class="chart-box" id="ashbyChart"></div>
-          </article>
-          <article class="chart-card glass">
-            <div class="chart-head">
-              <div><span class="panel-kicker">SIX-AXIS ENGINEERING</span><h3>Alloy vs Dataset Benchmark</h3></div>
-              <span class="chart-tag" id="radarTag">Fe-Cr-Ni</span>
-            </div>
-            <div class="chart-box" id="radarChart"></div>
-          </article>
-        </div>
-
-        <article class="chart-card glass cluster-card">
-          <div class="chart-head">
-            <div><span class="panel-kicker">MAGPIE FEATURE SPACE · PCA-3</span><h3>Where your alloy sits in the Matbench manifold</h3></div>
-            <span class="chart-tag" id="clusterVariance">—</span>
-          </div>
-          <div class="chart-box tall" id="clusterChart"></div>
-        </article>
-      </section>
-
-      <!-- ================= 4. DEEP ENGINEERING ANALYTICS ================= -->
-      <section class="view" id="view-analytics">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">DEEP ENGINEERING ANALYTICS</span>
-            <h2>Deep Engineering Analytics</h2>
-            <p>Eleven live Plotly panels across benchmark accuracy, feature attribution, coverage, uncertainty, cost-density trade-offs and PCA structure.</p>
-          </div>
-          <span class="status-pill status-cyan" id="analyticsBadge">3 TASKS · 132 FEATURES</span>
-        </div>
-
-        <div class="analytics-grid">
-          <article class="chart-card glass span-2">
-            <div class="chart-head">
-              <div><span class="panel-kicker">BENCHMARK DISCOVERY REGISTRY</span><h3>Linear vs Random Forest vs Gradient Boosting</h3></div>
-              <span class="chart-tag">R² · MAE · RMSE</span>
-            </div>
-            <div class="table-wrap">
-              <table class="data-table benchmark-table">
-                <thead><tr><th>Task</th><th>Model</th><th>R²</th><th>MAE</th><th>RMSE</th><th>Train time</th><th>Status</th></tr></thead>
-                <tbody id="benchmarkBody"></tbody>
-              </table>
-            </div>
-          </article>
-          <article class="chart-card glass">
-            <div class="chart-head">
-              <div><span class="panel-kicker">TOP FEATURES</span><h3>Impurity Importance</h3></div>
-              <select id="importanceDataset" class="mini-select">
-                <option value="steels">Steels</option>
-                <option value="glass">Glass</option>
-                <option value="expt_gap">Expt Gap</option>
-              </select>
-            </div>
-            <div class="chart-box" id="analyticsImportanceChart"></div>
-          </article>
-        </div>
-
-        <div class="analytics-trio">
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">R² BY TASK</span><h3>Model accuracy ladder</h3></div><span class="chart-tag">higher is better</span></div>
-            <div class="chart-box" id="analyticsR2Chart"></div>
-          </article>
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">MAE BY TASK</span><h3>Absolute error</h3></div><span class="chart-tag">native units</span></div>
-            <div class="chart-box" id="analyticsMaeChart"></div>
-          </article>
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">TRAINING COST</span><h3>Fit time per task</h3></div><span class="chart-tag">seconds</span></div>
-            <div class="chart-box" id="analyticsTrainTimeChart"></div>
-          </article>
-        </div>
-
-        <div class="chart-grid">
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">DATASET COVERAGE</span><h3>Samples &amp; Hold-out Size</h3></div><span class="chart-tag">rows</span></div>
-            <div class="chart-box" id="analyticsCoverageChart"></div>
-          </article>
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">UNCERTAINTY ENVELOPE</span><h3>Test-set Prediction Error</h3></div><span class="chart-tag">MAE per task</span></div>
-            <div class="chart-box" id="analyticsErrorChart"></div>
-          </article>
-        </div>
-
-        <div class="chart-grid">
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">PREDICTED VS ACTUAL</span><h3>Held-out parity</h3></div><span class="chart-tag">candidate pool</span></div>
-            <div class="chart-box" id="analyticsResidualChart"></div>
-          </article>
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">UNCERTAINTY VS CONFIDENCE</span><h3>Epistemic spread map</h3></div><span class="chart-tag">tree σ</span></div>
-            <div class="chart-box" id="analyticsUncertaintyChart"></div>
-          </article>
-        </div>
-
-        <div class="chart-grid">
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">COST VS DENSITY</span><h3>Commercial trade-off field</h3></div><span class="chart-tag">INR/kg · g/cm³</span></div>
-            <div class="chart-box" id="analyticsCostDensityChart"></div>
-          </article>
-          <article class="chart-card glass">
-            <div class="chart-head"><div><span class="panel-kicker">DATASET FINGERPRINT</span><h3>Normalised task profile</h3></div><span class="chart-tag">0–100</span></div>
-            <div class="chart-box" id="analyticsRadarBenchChart"></div>
-          </article>
-        </div>
-
-        <article class="chart-card glass cluster-card">
-          <div class="chart-head">
-            <div><span class="panel-kicker">MATBENCH FEATURE SPACE</span><h3>PCA-3 cluster map across all three tasks</h3></div>
-            <span class="chart-tag" id="analyticsVariance">—</span>
-          </div>
-          <div class="chart-box tall" id="analyticsClusterChart"></div>
-        </article>
-      </section>
-
-      <!-- ================= 5. ENTERPRISE BATCH CSV & CUSTOM LAB DATA ================= -->
-      <section class="view" id="view-batch">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">ENTERPRISE BATCH &amp; LAB INTAKE</span>
-            <h2>Enterprise Batch CSV &amp; Custom Lab Data</h2>
-            <p>Screen a whole campaign at once — paste CSV, upload a file, or validate your own laboratory coupon against the model envelope.</p>
-          </div>
-          <span class="status-pill status-amber" id="batchStatus">IDLE</span>
-        </div>
-
-        <div class="batch-grid">
-          <article class="glass batch-panel">
-            <div class="panel-title-row"><h3>Batch Chemistry Queue</h3><button class="text-btn" id="batchSample">Load sample</button></div>
-            <p class="panel-sub">One composition per line: <code>Fe:70, Cr:18, Ni:8, Mo:2, C:2</code>. Optional prefix a label with <code>NAME |</code>.</p>
-            <textarea id="batchInput" rows="9" placeholder="316L | Fe:68, Cr:17, Ni:12, Mo:2.5, C:0.03&#10;Ti64 | Ti:90, Al:6, V:4&#10;Al7075 | Al:90, Zn:5.6, Mg:2.5, Cu:1.6"></textarea>
-            <div class="batch-controls">
-              <label class="file-chip">
-                <input type="file" id="batchFile" accept=".csv,.txt" />
-                <span>Upload CSV</span>
-              </label>
-              <select id="batchProfile" class="field-select">
-                <option>Static tension</option>
-                <option>Cyclic / Fatigue</option>
-                <option>Impact / Shock</option>
-                <option>Creep / High-temp</option>
-                <option>Biaxial / Pressure</option>
-              </select>
-              <button class="btn btn-primary" id="runBatch">Run Batch Screen</button>
-            </div>
-            <p class="micro-note" id="batchProgress">Batch throughput is limited to 25 compositions per run to protect 60fps UI responsiveness.</p>
-          </article>
-
-          <article class="glass batch-panel">
-            <div class="panel-title-row"><h3>Custom Lab Coupon</h3><span class="pill pill-cyan">validation</span></div>
-            <div class="lab-grid">
-              <div><label class="field-label" for="labCompound">Composition</label><input id="labCompound" type="text" value="Fe:70, Cr:18, Ni:8, Mo:2, C:2" /></div>
-              <div><label class="field-label" for="labStrength">Measured yield (MPa)</label><input id="labStrength" type="number" min="0" step="1" value="980" /></div>
-              <div><label class="field-label" for="labDensity">Measured density (g/cm³)</label><input id="labDensity" type="number" min="0" step="0.01" value="7.85" /></div>
-              <div><label class="field-label" for="labTemp">Test temperature (°C)</label><input id="labTemp" type="number" min="-269" max="4500" step="1" value="25" /></div>
-              <div><label class="field-label" for="labCost">Measured cost (INR/kg)</label><input id="labCost" type="number" min="0" step="1" value="320" /></div>
-              <div><label class="field-label" for="labNotes">Lab reference</label><input id="labNotes" type="text" placeholder="Coupon ID / heat number" /></div>
-            </div>
-            <button class="btn btn-primary full" id="validateLab">Validate Coupon Against Model</button>
-            <div class="lab-result" id="labResult">
-              <p class="panel-sub">Enter a measured coupon to quantify model bias, density error and cost deviation.</p>
-            </div>
-          </article>
-        </div>
-
-        <div class="table-wrap glass batch-table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr><th>#</th><th>Label</th><th>Formula</th><th>Yield</th><th>Density</th><th>Liquidus</th><th>Verdict</th><th>Pressure</th></tr>
-            </thead>
-            <tbody id="batchBody"><tr class="empty-row"><td colspan="8">Load a sample queue and run the batch screen.</td></tr></tbody>
-          </table>
-        </div>
-        <div class="batch-actions">
-          <button class="btn btn-glass small" id="batchExport" disabled>Export batch results CSV</button>
-          <button class="btn btn-glass small" id="batchPushDiscovery" disabled>Publish best result to Discovery Registry</button>
-        </div>
-      </section>
-
-      <!-- ================= 6. R&D ROI CALCULATOR ================= -->
-      <section class="view" id="view-roi">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">R&amp;D ECONOMICS</span>
-            <h2>R&amp;D ROI Calculator</h2>
-            <p>Translate avoided melt-and-test cycles into annual savings, payback time and a defensible innovation budget.</p>
-          </div>
-          <span class="status-pill status-amber">FINANCE MODEL</span>
-        </div>
-
-        <div class="roi-grid">
-          <aside class="glass roi-controls">
-            <div class="panel-title-row"><h3>Assumptions</h3><span class="mini-tag">INR</span></div>
-            <div class="range-field">
-              <div class="range-head"><label for="roiExperiments">Experiments / month</label><output id="roiExperimentsOut">40</output></div>
-              <input id="roiExperiments" type="range" min="5" max="200" step="5" value="40" />
-            </div>
-            <div class="range-field">
-              <div class="range-head"><label for="roiCost">Cost per experiment</label><output id="roiCostOut">₹45,000</output></div>
-              <input id="roiCost" type="range" min="5000" max="300000" step="5000" value="45000" />
-            </div>
-            <div class="range-field">
-              <div class="range-head"><label for="roiReduction">Pre-screen reduction</label><output id="roiReductionOut">42%</output></div>
-              <input id="roiReduction" type="range" min="5" max="80" step="1" value="42" />
-            </div>
-            <div class="range-field">
-              <div class="range-head"><label for="roiDays">Cycle time / experiment</label><output id="roiDaysOut">18 days</output></div>
-              <input id="roiDays" type="range" min="3" max="60" step="1" value="18" />
-            </div>
-            <div class="range-field">
-              <div class="range-head"><label for="roiTeam">Lab team cost / month</label><output id="roiTeamOut">₹8,00,000</output></div>
-              <input id="roiTeam" type="range" min="100000" max="3000000" step="50000" value="800000" />
-            </div>
-            <label class="field-label" for="roiTier">Subscription</label>
-            <select id="roiTier" class="field-select">
-              <option value="pro">Pro Lab · ₹4,999 / mo</option>
-              <option value="enterprise">Enterprise R&amp;D · ₹19,999 / mo</option>
-              <option value="waived">ENTERPRISE ACCESS GRANT — FEE WAIVED (₹0)</option>
-            </select>
-            <p class="micro-note">Assumes 65% of avoided experiments release lab capacity, and that pre-screened candidates move to validation with the same success rate.</p>
-          </aside>
-
-          <div class="roi-output">
-            <div class="roi-hero glass">
-              <span class="panel-kicker">ANNUAL NET SAVINGS</span>
-              <strong id="roiSavings">₹0</strong>
-              <span id="roiSavingsSub">Adjust the assumptions to model your lab.</span>
-              <div class="roi-quick">
-                <div><span>Payback</span><strong id="roiPayback">—</strong></div>
-                <div><span>12-month ROI</span><strong id="roiPercent">—</strong></div>
-                <div><span>Experiments avoided</span><strong id="roiAvoided">—</strong></div>
-                <div><span>Engineering days saved</span><strong id="roiDaysSaved">—</strong></div>
-              </div>
-            </div>
-            <article class="chart-card glass">
-              <div class="chart-head"><div><span class="panel-kicker">CASH-FLOW COMPARISON</span><h3>Baseline vs MATERIALHUNT-assisted R&amp;D</h3></div><span class="chart-tag">annualised</span></div>
-              <div class="chart-box" id="roiChart"></div>
-            </article>
-            <article class="glass roi-note">
-              <h3>Why the model holds</h3>
-              <p>Every avoided experiment frees furnace, characterization and metallographer time. At an 18-day cycle, a 42% pre-screen reduction compounds into months of schedule recovery — the real ROI is time-to-market, not only cash.</p>
-              <div class="roi-bars">
-                <div><span>Raw test avoidance</span><div class="bar"><i id="roiBar1"></i></div><strong id="roiRaw">—</strong></div>
-                <div><span>Team capacity released</span><div class="bar"><i id="roiBar2"></i></div><strong id="roiCapacity">—</strong></div>
-                <div><span>Subscription drag</span><div class="bar"><i id="roiBar3"></i></div><strong id="roiSub">—</strong></div>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= 7. GLOBAL R&D DISCOVERY REGISTRY & FEEDBACK ================= -->
-      <section class="view" id="view-discoveryRegistry">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">GLOBAL R&amp;D DISCOVERY DISCOVERY REGISTRY</span>
-            <h2>Global R&amp;D Discovery Registry &amp; 0–5★ Feedback</h2>
-            <p>Verified breakthroughs from enterprise labs, ranked by discovery score. Publish a simulation or rate the platform from 0 to 5 stars.</p>
-          </div>
-          <div class="sim-actions">
-            <span class="status-pill status-emerald" id="discoveryRegistryStatus">LIVE</span>
-            <button class="btn btn-glass small" id="refreshDiscovery">Refresh</button>
-          </div>
-        </div>
-
-        <div class="leader-stats" id="discoveryRegistryStats"></div>
-
-        <div class="table-wrap glass">
-          <table class="data-table leader-table">
-            <thead>
-              <tr><th>Rank</th><th>R&amp;D Team</th><th>Material</th><th>Predicted</th><th>Confidence</th><th>Discovery note</th><th>Date</th></tr>
-            </thead>
-            <tbody id="discoveryRegistryBody"><tr class="empty-row"><td colspan="7">Loading verified discoveries…</td></tr></tbody>
-          </table>
-        </div>
-
-        <div class="leader-actions">
-          <button class="btn btn-primary" id="publishDiscovery">Publish current simulation</button>
-          <button class="btn btn-glass" id="openFeedbackFromBoard">Rate MATERIALHUNT 0–5★</button>
-        </div>
-
-        <article class="glass feedback-inline">
-          <div class="panel-title-row"><h3>0–5★ Platform Feedback</h3><span class="pill pill-amber" id="inlineRatingLabel">Not rated</span></div>
-          <div class="star-row" id="inlineStarRow" role="radiogroup" aria-label="Inline star rating">
-            <button type="button" class="star-btn" data-star="0" aria-label="0 stars">0</button>
-            <button type="button" class="star-btn" data-star="1" aria-label="1 star">★</button>
-            <button type="button" class="star-btn" data-star="2" aria-label="2 stars">★</button>
-            <button type="button" class="star-btn" data-star="3" aria-label="3 stars">★</button>
-            <button type="button" class="star-btn" data-star="4" aria-label="4 stars">★</button>
-            <button type="button" class="star-btn" data-star="5" aria-label="5 stars">★</button>
-          </div>
-          <textarea id="inlineFeedbackMessage" rows="3" placeholder="What should we know?"></textarea>
-          <div class="inline-actions">
-            <select id="inlineFeedbackCategory" class="field-select">
-              <option>Prediction Quality</option>
-              <option>3D Visualisation</option>
-              <option>Simulator</option>
-              <option>PDF Report</option>
-              <option>Bug Report</option>
-              <option>Feature Request</option>
-              <option>General</option>
-            </select>
-            <button class="btn btn-primary" id="submitInlineFeedback">Send feedback</button>
-          </div>
-          <p class="micro-note" id="inlineFeedbackStatus">Your rating and comments are sent privately to our team. Thank you.</p>
-        </article>
-      </section>
-
       <!-- ================= 8. PRICING ================= -->
       <section class="view" id="view-pricing">
         <div class="section-head">
@@ -1178,45 +730,6 @@
         </div>
       </section>
 
-      <!-- ================= USAGE ANALYTICS DASHBOARD ================= -->
-      <section class="view" id="view-analytics-dashboard">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">ENTERPRISE INTELLIGENCE</span>
-            <h2>Usage Analytics Dashboard</h2>
-            <p>Real-time adoption metrics, simulation volume, alloy discovery rate, and team collaboration insights.</p>
-          </div>
-          <span class="status-pill status-cyan" id="analyticsDashboardStatus">LIVE</span>
-        </div>
-        <div class="analytics-dashboard glass" id="analyticsDashboard"></div>
-      </section>
-
-      <!-- ================= TEAM WORKSPACES ================= -->
-      <section class="view" id="view-workspaces">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">COLLABORATIVE R&D</span>
-            <h2>Team Workspaces</h2>
-            <p>Share alloys, co-edit benchmarks, track team discoveries, and manage enterprise permissions.</p>
-          </div>
-          <button class="btn btn-primary" id="createWorkspaceBtn">Create Workspace</button>
-        </div>
-        <div class="workspace-panel glass" id="workspacesPanel"></div>
-      </section>
-
-      <!-- ================= ADVANCED REPORT TEMPLATES ================= -->
-      <section class="view" id="view-report-templates">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">CERTIFIED DOCUMENTATION</span>
-            <h2>Advanced Report Templates</h2>
-            <p>AS9100, ISO 9001, MIL-STD-810, ASTM E8/E21, NADCAP, NORSOK, IS 16000 — one-click compliant dossiers.</p>
-          </div>
-          <span class="status-pill status-emerald" id="templatesStatus">12 TEMPLATES</span>
-        </div>
-        <div class="template-grid glass" id="templatesGrid"></div>
-      </section>
-
       <!-- ================= REAL-TIME METAL PRICING ================= -->
       <section class="view" id="view-metal-pricing">
         <div class="section-head">
@@ -1243,91 +756,6 @@
         <div class="supplier-grid glass" id="supplierGrid"></div>
       </section>
 
-      <!-- ================= FAILURE ANALYSIS KNOWLEDGE BASE ================= -->
-      <section class="view" id="view-failure-analysis">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">FORENSIC ENGINEERING</span>
-            <h2>Failure Analysis Knowledge Base</h2>
-            <p>1,200+ documented failure modes across fatigue, corrosion, creep, brittle fracture, hydrogen embrittlement — with root cause trees and prevention playbooks.</p>
-          </div>
-          <span class="status-pill status-rose" id="failureCountBadge">1,247 CASES</span>
-        </div>
-        <div class="glass" style="padding: 20px;">
-          <div class="failure-search">
-            <input type="search" id="failureSearch" placeholder="Search failure modes, alloys, conditions..." class="field-input" />
-            <select id="failureFilter" class="field-select">
-              <option value="">All Types</option>
-              <option value="fatigue">Fatigue</option>
-              <option value="corrosion">Corrosion</option>
-              <option value="creep">Creep</option>
-              <option value="brittle">Brittle Fracture</option>
-              <option value="hydrogen">Hydrogen Embrittlement</option>
-            </select>
-          </div>
-          <div class="failure-grid" id="failureGrid"></div>
-        </div>
-      </section>
-
-      <!-- ================= COMPLIANCE AUTO-GENERATION ================= -->
-      <section class="view" id="view-compliance">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">REGULATORY AUTOMATION</span>
-            <h2>Compliance Auto-Generation</h2>
-            <p>Generate ITAR/EAR classifications, REACH/RoHS declarations, DFARS 252.225-7009, Conflict Minerals (CMRT), and ESG reports from your alloy composition.</p>
-          </div>
-          <span class="status-pill status-cyan" id="complianceStatus">READY</span>
-        </div>
-        <div class="compliance-checklist glass" id="complianceChecklist"></div>
-      </section>
-
-      <!-- ================= API ACCESS PANEL ================= -->
-      <section class="view" id="view-api-access">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">DEVELOPER PLATFORM</span>
-            <h2>API Access & Integration</h2>
-            <p>REST + WebSocket API for simulation, optimization, mission search, and discovery-registry. OpenAPI 3.1 spec, SDKs for Python/TypeScript/Rust.</p>
-          </div>
-          <button class="btn btn-primary" id="generateApiKeyBtn">Generate API Key</button>
-        </div>
-        <div class="api-panel glass" id="apiAccessPanel"></div>
-      </section>
-
-      <!-- ================= ALLOY GENOME VISUALIZATION ================= -->
-      <section class="view" id="view-alloy-genome">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">DEEP-TECH VISUALIZATION</span>
-            <h2>Alloy Genome Visualization</h2>
-            <p>Interactive 3D property manifold — explore 180M composition space with PCA/t-SNE/UMAP, property gradients, and similarity clustering.</p>
-          </div>
-          <span class="status-pill status-emerald" id="genomeStatus">GPU ACCELERATED</span>
-        </div>
-        <div class="glass" style="padding: 20px;">
-          <div class="genome-controls">
-            <div class="genome-control-group"><label>Projection</label><select id="genomeProjection"><option value="pca">PCA (3D)</option><option value="tsne">t-SNE</option><option value="umap">UMAP</option></select></div>
-            <div class="genome-control-group"><label>Color By</label><select id="genomeColorBy"><option value="strength">Yield Strength</option><option value="density">Density</option><option value="cost">Cost/kg</option><option value="liquidus">Liquidus</option><option value="phase">Phase State</option></select></div>
-            <div class="genome-control-group"><label>Dataset</label><select id="genomeDataset"><option value="all">All Candidates</option><option value="steels">Steels</option><option value="glass">Glass</option><option value="expt_gap">Expt Gap</option></select></div>
-          </div>
-          <canvas class="genome-canvas" id="genomeCanvas"></canvas>
-        </div>
-      </section>
-
-      <!-- ================= DIGITAL TWIN EXPORT ================= -->
-      <section class="view" id="view-digital-twin">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">SIMULATION EXPORT</span>
-            <h2>Digital Twin Export</h2>
-            <p>Export complete simulation state as FMU (FMI 2.0/3.0), Abaqus/Ansys input decks, CAD geometries (STEP/STL), MaterialX, or JSON-LD for digital thread integration.</p>
-          </div>
-          <span class="status-pill status-amber" id="twinStatus">8 FORMATS</span>
-        </div>
-        <div class="export-format-grid glass" id="digitalTwinFormats"></div>
-      </section>
-
       <!-- ================= AI-POWERED ALLOY DESIGN ================= -->
       <section class="view" id="view-ai-design">
         <div class="section-head">
@@ -1341,29 +769,15 @@
         <div class="ai-design-panel glass" id="aiDesignPanel"></div>
       </section>
 
-      <!-- ================= EXPORT CONTROL COMPLIANCE ================= -->
-      <section class="view" id="view-export-control">
-        <div class="section-head">
-          <div>
-            <span class="panel-kicker">TRADE COMPLIANCE</span>
-            <h2>Export Control Compliance</h2>
-            <p>Automated ITAR/EAR/Wassenaar/Dual-Use screening — real-time flagging of controlled elements, end-use certificates, and re-export license tracking.</p>
-          </div>
-          <span class="status-pill status-emerald" id="exportControlStatus">CLEAR</span>
-        </div>
-        <div class="export-control-panel glass" id="exportControlPanel"></div>
-      </section>
-
     </main>
 
     <footer class="site-footer">
       <div class="footer-brand">
         <span class="brand-name small">MATERIAL<span>HUNT</span></span>
-        <span>AI-powered multi-material discovery &amp; 3D engineering pre-screening.</span>
+        <span>Find the right metal for the job, and check it before you build.</span>
       </div>
       <div class="footer-meta">
-        <span><i class="dot dot-emerald"></i> Runs fully offline · Firebase Hosting ready</span>
-        <span><i class="dot dot-cyan"></i> Three.js · Plotly · Firebase</span>
+        <span><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
         <span class="footer-warning">Screening hypothesis only — not a certified test report.</span>
       </div>
     </footer>
@@ -1374,7 +788,7 @@
       <div class="ef-brand">
         <span class="ef-mark"><img src="favicon.svg" alt="MaterialHunt" width="40" height="40" /></span>
         <div>
-          <strong>MATERIALHUNT Inc.</strong>
+          <strong>MaterialHunt</strong>
           <span>Test a metal before you build with it · Made in Bengaluru</span>
         </div>
       </div>
@@ -1393,17 +807,17 @@
         <a href="#" data-view="pricing">Pricing</a>
       </div>
       <div class="ef-col ef-compliance">
-        <span class="ef-title">Trust posture</span>
+        <span class="ef-title">Your data</span>
         <div class="ef-badges">
-          <span>LAB-READY OUTPUTS</span>
-          <span>DUAL-USE GUARDRAIL</span>
-          <span>DPDP-AWARE DATA HANDLING</span>
+          <span>SCREENING ESTIMATES</span>
+          <span>NO DATA SOLD</span>
+          <span>DELETE YOUR DATA ANYTIME</span>
         </div>
         <a class="ef-pilot" href="#" data-view="challenge">Try the design benchmark →</a>
       </div>
     </div>
     <div class="ef-bottom">
-      <span class="ef-copy"><img src="favicon.svg" alt="" width="18" height="18" /> © <span id="footerYear">2026</span> MaterialHunt · All rights reserved.</span>
+      <span class="ef-copy"><img src="favicon.svg" alt="" width="18" height="18" /> © <span id="footerYear">2026</span> MaterialHunt · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
       <span>Engineering estimates. Confirm critical specifications with your supplier or an accredited lab.</span>
       <span class="ef-offline"><i class="dot dot-emerald"></i> <span class="mh-counter" data-counter-copy="footer">Verified members joining</span></span>
     </div>
@@ -1458,6 +872,7 @@
             <span class="oauth-g">G</span> Continue with Google
           </button>
         </div>
+        <p class="micro-note oauth-note">By continuing with Google you confirm you are 18 or older, or have a parent or guardian's permission, and accept the <a href="terms.html" target="_blank" rel="noopener">Terms</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>
         <div class="auth-divider"><span>or use your email</span></div>
 
         <form id="loginForm" class="auth-form">
@@ -1490,10 +905,11 @@
           </div>
           <label class="field-label" for="registerEmail">Email</label>
           <input id="registerEmail" type="email" placeholder="you@company.com" autocomplete="email" required />
-          <label class="field-label" for="registerPassword">Password (min 6 characters)</label>
-          <input id="registerPassword" type="password" placeholder="••••••••" autocomplete="new-password" required minlength="6" />
+          <label class="field-label" for="registerPassword">Password (at least 8 characters)</label>
+          <input id="registerPassword" type="password" placeholder="••••••••" autocomplete="new-password" required minlength="8" />
+          <label class="guardrail-check"><input type="checkbox" id="registerConsent" required /><span><strong>I am 18 or older, or I have my parent or guardian's permission</strong><small>I accept the <a href="terms.html" target="_blank" rel="noopener">Terms</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</small></span></label>
           <button class="btn btn-primary full" type="submit">Create free account</button>
-          <p class="micro-note">We email a link to verify your address. By continuing you accept our <a href="#" data-legal="terms">Terms</a> and <a href="#" data-legal="privacy">Privacy Policy</a>.</p>
+          <p class="micro-note">We email a link to verify your address.</p>
         </form>
 
         <p class="form-error" id="authError"></p>
@@ -1708,22 +1124,22 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.10.4"></script>
-  <script src="app.js?v=4.10.4"></script>
-  <script src="config.js?v=4.10.4"></script>
-  <script src="tools.js?v=4.10.4"></script>
-  <script src="growth.js?v=4.10.4"></script>
-  <script src="ai.js?v=4.10.4"></script>
-  <script src="admin.js?v=4.10.4"></script>
-  <script src="designs.js?v=4.10.4"></script>
-  <script src="profile.js?v=4.10.4"></script>
-  <script src="promo.js?v=4.10.4"></script>
-  <script src="community.js?v=4.10.4"></script>
-  <script src="showcase.js?v=4.10.4"></script>
-  <script src="brain.js?v=4.10.4"></script>
-  <script src="vision.js?v=4.10.4"></script>
-  <script src="account.js?v=4.10.4"></script>
-  <script src="endorse.js?v=4.10.4"></script>
-  <script src="notifications.js?v=4.10.4"></script>
+  <script src="firebase-bridge.js?v=4.11.1"></script>
+  <script src="app.js?v=4.11.1"></script>
+  <script src="config.js?v=4.11.1"></script>
+  <script src="tools.js?v=4.11.1"></script>
+  <script src="growth.js?v=4.11.1"></script>
+  <script src="ai.js?v=4.11.1"></script>
+  <script src="admin.js?v=4.11.1"></script>
+  <script src="designs.js?v=4.11.1"></script>
+  <script src="profile.js?v=4.11.1"></script>
+  <script src="promo.js?v=4.11.1"></script>
+  <script src="community.js?v=4.11.1"></script>
+  <script src="showcase.js?v=4.11.1"></script>
+  <script src="brain.js?v=4.11.1"></script>
+  <script src="vision.js?v=4.11.1"></script>
+  <script src="account.js?v=4.11.1"></script>
+  <script src="endorse.js?v=4.11.1"></script>
+  <script src="notifications.js?v=4.11.1"></script>
 </body>
 </html>

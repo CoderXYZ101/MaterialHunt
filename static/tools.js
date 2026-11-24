@@ -1375,10 +1375,20 @@ Chassis plate: 6061-T6, 6 kg`;
     };
     // temperatures: C, F, K
     const temps = [];
-    raw.replace(/(-?\d[\d,]*(?:\.\d+)?)\s*(?:°\s*C|deg(?:rees)?\s*C|celsius)/gi, (m, n) => { temps.push(Number(n.replace(/,/g, ''))); return m; });
+    raw.replace(/(-?\d[\d,]*(?:\.\d+)?)\s*(?:°\s*C|deg(?:rees?)?\.?\s*C|celsius|centigrade)/gi, (m, n) => { temps.push(Number(n.replace(/,/g, ''))); return m; });
+    if (!temps.length) {
+      // looser forms: "600C", "600 C", "600°", "600 degrees", "600 deg"
+      raw.replace(/(-?\d[\d,]*(?:\.\d+)?)\s*(?:°|deg(?:rees?)?\b|C(?![A-Za-z0-9]))/g, (m, n) => { if (!/F/.test(m)) temps.push(Number(n.replace(/,/g, ''))); return m; });
+    }
     raw.replace(/(-?\d[\d,]*(?:\.\d+)?)\s*(?:°\s*F|deg(?:rees)?\s*F|fahrenheit)/gi, (m, n) => { temps.push((Number(n.replace(/,/g, '')) - 32) / 1.8); return m; });
     raw.replace(/(\d+(?:\.\d+)?)\s*K\b/g, (m, n) => { temps.push(Number(n) - 273.15); return m; });
     if (temps.length) req.tempC = Math.max(-269, temps.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a)));
+    if (req.tempC !== null && req.tempC > 3500) req.notes.push(`${num(req.tempC)}°C is above the melting point of every metal, including tungsten (about 3,400°C). Try a lower temperature or a ceramic or carbon material.`);
+    if (req.tempC === null) {
+      // words that imply a temperature when none is given: the assumption is shown in the notes
+      if (/exhaust|furnace|kiln|boiler|forge|incinerat|combustion|rocket/i.test(raw)) { req.tempC = 800; req.notes.push('No temperature given, so I assumed about 800°C for a hot part. Add your own number to refine the list.'); }
+      else if (/\bhot\b|high[- ]temp(?:erature)?|\bheat\b|engine/i.test(raw)) { req.tempC = 500; req.notes.push('No temperature given, so I assumed about 500°C for a hot part. Add your own number to refine the list.'); }
+    }
     if (/cryo|liquid (?:hydrogen|nitrogen|helium|oxygen)|\bLH2\b|\bLN2\b/i.test(raw) && (req.tempC === null || req.tempC > -150)) req.tempC = req.tempC !== null && req.tempC < 0 ? req.tempC : -196;
 
     // explicit yield-strength requirements are separate from applied stress (no hidden safety factor)
@@ -1395,13 +1405,18 @@ Chassis plate: 6061-T6, 6 kg`;
     if (sf) req.sfExplicit = Number(sf[1]);
 
     // cost (INR/kg, USD converted at 85)
-    let m = raw.match(/(?:under|below|less than|max(?:imum)?|within|<=?|≤)\s*(₹|rs\.?|inr|\$|usd)?\s*([\d,]+(?:\.\d+)?)\s*(?:\/\s*kg|per\s*kg|₹\s*\/\s*kg|\$\s*\/\s*kg)/i)
-      || raw.match(/(₹|rs\.?|inr|\$|usd)\s*([\d,]+(?:\.\d+)?)\s*(?:\/\s*kg|per\s*kg)/i);
+    const PER_KG = '(?:\\/\\s*(?:kg|kilo)\\b|per\\s*(?:kg|kilo(?:gram)?)\\b|a\\s*kg\\b|\\/\\s*kilogram)';
+    const CUR = '(₹|rs\\.?|inr|rupees?|\\$|usd|dollars?)';
+    let m = raw.match(new RegExp(`${CUR}\\s*([\\d,]+(?:\\.\\d+)?)\\s*${PER_KG}`, 'i'))
+      || raw.match(new RegExp(`([\\d,]+(?:\\.\\d+)?)\\s*${CUR}\\s*${PER_KG}`, 'i'))
+      || raw.match(new RegExp(`(?:under|below|less than|max(?:imum)?|within|<=?|≤)\\s*(₹|rs\\.?|inr|rupees?|\\$|usd)?\\s*([\\d,]+(?:\\.\\d+)?)\\s*(?:\\/\\s*kg|per\\s*kg|a\\s*kg)`, 'i'));
     if (m) {
-      const cur = (m[1] || '').toLowerCase();
-      const val = Number(m[2].replace(/,/g, ''));
-      req.maxCost = /\$|usd/.test(cur) ? val * 85 : val;
-      if (/\$|usd/.test(cur)) req.notes.push(`Converted $${val}/kg to about ₹${num(req.maxCost)}/kg`);
+      // the number and the currency can come in either order
+      const numFirst = /^[\d,]/.test(m[1] || '');
+      const cur = String(numFirst ? m[2] : m[1] || '').toLowerCase();
+      const val = Number(String(numFirst ? m[1] : m[2]).replace(/,/g, ''));
+      req.maxCost = /\$|usd|dollar/.test(cur) ? val * 85 : val;
+      if (/\$|usd|dollar/.test(cur)) req.notes.push(`Converted $${val}/kg to about ₹${num(req.maxCost)}/kg`);
     }
     m = raw.match(/(?:density|lighter than|under|below|<=?|≤)\s*(?:<=?|≤)?\s*(\d+(?:\.\d+)?)\s*g\s*\/\s*(?:cm3|cm³|cc)/i);
     if (m) req.maxDensity = Number(m[1]);

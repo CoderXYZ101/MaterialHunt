@@ -422,6 +422,8 @@ async function handleRegister(event) {
   event.preventDefault();
   const button = $('#registerForm button[type="submit"]');
   const original = button.textContent;
+  if (!$('#registerConsent')?.checked) { $('#authError').textContent = 'Please confirm you are 18 or older, or have a parent or guardian\'s permission.'; return; }
+  if (($('#registerPassword')?.value || '').length < 8) { $('#authError').textContent = 'Please use a password of at least 8 characters.'; return; }
   button.disabled = true;
   button.textContent = 'Creating your account…';
   try {
@@ -4088,7 +4090,7 @@ function buildSpec(sim) {
   const derived = sim.derived;
   const treatment = heatTreatmentFor(sim);
   return {
-    product: 'MATERIALHUNT Inc.',
+    product: 'MaterialHunt',
     generated_at: new Date().toISOString(),
     formula: sim.composition?.elements ? sim.composition.elements.map((el) => `${el.symbol} ${el.wt_pct}%`).join(' · ') : sim.composition?.formula,
     verdict: derived.verdict,
@@ -4132,7 +4134,7 @@ function downloadSpec(format) {
     downloadBlob(JSON.stringify(spec, null, 2), 'MATERIALHUNT_Machining_HeatTreatment_Spec.json', 'application/json');
   } else {
     const lines = [
-      'MATERIALHUNT INC. — MACHINING & HEAT-TREATMENT SPECIFICATION',
+      'MATERIALHUNT — MACHINING & HEAT-TREATMENT SPECIFICATION',
       `Generated: ${new Date().toLocaleString('en-IN')}`,
       `Formula: ${spec.formula}`,
       `Verdict: ${spec.verdict}`,
@@ -5954,7 +5956,7 @@ S, E
         conditions: sim?.conditions,
         results: sim?.derived,
         generated: new Date().toISOString(),
-        source: 'MATERIALHUNT Inc.'
+        source: 'MaterialHunt'
       }, null, 2);
     } else {
       content = `# ${f.name} Export

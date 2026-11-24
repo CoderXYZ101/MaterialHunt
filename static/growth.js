@@ -57,6 +57,14 @@
       track('page_view', { page_title: document.title });
     } catch { /* blocked by an extension or offline */ }
   }
+  { const wants = new URLSearchParams(location.search); if (wants.get('contact') === '1' || wants.get('rate') === '1') setTimeout(() => document.querySelector('#feedbackToggle')?.click(), 1800); }
+  /* the home-page box hands the sentence to the Alloy Finder */
+  function goFind() {
+    const text = (q('#jobPrompt')?.value || '').trim();
+    setView('ai-design');
+    setTimeout(() => { const box = q('#aiDesignPrompt'); if (box && text) { box.value = text; q('#runAIDesign')?.click(); } else box?.focus(); }, 200);
+  }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'jobPrompt') { e.preventDefault(); goFind(); } });
   function consentBanner() {
     const choice = localStorage.getItem('mh_consent');
     if (choice === 'yes') { enableAnalytics(); return; }
@@ -357,7 +365,7 @@
     const set = (id, text) => { const el = q(id); if (el) el.textContent = text; };
     const yearly = billing === 'year';
     set('#proPrice', rupee(yearly ? CONFIG.prices.pro.year : CONFIG.prices.pro.month));
-    set('#proCycle', yearly ? 'per year · 2 months free' : 'per month · cancel anytime');
+    set('#proCycle', yearly ? 'per year · 2 months free' : 'per month · ends by itself, no auto-renewal');
     set('#teamPrice', rupee(yearly ? CONFIG.prices.team.year : CONFIG.prices.team.month));
     set('#teamCycle', yearly ? 'per year · up to 5 seats' : 'per month · up to 5 seats');
     qa('.billing-toggle button').forEach((b) => b.classList.toggle('active', b.dataset.bill === billing));
@@ -377,7 +385,7 @@
     const n = v.toLocaleString('en-IN');
     if (v >= 1) {
       if (kind === 'footer') return `${n} verified ${v === 1 ? 'member' : 'members'}`;
-      return `${n} verified ${v === 1 ? 'engineer, maker or student has' : 'engineers, makers and students have'} joined`;
+      return `${n} verified ${v === 1 ? 'member has' : 'members have'} joined`;
     }
     return kind === 'footer' ? 'Verified members joining' : 'Be among the first verified members';
   }
@@ -580,6 +588,9 @@
     q('#loginBtn')?.addEventListener('click', () => openAuth('login'));
     q('#inviteBtn')?.addEventListener('click', openInvite);
     document.addEventListener('click', (e) => {
+      if (e.target.closest('#jobGo')) { e.preventDefault(); goFind(); return; }
+      const contact = e.target.closest('[data-contact]');
+      if (contact) { e.preventDefault(); q('#feedbackToggle')?.click(); return; }
       const legal = e.target.closest('[data-legal]');
       if (legal) { e.preventDefault(); openLegal(legal.dataset.legal); return; }
       const cta = e.target.closest('[data-plan-cta]');

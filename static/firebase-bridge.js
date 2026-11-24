@@ -613,7 +613,7 @@
     const d = sim.derived;
     const p = sim.prediction;
     const lines = [
-      '# MATERIALHUNT INC. — ENTERPRISE LAB SCREENING DOSSIER',
+      '# MATERIALHUNT — ENTERPRISE LAB SCREENING DOSSIER',
       `Generated: ${new Date().toLocaleString('en-IN')}`,
       `Reference: ${request?.lab_reference || 'MH-FIREBASE'}`,
       '',
@@ -649,7 +649,7 @@
       sim.hypothesis,
       '',
       'Screening hypothesis only — not a certified test report.',
-      'MATERIALHUNT Inc. · materialhunt-2026.web.app',
+      'MaterialHunt · materialhunt-2026.web.app',
     ];
     return lines;
   }
