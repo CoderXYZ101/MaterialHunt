@@ -409,6 +409,11 @@
           <div class="two-col"><select id="mlUseProp" class="field-select"><option value="y">Yield strength (MPa)</option><option value="uts">Tensile strength (MPa)</option><option value="t">Max service temperature (°C)</option><option value="price">Price (₹/kg)</option></select>
           <button class="btn btn-primary" id="mlUseBtn" type="button">Use as My ML</button></div>
           <p class="micro-note" id="mlUseNote"></p>
+          <h4>Save or load a model</h4>
+          <p class="micro-note">Your models are already remembered in this browser. To keep one for good, or move it to another device (for example a stall laptop), download it as a file and load it back later.</p>
+          <div class="two-col"><button class="btn btn-glass" id="mlSave" type="button">Download model file</button>
+          <label class="btn btn-glass" for="mlLoad" style="text-align:center;cursor:pointer">Load a model file</label></div>
+          <input type="file" id="mlLoad" accept=".json,application/json" class="hidden" />
         </div>
       </article>`;
     main.appendChild(sec);
@@ -417,6 +422,8 @@
     q('#mlTrain', sec).addEventListener('click', runLab);
     q('#mlPredict', sec).addEventListener('click', runPredict);
     q('#mlUseBtn', sec).addEventListener('click', useAsCustom);
+    q('#mlSave', sec).addEventListener('click', saveModelFile);
+    q('#mlLoad', sec).addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) f.text().then(loadModelFile).catch(() => { q('#mlUseNote').textContent = 'That file could not be read.'; }); e.target.value = ''; });
     q('#mlTarget', sec).addEventListener('change', syncSteelBox);
     q('#mlData', sec).addEventListener('change', syncSteelBox);
     syncSteelBox();
@@ -500,6 +507,33 @@
     if (/price|cost|rs|inr|₹/.test(t)) return 'price';
     return 'y';
   }
+
+  function saveModelFile() {
+    const note = q('#mlUseNote');
+    if (!lab) { note.textContent = 'Train a model first, then download it.'; return; }
+    const file = { format: 'materialhunt-ml-1', prop: q('#mlUseProp').value, savedAt: new Date().toISOString(), model: lab };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
+    a.download = `materialhunt-model-${(lab.targetLabel || 'model').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    note.textContent = 'Model file downloaded. Load it back here any time, on any device.';
+  }
+
+  function loadModelFile(text) {
+    const note = q('#mlUseNote');
+    let file;
+    try { file = JSON.parse(text); } catch { note.textContent = 'That is not a MaterialHunt model file.'; return; }
+    const m = file && file.format === 'materialhunt-ml-1' ? file.model : null;
+    if (!m || !Array.isArray(m.features) || !Array.isArray(m.trees) || !m.trees.length || !m.cv || !m.baseline || !Array.isArray(m.points)) { note.textContent = 'That is not a MaterialHunt model file.'; return; }
+    try { const probe = predictForest(m.trees, vectorise({ Fe: 100 }, 'BCC', m.features)); if (!Number.isFinite(probe.value)) throw new Error('bad'); } catch { note.textContent = 'That model file is damaged, so it was not loaded.'; return; }
+    lab = m;
+    renderResult();
+    q('#mlTry').classList.remove('hidden');
+    if (PROPS_OK.includes(file.prop)) q('#mlUseProp').value = file.prop;
+    note.textContent = `Loaded "${m.targetLabel}" (${m.n} samples). Press "Use as My ML" to make the other tabs use it.`;
+  }
+  const PROPS_OK = ['y', 'uts', 't', 'price'];
 
   function useAsCustom() {
     const note = q('#mlUseNote');
