@@ -721,3 +721,8 @@ button.term-hint { background: transparent; padding: 0; line-height: 1; font-fam
 .ml-save-row input { flex: 1 1 220px; min-width: 0; }
 .ml-model-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .admin-team { width: 120px; }
+
+.team-head { padding: 14px 18px; margin: 12px 0; }
+.team-head h3 { margin: 0 0 4px; font-size: 16px; }
+.team-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.team-code { font-size: 18px; letter-spacing: .08em; padding: 3px 8px; border: 1px dashed rgba(34,211,238,.6); border-radius: 6px; }

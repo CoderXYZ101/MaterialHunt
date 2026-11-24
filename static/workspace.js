@@ -180,8 +180,103 @@
   const who = () => (window.MH_PROFILE?.displayName?.() || state.user?.organization_name || 'Member').slice(0, 40);
   const ago = (t) => { const m = Math.max(0, (Date.now() - ms(t)) / 60000); if (!ms(t)) return 'just now'; if (m < 60) return `${Math.max(1, Math.round(m))} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; return `${Math.round(m / 1440)} d ago`; };
 
+  /* ---- team names: like a user name, first come first served ---- */
+  let teamInfo = null;
+  const TEAM_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
+  const slugTeam = (raw) => String(raw || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  const uidNow = () => window.MH_FIREBASE?.auth?.currentUser?.uid || '';
+  const newCode = () => { const a = 'abcdefghjkmnpqrstuvwxyz23456789'; const r = new Uint32Array(10); (window.crypto || {}).getRandomValues?.(r); return Array.from(r, (n) => a[(n || Math.floor(Math.random() * 1e6)) % a.length]).join(''); };
+
+  async function loadTeamInfo() {
+    teamInfo = null;
+    if (!myTeam()) return;
+    try {
+      await window.MH_FIREBASE.initFirebase();
+      const n = await db().collection('team_names').doc(myTeam()).get();
+      if (n.exists) {
+        teamInfo = { id: myTeam(), ...n.data() };
+        if (teamInfo.owner === uidNow()) { const c = await db().collection('team_codes').doc(myTeam()).get(); teamInfo.code = c.exists ? c.data().code : ''; }
+      }
+    } catch { teamInfo = null; }
+  }
+
+  function renderHead() {
+    const h = q('#teamHead');
+    if (!h) return;
+    if (myTeam()) {
+      const owner = teamInfo && teamInfo.owner === uidNow();
+      h.innerHTML = `<div class="glass team-head"><p><b>${esc(teamInfo?.display || myTeam())}</b> <small>(team name: <code>${esc(myTeam())}</code>)</small></p>
+        ${owner ? `<p class="micro-note">Share this join code with your teammates. They need a team plan on their account, then they press "Join a team" and enter the name and this code.</p>
+          <p><code class="team-code">${esc(teamInfo.code || '')}</code> <button class="btn btn-ghost small" data-t="copy">Copy code</button> <button class="btn btn-ghost small" data-t="newcode">Make a new code</button></p>` : ''}
+        <button class="btn btn-ghost small" data-t="leave">Leave this team</button></div>`;
+      return;
+    }
+    h.innerHTML = `<div class="glass team-head"><div class="team-two"><div><h3>Create a team</h3>
+        <p class="micro-note">Pick a name. It works like a user name: the first person to take it keeps it, and if it is taken you pick another.</p>
+        <div class="ml-save-row"><input id="teamNew" type="text" maxlength="40" placeholder="e.g. SEA Robotics Club" /><button class="btn btn-glass small" data-t="check">Check name</button><button class="btn btn-primary small" data-t="create">Create team</button></div></div>
+        <div><h3>Join a team</h3>
+        <p class="micro-note">Your team owner gives you the name and a join code.</p>
+        <div class="ml-save-row"><input id="teamJoinName" type="text" maxlength="40" placeholder="Team name" /><input id="teamJoinCode" type="text" maxlength="12" placeholder="Join code" /><button class="btn btn-primary small" data-t="join">Join a team</button></div></div></div>
+        <p class="micro-note" id="teamMsg" aria-live="polite"></p></div>`;
+  }
+  const say = (m) => { const e = q('#teamMsg'); if (e) e.textContent = m; };
+
+  async function afterTeamChange(teamId) {
+    state.user.team = teamId;
+    shelfLoaded = false; items = [];
+    await loadShelf();
+  }
+
+  async function teamAction(t) {
+    const a = t.dataset.t;
+    if (!state.user?.email_verified) { notify('Please verify your email first.', 'warning', 4000); return; }
+    await window.MH_FIREBASE.initFirebase();
+    if (a === 'copy') { navigator.clipboard?.writeText(teamInfo?.code || ''); notify('Code copied.', 'success', 2000); return; }
+    if (a === 'newcode') {
+      const code = newCode();
+      try { await db().collection('team_codes').doc(myTeam()).set({ code }); teamInfo.code = code; renderHead(); notify('New code made. The old one no longer works.', 'success', 3000); } catch { notify('Could not make a new code.', 'error', 3500); }
+      return;
+    }
+    if (a === 'leave') {
+      if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Sure? Press again'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Leave this team'; } }, 3000); return; }
+      try { await db().collection('users').doc(uidNow()).update({ team: '' }); await afterTeamChange(''); } catch { notify('Could not leave the team.', 'error', 3500); }
+      return;
+    }
+    if (a === 'check' || a === 'create') {
+      const raw = (q('#teamNew')?.value || '').trim();
+      const id = slugTeam(raw);
+      if (!TEAM_RE.test(id)) { say('Use 3 to 40 letters or numbers. Spaces become dashes.'); return; }
+      let taken = false;
+      try { taken = (await db().collection('team_names').doc(id).get()).exists; } catch { say('Could not check. Are you online?'); return; }
+      if (taken) { say(`"${id}" is taken. Try another name.`); return; }
+      if (a === 'check') { say(`"${id}" is free. Press "Create team" to take it.`); return; }
+      try {
+        await db().collection('team_names').doc(id).set({ owner: uidNow(), display: raw.slice(0, 40), created_at: FV().serverTimestamp() });
+        await db().collection('team_codes').doc(id).set({ code: newCode() });
+        await db().collection('users').doc(uidNow()).update({ team: id });
+        notify(`Team "${raw}" created. Share the join code with your teammates.`, 'success', 5000);
+        await afterTeamChange(id);
+      } catch { say('Could not create the team. Your account needs an active team plan and a verified email, or someone just took that name.'); }
+      return;
+    }
+    if (a === 'join') {
+      const id = slugTeam(q('#teamJoinName')?.value || '');
+      const code = (q('#teamJoinCode')?.value || '').trim().toLowerCase();
+      if (!TEAM_RE.test(id) || code.length < 8) { say('Enter the team name and the join code.'); return; }
+      try {
+        await db().collection('team_joins').doc(uidNow()).set({ team: id, code });
+        await db().collection('users').doc(uidNow()).update({ team: id });
+        notify('You joined the team.', 'success', 4000);
+        await afterTeamChange(id);
+      } catch { say('Could not join. Check the name and code, and that your account is on a team plan.'); }
+      try { await db().collection('team_joins').doc(uidNow()).delete(); } catch { /* ignore */ }
+    }
+  }
+
   async function loadShelf() {
     const host = q('#teamList');
+    await loadTeamInfo();
+    renderHead();
     if (!myTeam()) { shelfLoaded = true; renderShelf(); return; }
     try {
       await window.MH_FIREBASE.initFirebase();
@@ -199,7 +294,7 @@
     const host = q('#teamList');
     if (!host) return;
     if (!myTeam()) {
-      host.innerHTML = '<div class="empty-state"><strong>Your team is not set up yet</strong><span>We give your team its ID once your plan is confirmed, and add each member. If you have paid and it still shows this, use Contact in the footer.</span></div>';
+      host.innerHTML = '<div class="empty-state"><strong>You are not in a team yet</strong><span>Create a team or join one with a code, above.</span></div>';
       return;
     }
     host.innerHTML = items.length ? items.map((i) => `<article class="forum-thread glass"><div class="forum-body" style="padding-top:14px">
@@ -273,12 +368,13 @@
     sec.className = 'view';
     sec.id = 'view-team';
     sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">TEAM SHELF</span><h2>Shared with your team</h2>
-        <p>Designs${canShareModels() ? ' and trained models' : ''} that people on your team have shared. Only your team can see them. Team ID: <b>${esc(myTeam() || 'not set yet')}</b>.</p></div></div>
+        <p>Designs${canShareModels() ? ' and trained models' : ''} that people on your team have shared. Only your team can see them.</p></div></div>
+      <div id="teamHead"></div>
       <div class="ml-save-row"><input id="teamName" type="text" maxlength="80" placeholder="Name for the design you want to share" /><button class="btn btn-primary small" id="teamShare" type="button">Share current design</button><button class="btn btn-ghost small" id="teamRefresh" type="button">Refresh</button></div>
       ${canShareModels() ? '<p class="micro-note">To share a trained model, save it in the ML Lab under My models, then press "Share with team".</p>' : '<p class="micro-note">Sharing trained models is part of Team Max and Team Ultra.</p>'}
       <div id="teamList"><div class="empty-state"><strong>Loading…</strong></div></div>`;
     main.appendChild(sec);
-    sec.addEventListener('click', onShelfClick);
+    sec.addEventListener('click', (e) => { const t = e.target.closest('[data-t]'); if (t) { teamAction(t); return; } onShelfClick(e); });
     let first = true;
     const check = () => { if (sec.classList.contains('active') && first) { first = false; loadShelf(); } };
     new MutationObserver(check).observe(sec, { attributes: true, attributeFilter: ['class'] });

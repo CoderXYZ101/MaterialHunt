@@ -49,6 +49,18 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.claimed == true
         && request.resource.data.pro_until <= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days + 1, 'd')
         && request.resource.data.pro_until >= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days - 1, 'd');
+      // joining a team: only on a team plan, only to a name they own, or with that team's join code (see team_joins)
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['team'])
+        && request.resource.data.team is string
+        && resource.data.get('tier', 'free') in ['team', 'team_max', 'team_ultra']
+        && (request.resource.data.team == ''
+          || (exists(/databases/$(database)/documents/team_names/$(request.resource.data.team))
+              && get(/databases/$(database)/documents/team_names/$(request.resource.data.team)).data.owner == uid)
+          || (exists(/databases/$(database)/documents/team_codes/$(request.resource.data.team))
+              && exists(/databases/$(database)/documents/team_joins/$(uid))
+              && get(/databases/$(database)/documents/team_joins/$(uid)).data.team == request.resource.data.team
+              && get(/databases/$(database)/documents/team_joins/$(uid)).data.code == get(/databases/$(database)/documents/team_codes/$(request.resource.data.team)).data.code));
       allow update: if isAdmin();
       // a member can delete their own account record (the website also removes the rest of their data)
       allow delete: if signedIn() && request.auth.uid == uid;
@@ -462,6 +474,43 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'admin_note']);
       allow delete: if isAdmin() || (signedIn() && resource.data.owner == request.auth.uid);
+    }
+
+    // Team names work like user names: first come, first served, and a name cannot be renamed. Only a member on a
+    // team plan can claim one. The code to join is kept in team_codes, which only the owner and admins can read.
+    match /team_names/{name} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('tier', 'free') in ['team', 'team_max', 'team_ultra']
+        && name.matches('^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$')
+        && request.resource.data.keys().hasOnly(['owner', 'display', 'created_at'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.display is string && request.resource.data.display.size() >= 2 && request.resource.data.display.size() <= 40
+        && request.resource.data.created_at == request.time;
+      allow delete: if signedIn() && (isAdmin() || resource.data.owner == request.auth.uid);
+    }
+
+    match /team_codes/{name} {
+      allow read: if signedIn() && (isAdmin()
+        || (exists(/databases/$(database)/documents/team_names/$(name))
+            && get(/databases/$(database)/documents/team_names/$(name)).data.owner == request.auth.uid));
+      allow create, update: if signedIn()
+        && exists(/databases/$(database)/documents/team_names/$(name))
+        && get(/databases/$(database)/documents/team_names/$(name)).data.owner == request.auth.uid
+        && request.resource.data.keys().hasOnly(['code'])
+        && request.resource.data.code is string && request.resource.data.code.size() >= 8 && request.resource.data.code.size() <= 12;
+      allow delete: if isAdmin();
+    }
+
+    // A member who wants to join a team writes the team name and code here; the users rule then checks the code.
+    match /team_joins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['team', 'code'])
+        && request.resource.data.team is string && request.resource.data.team.size() <= 40
+        && request.resource.data.code is string && request.resource.data.code.size() <= 12;
+      allow delete: if signedIn() && request.auth.uid == uid;
     }
 
     // Team shelf: designs and trained models shared inside a team. The team ID is set on the member's account
