@@ -22,6 +22,8 @@
   let modelPromise = null;
   let chat = null;
   let aiOff = false;
+  let aiPref = 'auto';   // auto: built-in first, live AI when needed | local: built-in only | live: always try the live AI
+  try { const p = localStorage.getItem('mh_ai_mode'); if (['auto', 'local', 'live'].includes(p)) aiPref = p; } catch { /* storage blocked */ }
   let attached = null;
   let busy = false;
   let restored = false;
@@ -159,6 +161,9 @@ Rules:
 
   /* common questions the built-in assistant answers well do not need to spend model tokens (used on busy days) */
   function localFirst(text) {
+    // questions about this site's own models and scores are answered on the device: only it knows the live numbers
+    const hit = window.MH_BRAIN?.search(text);
+    if (hit && hit.entry && /^ml-/.test(hit.entry.id) && hit.score >= 0.3) return true;
     if (!window.MH_CONFIG?.aiSummitMode) return false;
     const lower = text.toLowerCase();
     const req = T().parseRequirement(text);
@@ -282,6 +287,11 @@ Rules:
   }
 
   function localAnswer(text) {
+    const comp = window.MH_ENGINE && window.MH_ENGINE.parseComposition(text);
+    if (comp) {
+      const lines = window.MH_ENGINE.describeComposition(comp);
+      return { html: lines.map((l) => `<p>${esc(l).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</p>`).join(''), followups: ['Open the ML Lab', 'What is the model spread?', 'Explain the Best test R² score'], actions: [['view', 'ml', 'Open the ML Lab']] };
+    }
     const strong = (mentionedGrades(text).length === 0 || /(how|why|can i|should i|weld|machin|prevent|heat treat)/i.test(text)) ? window.MH_BRAIN?.answer(text, 0.26) : null;
     if (strong) return strong;
     const t = T();
@@ -519,7 +529,8 @@ Rules:
     if (!state.user) liveBlock = 'sign_in_required';
     else if (!state.user.email_verified) liveBlock = 'verify_required';
     else if (window.MH_PLAN && window.MH_PLAN.remaining('ai') <= 0) liveBlock = 'daily_limit';
-    const goLive = !liveBlock && !attached && !aiOff && !localFirst(text);
+    if (aiPref === 'local') liveBlock = '';   // the user chose built-in answers only, so there is nothing to explain about signing in
+    const goLive = !liveBlock && !attached && !aiOff && aiPref !== 'local' && (aiPref === 'live' || !localFirst(text));
     if (goLive && window.MH_PLAN) window.MH_PLAN.use('ai');
     const userEl = addMessage('user');
     q('.chat-body', userEl).textContent = text;
@@ -538,7 +549,9 @@ Rules:
       if (liveBlock) throw coded(liveBlock);
       if (aiOff) throw new Error('ai-off');
       if (!goLive) throw new Error('ai-off');
-      final = await askModel(text, (partial) => { body.innerHTML = parseModelText(partial, true).html || '<span class="typing"><i></i><i></i><i></i></span>'; box.scrollTop = box.scrollHeight; });
+      // the live AI is told what the on-device ML models say about any composition in the question
+      const mlNote = window.MH_ENGINE ? window.MH_ENGINE.contextFor(text) : '';
+      final = await askModel(mlNote ? `${text}\n\n[Context from this site's on-device ML models: ${mlNote}]` : text, (partial) => { body.innerHTML = parseModelText(partial, true).html || '<span class="typing"><i></i><i></i><i></i></span>'; box.scrollTop = box.scrollHeight; });
       parsed = parseModelText(final, false);
       body.innerHTML = parsed.html;
     } catch (error) {
@@ -581,6 +594,8 @@ Rules:
   }
 
   function setupInput() {
+    const modeSel = q('#aiMode');
+    if (modeSel) { modeSel.value = aiPref; modeSel.addEventListener('change', () => { aiPref = modeSel.value; try { localStorage.setItem('mh_ai_mode', aiPref); } catch { /* ignore */ } }); }
     const input = q('#copilotInput');
     if (!input) return;
     const grow = () => { input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 130)}px`; };

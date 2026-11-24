@@ -1,0 +1,56 @@
+{
+ "generated_by": "evaluation/evaluate.py",
+ "library_grades": 48,
+ "measured_steels": 312,
+ "steel_cv": {
+  "mae": 83.0,
+  "mape": 5.9,
+  "r2": 0.84,
+  "baseline_mae": 229.4,
+  "err80": 123.1,
+  "method": "5-fold cross-validation (shuffled, seed 0) on 312 measured steels, extra-trees, 80 trees"
+ },
+ "steel_cv_shipped": {
+  "folds": 5,
+  "mae": 83.8,
+  "r2": 0.855,
+  "baseline_mae": 229.4,
+  "err80": 131.0,
+  "err90": 179.0,
+  "method": "5-fold cross-validation, out-of-fold predictions on all 312 steels"
+ },
+ "independent_steel_on_library": {
+  "n_tested": 1,
+  "n_outside_range": 47,
+  "grades": [
+   {
+    "id": "maraging",
+    "name": "Maraging steel 18Ni300",
+    "library_yield": 1900.0,
+    "predicted": 1279.0
+   }
+  ],
+  "note": "Library values are typical datasheet values, which depend on heat treatment; this is a small, honest check, not a proof.",
+  "mae": 621.0,
+  "mape": 32.7,
+  "r2": null
+ },
+ "library_loo": {
+  "guess_the_average": {
+   "mae": 291.8,
+   "mape": 82.6,
+   "r2": -0.043
+  },
+  "trained_on_47_grades": {
+   "mae": 209.6,
+   "mape": 51.8,
+   "r2": 0.343
+  },
+  "trained_on_47_grades_plus_312_steels": {
+   "mae": 181.0,
+   "mape": 47.0,
+   "r2": 0.587
+  },
+  "method": "leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold"
+ }
+}

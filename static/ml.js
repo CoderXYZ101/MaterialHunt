@@ -14,7 +14,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const notify = (m, t = 'info', ms) => { if (typeof toast === 'function') toast(m, t, ms); };
   const STRUCT = ['BCC', 'FCC', 'HCP'];
-  const STORE = 'mh_ml_v1';
+  const STORE = 'mh_ml_v2';
   const TARGETS = {
     y: { label: 'Yield strength (MPa)', unit: 'MPa', get: (g) => g.y },
     uts: { label: 'Tensile strength (MPa)', unit: 'MPa', get: (g) => g.uts },
@@ -149,26 +149,43 @@
     return { mae, mape, r2: 1 - ssr / sst };
   };
 
-  async function trainAndEvaluate({ rows, targetLabel, unit, params, onProgress }) {
-    const features = featureList(rows);
+  /* rows are tested; extraRows (optional) are only ever added to the training side, so they can never flatter the score.
+     folds = 0 means leave-one-out; folds = k means k-fold. onProgress may be async (the live demo uses it to slow down). */
+  async function trainAndEvaluate({ rows, extraRows = [], folds = 0, targetLabel, unit, params, onProgress }) {
+    const features = featureList(rows.concat(extraRows));
     const X = rows.map((r) => vectorise(r.comp, r.structure, features));
     const y = rows.map((r) => r.target);
+    const Xe = extraRows.map((r) => vectorise(r.comp, r.structure, features));
+    const ye = extraRows.map((r) => r.target);
     const n = rows.length;
-    const loo = [];
-    const looSpread = [];
-    for (let i = 0; i < n; i += 1) {
-      const Xi = X.filter((_, k) => k !== i);
-      const yi = y.filter((_, k) => k !== i);
-      const trees = trainForest(Xi, yi, { ...params, trees: Math.min(params.trees || 80, 50) }, 100 + i);
-      const p = predictForest(trees, X[i]);
-      loo.push(p.value); looSpread.push(p.spread);
-      if (onProgress && i % 4 === 0) { onProgress((i + 1) / n); await tick(); }
+    const k = folds && folds < n ? folds : n;
+    const order = rows.map((_, i) => i);
+    if (folds) { const rand = mulberry(5); for (let i = n - 1; i > 0; i -= 1) { const j = Math.floor(rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; } }
+    const loo = new Array(n).fill(0);
+    const looSpread = new Array(n).fill(0);
+    let absErr = 0; let absBase = 0; let done = 0;
+    for (let f = 0; f < k; f += 1) {
+      const held = folds ? order.filter((_, j) => j % k === f) : [f];
+      const heldSet = new Set(held);
+      const keep = X.map((_, i) => i).filter((i) => !heldSet.has(i));
+      const trees = trainForest([...keep.map((i) => X[i]), ...Xe], [...keep.map((i) => y[i]), ...ye], { ...params, trees: Math.min(params.trees || 80, 50) }, 100 + f);
+      const info = { fold: f + 1, folds: k, treesTrained: trees.length, trainedOn: keep.length + extraRows.length, held: [] };
+      held.forEach((i) => {
+        const p = predictForest(trees, X[i]);
+        loo[i] = p.value; looSpread[i] = p.spread;
+        const base = keep.reduce((a2, j) => a2 + y[j], 0) / keep.length;
+        absErr += Math.abs(y[i] - p.value); absBase += Math.abs(y[i] - base); done += 1;
+        info.held.push({ name: rows[i].name, actual: y[i], pred: p.value, base });
+      });
+      info.runMae = absErr / done; info.runBase = absBase / done;
+      if (onProgress) await onProgress((f + 1) / k, info);
+      else if (f % 4 === 0) await tick();
     }
-    const meanBaseline = y.map((_, i) => y.filter((__, k) => k !== i).reduce((a, b) => a + b, 0) / (n - 1));
-    const finalTrees = trainForest(X, y, params, 99);
-    const within = y.filter((a, i) => Math.abs(a - loo[i]) <= looSpread[i] * 2).length / n * 100;
+    const meanBaseline = y.map((_, i) => y.filter((__, kk) => kk !== i).reduce((a2, b2) => a2 + b2, 0) / (n - 1));
+    const finalTrees = trainForest([...X, ...Xe], [...y, ...ye], params, 99);
+    const within = y.filter((a2, i) => Math.abs(a2 - loo[i]) <= looSpread[i] * 2).length / n * 100;
     return {
-      features, trees: finalTrees, params, n, targetLabel, unit, trainedAt: Date.now(),
+      features, trees: finalTrees, params, n, extra: extraRows.length, evalMethod: folds ? `${k}-fold` : 'leave-one-out', targetLabel, unit, trainedAt: Date.now(),
       cv: { ...metrics(y, loo), within },
       baseline: metrics(y, meanBaseline),
       points: rows.map((r, i) => ({ name: r.name, actual: y[i], pred: loo[i], spread: looSpread[i] })),
@@ -205,6 +222,47 @@
     return best && best.d <= 6 ? best.g : null;
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Steel model: trained offline on 312 measured steels, runs here        */
+  /* ------------------------------------------------------------------ */
+  const AMASS = { Al: 26.982, C: 12.011, Co: 58.933, Cr: 51.996, Fe: 55.845, Mn: 54.938, Mo: 95.95, N: 14.007, Nb: 92.906, Ni: 58.693, Si: 28.086, Ti: 47.867, V: 50.942, W: 183.84 };
+  let steel = null;
+
+  async function loadSteel() {
+    if (steel) return steel;
+    const res = await fetch('data/steel-yield-model.json');
+    if (!res.ok) throw new Error('steel model file missing');
+    const d = await res.json();
+    const X = d.X;
+    const dist = (a, b) => { let s = 0; for (let i = 0; i < a.length; i += 1) s += (a[i] - b[i]) ** 2; return Math.sqrt(s); };
+    // how close is a typical training steel to its nearest neighbour? A new mix farther than the 95th percentile is outside what the model has seen
+    const nn = X.map((a, i) => { let m = Infinity; for (let k = 0; k < X.length; k += 1) if (k !== i) { const v = dist(a, X[k]); if (v < m) m = v; } return m; }).sort((a, b) => a - b);
+    steel = { d, X, domain: nn[Math.floor(nn.length * 0.95)] * 1.25, dist, elements: d.elements };
+    return steel;
+  }
+
+  function steelTree(t, x) { let i = 0; while (t.f[i] !== -2) i = x[t.f[i]] <= t.t[i] ? t.l[i] : t.r[i]; return t.v[i]; }
+
+  /* comp: weight percent by element. Returns { ok, why } when the mix is outside the steel model's range. */
+  function steelEstimate(comp) {
+    if (!steel) return { ok: false, why: 'loading' };
+    const els = steel.elements;
+    const total = Object.values(comp).reduce((a, b) => a + b, 0) || 1;
+    const known = els.reduce((s, e) => s + (comp[e] || 0), 0);
+    if (known / total < 0.97) return { ok: false, why: 'It contains elements the steel model never saw.' };
+    const moles = els.map((e) => (comp[e] || 0) / AMASS[e]);
+    const mt = moles.reduce((a, b) => a + b, 0) || 1;
+    const x = moles.map((m) => m / mt);
+    const fe = x[els.indexOf('Fe')];
+    if (fe < 0.4) return { ok: false, why: 'It is not iron-based.' };
+    const nearest = steel.X.reduce((m, r) => Math.min(m, steel.dist(x, r)), Infinity);
+    if (nearest > steel.domain) return { ok: false, why: 'It is far from the 312 alloyed steels the model learned from (they are all high-strength steels).' };
+    const vals = steel.d.trees.map((t) => steelTree(t, x));
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const spread = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+    return { ok: true, value: mean, spread, nearest, cv: steel.d.cv };
+  }
+
   function refreshReadout() {
     const strong = q('#heroConfidence');
     if (!strong || typeof state === 'undefined') return;
@@ -213,6 +271,21 @@
     if (!comp) return;
     const src = state.simulation?.prediction?.source;
     const pill = q('#simConfidence');
+    if (src === 'custom') {
+      if (label) label.textContent = 'My ML estimate';
+      strong.textContent = `≈ ${Math.round(state.simulation.prediction.predicted)} MPa`;
+      strong.title = 'Estimate from the model you trained yourself in the ML Lab (My ML). Its accuracy is whatever your training data allows.';
+      if (pill) { pill.textContent = 'My ML'; pill.className = 'pill pill-cyan'; }
+      return;
+    }
+    if (src === 'steel-ml') {
+      const cv = steel?.d?.cv;
+      if (label) label.textContent = 'Steel ML estimate';
+      strong.textContent = `≈ ${Math.round(state.simulation.prediction.predicted)} MPa`;
+      strong.title = `Machine-learning model trained offline on 312 measured high-strength steels and run on your device. Tested on steels it had not seen (5-fold cross-validation): average error ${cv ? Math.round(cv.mae) : '84'} MPa, R² ${cv ? cv.r2 : '0.85'}. Spread between trees ±${Math.round(state.simulation.prediction.ml_spread || 0)} MPa. A guide, not a lab measurement.`;
+      if (pill) { pill.textContent = 'Steel ML'; pill.className = 'pill pill-cyan'; }
+      return;
+    }
     if (src === 'grade') {
       const g = libraryMatch(Object.fromEntries(Object.entries(comp).map(([k, v]) => [k, v])));
       if (label) label.textContent = 'Reference yield';
@@ -221,26 +294,69 @@
       if (pill) { pill.textContent = 'Grade value'; pill.className = 'pill pill-emerald'; }
       return;
     }
-    const e = current ? estimate(current, comp, state.structure || 'BCC') : null;
+    const e = src === 'ml' && current ? estimate(current, comp, state.structure || 'BCC') : null;
     if (e) {
       if (label) label.textContent = 'ML yield estimate';
       strong.textContent = `≈ ${Math.round(e.value)} MPa`;
-      strong.title = `Random forest trained on ${current.n} library grades. Leave-one-out average error about ${Math.round(current.cv.mape)}%. Spread between trees ±${Math.round(e.spread)} MPa (not a calibrated confidence). Open ML Lab for details.`;
+      strong.title = 'Random forest trained on ' + current.n + ' library grades' + (current.extra ? ' plus ' + current.extra + ' measured steels' : '') + '. Average error on grades it had not seen (' + (current.evalMethod || 'cross-validation') + '): about ' + Math.round(current.cv.mape) + '%. Spread between trees ±' + Math.round(e.spread) + ' MPa (not a calibrated confidence). Open ML Lab for details.';
       if (pill) { pill.textContent = 'ML estimate'; pill.className = 'pill pill-amber'; }
     } else if (label) label.textContent = 'Yield estimate';
   }
 
+  const rerun = () => { refreshReadout(); if (typeof runSimulation === 'function' && !state.forgeRun && state.initialised) runSimulation({ silent: true }); };
+
+  /* the 312 measured steels, as training rows (weight percent), used only on the training side */
+  function steelRows() {
+    if (!steel) return [];
+    return steel.X.map((x, i) => {
+      const w = steel.elements.map((e, k) => x[k] * AMASS[e]);
+      const t = w.reduce((a, b) => a + b, 0) || 1;
+      const comp = {}; steel.elements.forEach((e, k) => { if (w[k] > 0) comp[e] = (w[k] / t) * 100; });
+      return { name: `measured steel ${i + 1}`, comp, structure: 'BCC', target: steel.d.y[i], extra: true };
+    });
+  }
+
   async function autoTrain() {
+    // the steel model is pre-trained, so it is ready as soon as its file loads
+    try { await loadSteel(); } catch { /* offline without the file: the library model still works on its own */ }
+    renderDefault(); rerun();
     const saved = load();
-    const rerun = () => { refreshReadout(); if (typeof runSimulation === 'function' && !state.forgeRun && state.initialised) runSimulation({ silent: true }); };
-    if (saved && saved.kind === 'library-y' && saved.trees) { current = saved; rerun(); return; }
+    if (saved && saved.kind === 'library-y' && saved.trees && Boolean(saved.extra) === Boolean(steel)) { current = saved; renderDefault(); rerun(); return; }
     const rows = libraryRows('y');
     if (rows.length < 10) return;
-    const m = await trainAndEvaluate({ rows, targetLabel: TARGETS.y.label, unit: 'MPa', params: { trees: 80 } });
+    const m = await trainAndEvaluate({ rows, extraRows: steelRows(), folds: 8, targetLabel: TARGETS.y.label, unit: 'MPa', params: { trees: 80 } });
     m.kind = 'library-y';
     current = m;
     save(m);
+    renderDefault();
     rerun();
+  }
+
+  /* what the ML Lab shows before anyone presses a button: the two models that are already working */
+  function renderDefault() {
+    const sec = q('#view-ml');
+    if (!sec) return;
+    const statR2 = q('#statAccuracy'); const statN = q('#statCandidates');
+    if (steel && statR2) statR2.textContent = steel.d.cv.r2.toFixed(2);
+    if (statN) statN.textContent = String((steel ? steel.d.n_train : 0) + libraryRows('y').length);
+    const card = q('#mlSteel', sec);
+    if (card && steel) {
+      const cv = steel.d.cv;
+      card.innerHTML = `<span class="pv-kicker">PRE-TRAINED · USED BY THE SIMULATOR FOR STEELS</span>
+        <h3>Steel strength model</h3>
+        <p class="micro-note">Learned from ${steel.d.n_train} measured high-strength steels (public Matbench steels data) and shipped with the site, so it works offline. When you test a steel-like mix in the Simulator that is not a library grade, this model gives the yield strength.</p>
+        <div class="ml-kpis">
+          <div><b>${cv.r2.toFixed(2)}</b><span>R² <i class="term-hint" data-hint="R² tells you how much of the real ups and downs in strength the model explains, on steels it was NOT trained on. 1.0 is perfect; 0 means no better than always guessing the average. 0.85 is a good score for this kind of data." data-ask="Explain the Best test R² score and what it means for material prediction">?</i></span></div>
+          <div><b>${Math.round(cv.mae)} MPa</b><span>average error <i class="term-hint" data-hint="On steels hidden from the model during testing, its guess was off by this much on average. Guessing the average every time would be off by ${Math.round(cv.baseline_mae)} MPa.">?</i></span></div>
+          <div><b>±${Math.round(cv.err80)} MPa</b><span>covers 4 in 5 steels <i class="term-hint" data-hint="For 80% of the test steels, the prediction was within this many MPa of the real value. Use it as a rough error bar.">?</i></span></div>
+        </div>
+        <p class="micro-note">${esc(cv.method)}. It only covers iron-based, alloyed steels in the range ${Math.round(steel.d.train_range[0])}-${Math.round(steel.d.train_range[1])} MPa. For anything else the simulator falls back to the library model below, then to a rough formula, and says which one it used.</p>`;
+    }
+    if (current && !lab && q('#mlResult', sec) && q('#mlResult .empty-state', sec)) {
+      lab = current;
+      renderResult();
+      q('#mlTry', sec)?.classList.remove('hidden');
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -256,6 +372,7 @@
     sec.id = 'view-ml';
     sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">ML LAB · RUNS ON YOUR DEVICE</span><h2>Train a small model yourself</h2>
         <p>A random-forest model, written from scratch, that learns a property from an alloy's composition. Nothing leaves your device, and it works offline. Accuracy is measured honestly: every sample is predicted by a model that never saw it (leave-one-out).</p></div></div>
+      <article class="glass ml-steel" id="mlSteel"><span class="pv-kicker">PRE-TRAINED</span><h3>Steel strength model</h3><p class="micro-note">Loading the pre-trained steel model…</p></article>
       <div class="ml-grid">
         <article class="glass tool-form ml-form">
           <label class="field-label" for="mlData">Training data</label>
@@ -268,13 +385,16 @@
             <input type="file" id="mlFile" accept=".csv,.txt" /></div>
           <div class="two-col"><div><label class="field-label" for="mlTrees">Trees</label><input id="mlTrees" type="number" min="10" max="300" value="80" /></div>
             <div><label class="field-label" for="mlDepth">Maximum depth</label><input id="mlDepth" type="number" min="2" max="14" value="8" /></div></div>
+          <label class="check-row" id="mlSteelRow"><input type="checkbox" id="mlUseSteel" checked /> Also learn from the 312 measured steels <i class="term-hint" data-hint="More training data makes the yield-strength model better. The 312 steels are only used to teach the model; the score is still measured on the library grades alone, so it cannot be flattered.">?</i></label>
+          <label class="check-row"><input type="checkbox" id="mlSlow" checked /> Slow motion (watch it learn) <i class="term-hint" data-hint="Slows training down so you can watch each step: hide some alloys, train the trees on the rest, then predict the hidden ones.">?</i></label>
           <button class="btn btn-primary full" id="mlTrain">Train and test the model</button>
           <div class="ml-progress hidden" id="mlProg"><i></i></div>
           <p class="form-error" id="mlErr"></p>
           <p class="micro-note">Small data means a rough guide. The numbers on the right say exactly how rough.</p>
         </article>
-        <article class="glass ml-result" id="mlResult"><div class="empty-state"><strong>Press "Train and test the model"</strong><span>Training 48 library grades takes a couple of seconds.</span></div></article>
+        <article class="glass ml-result" id="mlResult"><div class="empty-state"><strong>Training the library model…</strong><span>This runs once on your device (a few seconds). You can also press "Train and test the model" to try other settings.</span></div></article>
       </div>
+      <article class="glass ml-live hidden" id="mlLive" aria-live="polite"></article>
       <article class="glass tool-form ml-try hidden" id="mlTry">
         <h3>Try the trained model</h3>
         <label class="field-label" for="mlComp">Composition (weight %)</label>
@@ -283,19 +403,49 @@
         <select id="mlStruct" class="field-select"><option>FCC</option><option>BCC</option><option>HCP</option></select>
         <button class="btn btn-glass" id="mlPredict" type="button">Predict</button>
         <p id="mlOut" class="micro-note"></p>
+        <div class="ml-use" id="mlUse">
+          <h4>Use this model in the other tabs</h4>
+          <p class="micro-note">Pick what this model predicts, then switch the Simulator, Compare, Alloy Finder and Failure Doctor to <b>My ML</b>. You can switch back to Default ML or Rules at any time from the Estimator bar on each tab.</p>
+          <div class="two-col"><select id="mlUseProp" class="field-select"><option value="y">Yield strength (MPa)</option><option value="uts">Tensile strength (MPa)</option><option value="t">Max service temperature (°C)</option><option value="price">Price (₹/kg)</option></select>
+          <button class="btn btn-primary" id="mlUseBtn" type="button">Use as My ML</button></div>
+          <p class="micro-note" id="mlUseNote"></p>
+        </div>
       </article>`;
     main.appendChild(sec);
     q('#mlData', sec).addEventListener('change', (e) => { q('#mlLibBox', sec).classList.toggle('hidden', e.target.value === 'csv'); q('#mlCsvBox', sec).classList.toggle('hidden', e.target.value !== 'csv'); });
     q('#mlFile', sec).addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) f.text().then((t) => { q('#mlCsv').value = t; }); });
     q('#mlTrain', sec).addEventListener('click', runLab);
     q('#mlPredict', sec).addEventListener('click', runPredict);
+    q('#mlUseBtn', sec).addEventListener('click', useAsCustom);
+    q('#mlTarget', sec).addEventListener('change', syncSteelBox);
+    q('#mlData', sec).addEventListener('change', syncSteelBox);
+    syncSteelBox();
     return true;
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  function syncSteelBox() {
+    const row = q('#mlSteelRow'); if (!row) return;
+    const ok = q('#mlData').value === 'lib' && q('#mlTarget').value === 'y';
+    row.classList.toggle('hidden', !ok);
+  }
+
+  /* a small scatter drawn as the points arrive, so the training can be watched */
+  function liveHtml(points, lo, hi) {
+    const W = 300; const H = 210; const pad = 28;
+    const sx = (v) => pad + ((v - lo) / (hi - lo || 1)) * (W - pad - 8);
+    const sy = (v) => H - pad - ((v - lo) / (hi - lo || 1)) * (H - pad - 8);
+    return `<svg viewBox="0 0 ${W} ${H}" class="ml-live-svg" role="img" aria-label="Predicted against actual, filling in as the model is tested">
+      <line x1="${sx(lo)}" y1="${sy(lo)}" x2="${sx(hi)}" y2="${sy(hi)}" stroke="#64748b" stroke-dasharray="4 4"/>
+      <text x="${W / 2}" y="${H - 6}" text-anchor="middle" fill="#9fb3c8" font-size="10">actual</text>
+      <text x="10" y="${H / 2}" fill="#9fb3c8" font-size="10" transform="rotate(-90 10 ${H / 2})" text-anchor="middle">predicted</text>
+      ${points.map((p, i) => `<circle cx="${sx(p.actual).toFixed(1)}" cy="${sy(p.pred).toFixed(1)}" r="${i === points.length - 1 ? 5 : 3.2}" fill="${i === points.length - 1 ? '#f59e0b' : '#22d3ee'}"/>`).join('')}</svg>`;
   }
 
   async function runLab() {
     if (training) return;
     const err = q('#mlErr'); err.textContent = '';
-    let rows; let targetLabel; let unit; let kind = 'custom';
+    let rows; let targetLabel; let unit; let kind = 'custom'; let extraRows = []; let folds = 0;
     try {
       if (q('#mlData').value === 'csv') {
         const parsed = parseCsv(q('#mlCsv').value);
@@ -303,21 +453,62 @@
       } else {
         const key = q('#mlTarget').value;
         rows = libraryRows(key); targetLabel = TARGETS[key].label; unit = TARGETS[key].unit; kind = `library-${key}`;
+        if (key === 'y' && q('#mlUseSteel').checked && steel) { extraRows = steelRows(); folds = 8; }
       }
     } catch (e) { err.textContent = e.message; return; }
     training = true;
     const btn = q('#mlTrain'); btn.disabled = true; btn.textContent = 'Training…';
     const prog = q('#mlProg'); prog.classList.remove('hidden');
     const params = { trees: Math.max(10, Math.min(300, Number(q('#mlTrees').value) || 80)), maxDepth: Math.max(2, Math.min(14, Number(q('#mlDepth').value) || 8)) };
+    const slow = q('#mlSlow').checked;
+    const live = q('#mlLive'); live.classList.remove('hidden');
+    const seen = [];
+    const ys = rows.map((r) => r.target); const lo = Math.min(...ys) * 0.9; const hi = Math.max(...ys) * 1.05;
+    live.innerHTML = '<span class="pv-kicker">LIVE · TRAINING ON YOUR DEVICE</span><p class="micro-note">Starting…</p>';
+    if (live.scrollIntoView) live.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     try {
-      lab = await trainAndEvaluate({ rows, targetLabel, unit, params, onProgress: (p) => { q('i', prog).style.width = `${Math.round(p * 100)}%`; } });
+      lab = await trainAndEvaluate({ rows, extraRows, folds, targetLabel, unit, params, onProgress: async (p, info) => {
+        q('i', prog).style.width = `${Math.round(p * 100)}%`;
+        info.held.forEach((h) => seen.push(h));
+        const last = info.held[info.held.length - 1];
+        live.innerHTML = `<span class="pv-kicker">LIVE · STEP ${info.fold} OF ${info.folds}</span>
+          <div class="ml-live-grid"><div>
+            <p><b>1.</b> Hide ${info.held.length === 1 ? `<b>${esc(last.name)}</b>` : `<b>${info.held.length}</b> alloys (such as <b>${esc(last.name)}</b>)`} from the model.</p>
+            <p><b>2.</b> Grow <b>${info.treesTrained}</b> decision trees on the other <b>${info.trainedOn}</b> samples${extraRows.length ? ` (including the ${extraRows.length} measured steels)` : ''}.</p>
+            <p><b>3.</b> Ask the trees to predict the hidden ones: <b>${esc(last.name)}</b> is really <b>${f0(last.actual)}</b> ${esc(unit)}; the model said <b>${f0(last.pred)}</b>.</p>
+            <p class="ml-live-score">Running average error: <b>${f0(info.runMae)}</b> ${esc(unit)} · guessing the average would give <b>${f0(info.runBase)}</b> ${esc(unit)}</p>
+            <p class="micro-note">The dots sit on the dashed line when the model is right. Every dot is a prediction for an alloy the model had not seen.</p>
+          </div><div>${liveHtml(seen, lo, hi)}</div></div>`;
+        if (slow) await sleep(info.folds <= 12 ? 650 : 140);
+        else await sleep(0);
+      } });
       lab.kind = kind;
+      live.innerHTML = `<span class="pv-kicker">LIVE · FINISHED</span><p class="micro-note">Training done. Final model: ${lab.params.trees} trees. Scores are shown below.</p>`;
       renderResult();
-      if (kind === 'library-y') { current = lab; save(lab); refreshReadout(); }
       q('#mlTry').classList.remove('hidden');
-      window.MH_GROWTH?.track?.('ml_trained', { n: rows.length, kind });
+      const prop = { 'library-y': 'y', 'library-uts': 'uts', 'library-t': 't', 'library-price': 'price' }[kind] || guessProp(targetLabel);
+      q('#mlUseProp').value = prop;
+      if (window.MH_GROWTH && window.MH_GROWTH.track) window.MH_GROWTH.track('ml_trained', { n: rows.length, kind });
     } catch (e) { err.textContent = `Training failed: ${e.message}`; }
     training = false; btn.disabled = false; btn.textContent = 'Train and test the model'; prog.classList.add('hidden');
+  }
+
+  function guessProp(name) {
+    const t = String(name || '').toLowerCase();
+    if (/uts|tensile|ultimate/.test(t)) return 'uts';
+    if (/temp|°c|service/.test(t)) return 't';
+    if (/price|cost|rs|inr|₹/.test(t)) return 'price';
+    return 'y';
+  }
+
+  function useAsCustom() {
+    const note = q('#mlUseNote');
+    if (!lab) { note.textContent = 'Train a model first.'; return; }
+    const prop = q('#mlUseProp').value;
+    if (!window.MH_ENGINE) { note.textContent = 'The estimator switch is not available.'; return; }
+    window.MH_ENGINE.setCustom(lab, prop);
+    window.MH_ENGINE.setMode('custom');
+    note.textContent = 'Done. The Simulator, Compare, Alloy Finder and Failure Doctor now use your model for that property. Switch back any time from the Estimator bar.';
   }
 
   function renderResult() {
@@ -328,14 +519,14 @@
     const worst = m.points.slice().sort((a, b) => Math.abs(b.actual - b.pred) - Math.abs(a.actual - a.pred)).slice(0, 5);
     box.innerHTML = `<span class="pv-kicker">RESULT · ${m.n} SAMPLES · ${esc(m.targetLabel)}</span>
       <h3>${better ? 'Better than guessing the average' : 'Not better than guessing the average'}</h3>
-      <p class="micro-note">Each sample was predicted by a model that never saw it (leave-one-out). Lower error and higher R² are better; R² of 0 means "no better than the average".</p>
-      <table class="ml-table"><thead><tr><th>Method</th><th>Average error</th><th>Average % error</th><th>R²</th></tr></thead><tbody>
+      <p class="micro-note">Each sample was predicted by a model that never saw it (${esc(m.evalMethod)} <i class="term-hint" data-hint="Leave-one-out testing: hide one alloy, train on all the others, predict the hidden one, then repeat for every alloy. It is an honest test when you have little data." data-ask="What is leave-one-out testing?">?</i>). Lower error and higher R² are better; R² of 0 means "no better than the average".</p>
+      <table class="ml-table"><thead><tr><th>Method</th><th>Average error <i class="term-hint" data-hint="On average, how far off the prediction was, in the same unit as the property. Lower is better.">?</i></th><th>Average % error <i class="term-hint" data-hint="The same error as a percentage of the real value. Useful for comparing properties with different units.">?</i></th><th>R² <i class="term-hint" data-hint="Score from 0 to 1 for how much of the real variation the model explains on samples it did not see. 1 is perfect, 0 is no better than always guessing the average (it can even go below 0)." data-ask="Explain the Best test R² score and what it means for material prediction">?</i></th></tr></thead><tbody>
         ${row('Random forest (this model)', m.cv)}${row('Always guess the average', m.baseline)}${heur ? row('Old composition formula', heur) : ''}</tbody></table>
       <p class="micro-note">Spread between trees: the true value fell within 2 spreads of the prediction for ${m.cv.within.toFixed(0)}% of samples. That is a rough guide to uncertainty, not a calibrated confidence.</p>
       <div id="mlChart" class="chart-box"></div>
       <h4>Biggest misses</h4>
       <ul class="dr-evidence">${worst.map((p) => `<li>${esc(p.name)}: actual ${f0(p.actual)}, predicted ${f0(p.pred)} ${esc(m.unit)}</li>`).join('')}</ul>
-      ${m.kind === 'library-y' ? '<p class="micro-note">This model is now used for the "ML yield estimate" in the simulator, for compositions that do not match a library grade.</p>' : ''}`;
+      <p class="micro-note">Tested by ${esc(m.evalMethod)} on ${m.n} samples${m.extra ? `, with ${m.extra} extra measured steels added to the training side only` : ''}. To make the other tabs use this model, press "Use as My ML" below.</p>`;
     const lo = Math.min(...m.points.map((p) => Math.min(p.actual, p.pred))); const hi = Math.max(...m.points.map((p) => Math.max(p.actual, p.pred)));
     if (typeof renderPlot === 'function') {
       renderPlot(q('#mlChart'), [
@@ -368,7 +559,13 @@
     const comp = parseComp(q('#mlComp').value);
     if (!Object.keys(comp).length) { out.textContent = 'Type a composition like Fe70 Cr18 Ni10.'; return; }
     const e = estimate(lab, comp, q('#mlStruct').value);
-    out.textContent = `Predicted ${lab.targetLabel}: about ${f0(e.value)} ${lab.unit} (spread between trees ±${f0(e.spread)}). Typical error of this model: about ${lab.cv.mape.toFixed(0)}%. A guide, not a measurement.`;
+    let text = `Predicted ${lab.targetLabel}: about ${f0(e.value)} ${lab.unit} (spread between trees ±${f0(e.spread)}). Typical error of this model: about ${lab.cv.mape.toFixed(0)}%. A guide, not a measurement.`;
+    if (lab.kind === 'library-y') {
+      const s = steelEstimate(comp);
+      if (s.ok) text += ` Steel model (312 measured steels): about ${f0(s.value)} MPa, typical error about ${Math.round(s.cv.mae)} MPa.`;
+      else if (s.why && s.why !== 'loading') text += ` The steel model was not used: ${s.why}`;
+    }
+    out.textContent = text;
   }
 
   /* ------------------------------------------------------------------ */
@@ -380,5 +577,6 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  window.MH_ML = { refreshReadout, trainForest, predictForest, parseCsv, libraryMatch, libraryRows, trainAndEvaluate, estimate, get model() { return current; } };
+  window.addEventListener('mh:engine', () => rerun());
+  window.MH_ML = { steelRows, featureList, vectorise, steelEstimate, loadSteel, get steel() { return steel; }, refreshReadout, trainForest, predictForest, parseCsv, libraryMatch, libraryRows, trainAndEvaluate, estimate, get model() { return current; } };
 })();

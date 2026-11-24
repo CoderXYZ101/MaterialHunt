@@ -814,11 +814,17 @@
           ${i === 0 ? '<span class="dr-tag">RECOMMENDED</span>' : ''}
           <strong>${esc(f.name)}</strong>
           <span>${rupee(f.price[0])} - ${rupee(f.price[1])} /kg · ${esc(AVAIL[f.av].label)}</span>
+          ${window.MH_ENGINE ? window.MH_ENGINE.crossCheckHtml(f, 'y') : ''}
           <div class="dr-fix-actions">
             <button class="btn ${i === 0 ? 'btn-primary' : 'btn-glass'} small" data-swap="${f.id}">${i === 0 ? 'Auto-swap & test it' : 'Test it'}</button>
             <button class="btn btn-ghost small" data-rfq="${f.id}">Get RFQ</button>
           </div>
-        </div>`).join('')}</div>` : '<p class="micro-note">No single catalogue grade fits all conditions. Combine a coating or redesign with a specialist.</p>'}`;
+        </div>`).join('')}</div>` : '<p class="micro-note">No single catalogue grade fits all conditions. Combine a coating or redesign with a specialist.</p>'}
+      <div class="ai-review"><button class="btn btn-glass small" id="drAiReview" type="button">Ask the assistant to review this diagnosis</button></div>`;
+    q('#drAiReview', out)?.addEventListener('click', () => {
+      const fixList = fixes.map((f) => f.name).join(', ') || 'none found';
+      askAssistant(`Review this Failure Doctor diagnosis. Part: ${g.name}. Event: ${q('#drEvent').selectedOptions[0]?.textContent || q('#drEvent').value}. Environment: ${q('#drEnv').selectedOptions[0]?.textContent || q('#drEnv').value}. Likely cause given: ${result.mechanism}. Suggested alternatives: ${fixList}. Is the diagnosis sensible, and what else should I check?`);
+    });
     q('#drLattice', out)?.addEventListener('click', () => {
       applyGrade(g, { tempC: result.test.tempC, run: true });
       q('.mode-btn[data-shape="lattice"]')?.click();
@@ -1602,6 +1608,7 @@ Chassis plate: 6061-T6, 6 kg`;
         <span class="ai-result-prop"><b>${rupee(g.price[0])}-${rupee(g.price[1])}</b> /kg</span>
         <span class="ai-result-prop tone-${av.tone}">${esc(av.label)}</span>
       </div>
+      ${window.MH_ENGINE ? window.MH_ENGINE.crossCheckHtml(g, 'y') : ''}
       <div class="gc-feas">
         <div><span>CNC</span>${pill(...FEAS.m[g.m])}</div><div><span>Welding</span>${pill(...FEAS.w[g.w])}</div><div><span>3D printing</span>${pill(...FEAS.am[g.am])}</div>
       </div>
@@ -1640,6 +1647,7 @@ Chassis plate: 6061-T6, 6 kg`;
       <p class="dr-why">${esc(r.why)}</p><ul class="dr-evidence">${r.evidence.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
       ${r.fixes.map((g, i) => `<div class="ai-result-card"><div class="ai-result-header"><span class="ai-result-formula">${esc(g.name)}</span>${i === 0 ? '<span class="ai-result-score">BEST FIX</span>' : ''}</div>
         <div class="ai-result-props"><span class="ai-result-prop"><b>${rupee(g.price[0])}-${rupee(g.price[1])}</b> /kg</span><span class="ai-result-prop tone-${AVAIL[g.av].tone}">${esc(AVAIL[g.av].label)}</span></div>
+        ${window.MH_ENGINE ? window.MH_ENGINE.crossCheckHtml(g, 'y') : ''}
         <div class="ai-result-actions"><button class="btn btn-primary small" data-find-load="${g.id}">Test in simulator</button><button class="btn btn-glass small" data-find-rfq="${g.id}">Get RFQ</button></div></div>`).join('')}`;
   }
 
@@ -1686,9 +1694,31 @@ Chassis plate: 6061-T6, 6 kg`;
       state.simRequest = { ...(state.simRequest || {}), temperature_c: out.req.tempC ?? 25, load_mpa: out.req.stress || out.req.yieldMin || 0, safety_factor: out.req.sfUser ?? out.req.sfExplicit ?? 1.5 };
       openRfqSheet(b.dataset.findRfq);
     }));
+    const shown = out.passed && out.passed.length ? out.passed : (out.near || []);
+    if (shown.length && !out.failure) {
+      results.insertAdjacentHTML('beforeend', '<div class="ai-review"><button class="btn btn-glass small" id="aiReview" type="button">Ask the assistant to review these results</button></div>');
+      q('#aiReview', results)?.addEventListener('click', () => {
+        const names = shown.slice(0, 5).map((e) => e.grade.name).join(', ');
+        askAssistant(`Review these Alloy Finder results. My requirement: "${text}". Grades listed (${out.passed && out.passed.length ? 'they pass every limit' : 'closest misses, none pass every limit'}): ${names}. Which one would you pick, and what should I double-check before buying?`);
+      });
+    }
     if (window.MH_GROWTH?.track) window.MH_GROWTH.track('alloy_finder', { passed: (out.passed || []).length, failure: Boolean(out.failure) });
   }
   window.renderAIDesign = renderFinder;
+
+  /* hand a question to the assistant (it answers on the device, or with the live AI if that is switched on) */
+  function askAssistant(question) {
+    if (typeof window.copilotOpen === 'function') window.copilotOpen();
+    if (typeof window.copilotAsk === 'function') window.copilotAsk(question);
+  }
+
+  /* the Estimator switch changed: redraw whatever the Finder and the Doctor are showing */
+  window.addEventListener('mh:engine', () => {
+    try {
+      if (q('#aiDesignResults') && q('#aiDesignResults').children.length && q('#aiDesignPrompt') && q('#aiDesignPrompt').value) runFinder();
+      if (q('#drResult') && q('#drResult').children.length && q('#drMetal')) runDoctor();
+    } catch { /* leave the page as it is */ }
+  });
 
   /* ------------------------------------------------------------------ */
   /* Screening report PDF (replaces the plain-text dossier)              */

@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.13.4" />
+  <link rel="stylesheet" href="growth.css?v=4.14.4" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -54,6 +54,7 @@
         <button class="nav-link" data-view="doctor" title="Something broke? Find out why and what to use instead">Failure Doctor</button>
         <button class="nav-link" data-view="bom" title="Paste your parts list and see where you are overpaying">Cost-Down Scanner</button>
         <button class="nav-link" data-view="comparison" title="Put two alloys head to head">Compare</button>
+        <button class="nav-link" data-view="ml" title="Train and test a small machine-learning model on your device">ML Lab</button>
         <button class="nav-link" data-view="pricing" title="Plans and pricing">Pricing</button>
       </nav>
 
@@ -211,15 +212,15 @@
         <section class="stats-row" aria-label="Platform metrics">
           <article class="stat-card glass">
             <span class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg></span>
-            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statCandidates">—</strong><small>held-out Matbench test set</small></div>
+            <div><span class="stat-label">Training samples <button type="button" class="term-hint" data-hint="How many real alloys the on-device models learned from: the 48 library grades plus 312 measured steels. More (and more varied) data makes a model more trustworthy, and 360 is still small, so the models are a rough guide." data-ask="Why is the library model only a rough guide?">?</button></span><strong id="statCandidates">—</strong><small>48 library grades + 312 measured steels</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statAccuracy">—</strong><small id="statAccuracySub">Random Forest ensemble</small></div>
+            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. On a separate check against our library only one grade was in range, and it was about 33% off, so treat it as a guide. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">?</button></span><strong id="statAccuracy">—</strong><small id="statAccuracySub">steel model · cross-validated · <a href="evaluation.html">see the evaluation</a></small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
-            <div><span class="stat-label"><button class="icon-btn tiny" title="Explain this statistic" aria-label="Explain this statistic">?</button></span><strong id="statLatency">—</strong><small>Magpie + 150-tree RF</small></div>
+            <div><span class="stat-label">Simulation time <button type="button" class="term-hint" data-hint="How long your last simulation took, measured on this device. Everything runs inside your browser, so there is no server wait and it works offline." data-ask="Explain the simulation time and where the simulator runs">?</button></span><strong id="statLatency">—</strong><small>on this device · no server</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></span>
@@ -230,10 +231,15 @@
         <div class="glossary-strip" aria-label="Engineering glossary">
           <span><strong>Liquidus</strong> melting-out temperature <i class="term-hint" title="Liquidus: above this temperature the alloy is fully liquid and cannot carry load.">?</i></span>
           <span><strong>Dynamic Head</strong> pressure from moving fluid <i class="term-hint" title="Dynamic head q = ½ρv²: airspeed or flow adds pressure on top of static pressure.">?</i></span>
-          <span><strong>Epistemic Uncertainty</strong> model disagreement <i class="term-hint" title="Epistemic uncertainty: spread across the 150-tree ensemble. Lower is more trustworthy.">?</i></span>
+          <span><strong>Epistemic Uncertainty</strong> model disagreement <i class="term-hint" data-hint="Epistemic uncertainty: how much the trees of a machine-learning model disagree with each other. A smaller spread means the model is more sure. It is only shown when an ML model made the estimate." data-ask="What is the model spread and uncertainty?">?</i></span>
           <span><strong>PREN</strong> pitting resistance <i class="term-hint" title="PREN = Cr + 3.3·Mo + 16·N. Above ~40 resists seawater pitting; above ~50 handles harsh chlorides.">?</i></span>
           <span><strong>Creep</strong> slow hot deformation <i class="term-hint" title="Creep: time-dependent stretching under load at high temperature. It limits long-life hot sections.">?</i></span>
         </div>
+
+        <section class="glass ml-home" aria-label="Machine learning on this site">
+          <p><b>Where is the machine learning?</b> Two small models run on your device and work offline: a <b>steel strength model</b> trained on 312 measured steels, and a <b>library model</b> you can retrain yourself. The Simulator uses them when your mix is not a known grade, and says so. Everything else (Alloy Finder, Failure Doctor) is rule-based, and labelled that way.</p>
+          <button class="btn btn-primary" type="button" data-view="ml">Open the ML Lab</button>
+        </section>
 
         <div class="section-head">
           <div>
@@ -389,8 +395,8 @@
             </article>
 
             <div class="mini-stat-grid">
-              <article class="glass mini-stat"><span>Predicted yield</span><strong id="simStrength">—</strong><small>150-tree ensemble</small></article>
-              <article class="glass mini-stat"><span>Epistemic ± <span class="term-hint" title="Epistemic uncertainty: how much the 150 model trees disagree. A smaller ± means the prediction is more trustworthy.">?</span></span><strong id="simUncertainty">—</strong><small>tree standard deviation</small></article>
+              <article class="glass mini-stat"><span>Predicted yield</span><strong id="simStrength">—</strong><small id="simStrengthSrc">how it was estimated</small></article>
+              <article class="glass mini-stat"><span>Epistemic ± <span class="term-hint" data-hint="How much the trees of the on-device machine-learning model disagree. A smaller ± means the model is more sure. It only appears when the ML model made the estimate (not for a library grade)." data-ask="What is the model spread and uncertainty?">?</span></span><strong id="simUncertainty">—</strong><small>ML model spread</small></article>
               <article class="glass mini-stat"><span>Working strength</span><strong id="simWorking">—</strong><small>derated at operating temp</small></article>
               <article class="glass mini-stat"><span>Density / cost</span><strong id="simDensityCost">—</strong><small>rule-of-mixtures</small></article>
               <article class="glass mini-stat"><span>Weighted liquidus <span class="term-hint" title="The temperature where this chemistry stops being a solid. Stay below it with margin.">?</span></span><strong id="simLiquidus">—</strong><small>elemental melt weighting</small></article>
@@ -425,7 +431,7 @@
                   </button>
                 </div>
               </div>
-              <p class="hypothesis" id="simHypothesis">Run a simulation to generate a metallurgical hypothesis from the Magpie feature vector.</p>
+              <p class="hypothesis" id="simHypothesis">Run a simulation to see how the estimate was made.</p>
               <ul class="advice-list" id="simAdvice"></ul>
               <div class="warning-list" id="simWarnings"></div>
             </article>
@@ -777,7 +783,7 @@
         <span>Find the right metal for the job, and check it before you build.</span>
       </div>
       <div class="footer-meta">
-        <span><a href="how-it-works.html">Method &amp; accuracy</a> &middot; <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
+        <span><a href="how-it-works.html">Method &amp; accuracy</a> &middot; <a href="evaluation.html">Evaluation</a> &middot; <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="#" data-contact>Contact</a></span>
         <span class="footer-warning">Screening hypothesis only — not a certified test report.</span>
       </div>
     </footer>
@@ -1103,6 +1109,9 @@
       </div>
     </div>
     <div class="engine-strip in-drawer" role="status"><span class="engine-pill" id="enginePill" title="Answers and photo checks run on your device first (offline-safe, zero cloud tokens). The Cloudflare AI is used only for open-ended questions and when you press Escalate."><span class="engine-dot"></span><span id="enginePillText">Edge AI: Hybrid Ready · 0-Token Offline Safe</span></span></div>
+    <div class="ai-mode-row"><label for="aiMode">Answers from</label>
+      <select id="aiMode" class="field-select"><option value="auto">Auto: built-in first, live AI when needed</option><option value="local">Built-in only (on this device, offline)</option><option value="live">Live AI (sign in; uses your daily limit)</option></select>
+      <i class="term-hint" data-hint="Built-in answers (curated notes plus the on-device ML models) are free and unlimited. The live AI can answer anything, needs a verified sign-in, and has a daily limit. Whichever you pick, the assistant tells the live AI what the on-device ML models estimated, so the two work together.">?</i></div>
     <div class="copilot-context" id="copilotContext"></div>
     <div class="copilot-messages" id="copilotMessages" aria-live="polite"></div>
     <div class="copilot-chips" id="copilotChips"></div>
@@ -1125,23 +1134,25 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.13.4"></script>
-  <script src="app.js?v=4.13.4"></script>
-  <script src="config.js?v=4.13.4"></script>
-  <script src="tools.js?v=4.13.4"></script>
-  <script src="growth.js?v=4.13.4"></script>
-  <script src="ai.js?v=4.13.4"></script>
-  <script src="admin.js?v=4.13.4"></script>
-  <script src="designs.js?v=4.13.4"></script>
-  <script src="profile.js?v=4.13.4"></script>
-  <script src="promo.js?v=4.13.4"></script>
-  <script src="community.js?v=4.13.4"></script>
-  <script src="showcase.js?v=4.13.4"></script>
-  <script src="brain.js?v=4.13.4"></script>
-  <script src="vision.js?v=4.13.4"></script>
-  <script src="ml.js?v=4.13.4"></script>
-  <script src="account.js?v=4.13.4"></script>
-  <script src="endorse.js?v=4.13.4"></script>
-  <script src="notifications.js?v=4.13.4"></script>
+  <script src="firebase-bridge.js?v=4.14.4"></script>
+  <script src="app.js?v=4.14.4"></script>
+  <script src="config.js?v=4.14.4"></script>
+  <script src="tools.js?v=4.14.4"></script>
+  <script src="growth.js?v=4.14.4"></script>
+  <script src="ai.js?v=4.14.4"></script>
+  <script src="admin.js?v=4.14.4"></script>
+  <script src="designs.js?v=4.14.4"></script>
+  <script src="profile.js?v=4.14.4"></script>
+  <script src="promo.js?v=4.14.4"></script>
+  <script src="community.js?v=4.14.4"></script>
+  <script src="showcase.js?v=4.14.4"></script>
+  <script src="brain.js?v=4.14.4"></script>
+  <script src="vision.js?v=4.14.4"></script>
+  <script src="ml.js?v=4.14.4"></script>
+  <script src="engine.js?v=4.14.4"></script>
+  <script src="hints.js?v=4.14.4"></script>
+  <script src="account.js?v=4.14.4"></script>
+  <script src="endorse.js?v=4.14.4"></script>
+  <script src="notifications.js?v=4.14.4"></script>
 </body>
 </html>

@@ -631,3 +631,46 @@ input[type=checkbox], input[type=radio],
 .ml-table th { color: #67e8f9; font-weight: 600; }
 .ml-progress { height: 6px; border-radius: 3px; background: rgba(148,163,184,.2); margin-top: 10px; overflow: hidden; }
 .ml-progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22d3ee, #34d399); transition: width .15s; }
+
+/* ---- hints: every "?" explains itself ---- */
+.mh-tip { position: fixed; z-index: 100000; padding: 12px 14px; border-radius: 12px; background: #0b1626; color: #e6f0fb; border: 1px solid rgba(34,211,238,.45); box-shadow: 0 12px 34px rgba(0,0,0,.45); font-size: 12.5px; line-height: 1.5; }
+.mh-tip.hidden { display: none; }
+.mh-tip p { margin: 0; }
+.mh-tip-ask { margin-top: 10px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(34,211,238,.5); background: rgba(34,211,238,.12); color: #67e8f9; font-size: 12px; font-weight: 700; cursor: pointer; }
+.mh-tip-ask:hover { background: rgba(34,211,238,.25); }
+[data-hint-ready] { cursor: help; }
+.term-hint, .hint-q { width: 18px; height: 18px; font-size: 11px; }
+button.term-hint { background: transparent; padding: 0; line-height: 1; font-family: inherit; }
+.term-hint:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.stat-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-soft); }
+.ml-steel { padding: 16px 18px; margin: 0 0 14px; }
+.ml-steel h3 { margin: 4px 0 6px; }
+.ml-steel .ml-kpis { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 8px 0; }
+.ml-steel .ml-kpis b { display: block; font-size: 22px; color: var(--cyan); }
+.ml-steel .ml-kpis span { font-size: 11.5px; color: var(--text-soft); display: flex; align-items: center; gap: 4px; }
+.ml-home { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding: 14px 18px; margin: 12px 0; }
+.ml-home p { margin: 0; flex: 1 1 320px; font-size: 13px; }
+
+/* ---- estimator switch, cross-checks, live ML demo ---- */
+.engine-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 14px; margin: 0 0 14px; }
+.engine-title { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-soft); display: inline-flex; align-items: center; gap: 4px; }
+.engine-opts { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.engine-opt { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid rgba(148,163,184,.3); font-size: 12.5px; cursor: pointer; }
+.engine-opt:has(input:checked) { border-color: var(--cyan); background: rgba(34,211,238,.14); color: var(--cyan); font-weight: 700; }
+.engine-opt:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.engine-opt input { accent-color: var(--cyan); }
+.engine-note { flex: 1 1 260px; font-size: 11.5px; color: var(--text-soft); }
+.ml-xcheck { margin: 6px 0 0; padding: 6px 9px; border-left: 3px solid var(--cyan); background: rgba(34,211,238,.07); font-size: 11.5px; line-height: 1.45; border-radius: 0 6px 6px 0; }
+.ai-review { grid-column: 1 / -1; margin-top: 8px; }
+.ml-live { padding: 16px 18px; margin: 14px 0; }
+.ml-live-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+.ml-live-grid p { margin: 6px 0; font-size: 13px; }
+.ml-live-score { padding: 8px 10px; border-radius: 8px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); }
+.ml-live-svg { width: 100%; max-width: 340px; height: auto; }
+@media (max-width: 720px) { .ml-live-grid { grid-template-columns: 1fr; } }
+.ml-use { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(148,163,184,.2); }
+.check-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 13px; }
+.check-row input { accent-color: var(--cyan); }
+.ai-mode-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 12px; }
+.ai-mode-row label { white-space: nowrap; color: var(--text-soft); font-weight: 700; }
+.ai-mode-row select { flex: 1; min-width: 0; font-size: 12px; padding: 5px 8px; }

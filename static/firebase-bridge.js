@@ -338,10 +338,12 @@
     }
     // for a mix that is not a known grade, the simulator page can use the on-device ML estimate (the weekly challenge keeps the fixed formula so scores stay comparable)
     let mlSpread = null;
-    if (!matchedGrade && input.strength_model === 'ml' && window.MH_ML && window.MH_ML.model) {
+    if (!matchedGrade && (input.strength_model === 'ml' || input.strength_model === 'custom') && window.MH_ENGINE) {
+      // the Estimator switch: Default ML (steel model, then library model) or My ML (the model the user trained)
       try {
-        const e = window.MH_ML.estimate(window.MH_ML.model, Object.fromEntries(Object.entries(fractions).map(([k, v]) => [k, v * 100])), structure);
-        if (e && Number.isFinite(e.value)) { strength = clamp(e.value, 90, 2400); strengthSource = 'ml'; mlSpread = e.spread; }
+        const wt = Object.fromEntries(Object.entries(fractions).map(([k, v]) => [k, v * 100]));
+        const e = window.MH_ENGINE.estimate(wt, structure, 'y', input.strength_model);
+        if (e && Number.isFinite(e.value)) { strength = clamp(e.value, 90, 2400); strengthSource = e.source; mlSpread = e.spread; }
       } catch { /* keep the formula estimate */ }
     }
     const ductility = clamp(0.46 - carbon * 1.9 + ni * 0.005 + mo * 0.003 - Math.max(0, strength - 1200) / 9000, 0.04, 0.6);
@@ -463,7 +465,7 @@
       radar,
       pca: [round((fractions.Fe || 0) * 6 - 3, 3), round((fractions.Cr || 0) * 14 - 2, 3), round((fractions.Ni || 0) * 10 + 1, 3)],
       advice,
-      hypothesis: `Offline screening of ${shortFormula(fractions)} ${strengthSource === 'grade' ? `matches the library grade ${matchedGrade.name}, so that grade's typical yield of ${Math.round(strength)} MPa is used` : strengthSource === 'ml' ? `uses an on-device machine-learning estimate of ${Math.round(strength)} MPa yield strength (a rough guide, spread about ±${Math.round(mlSpread || 0)} MPa)` : `gives a rough composition-based estimate of ${Math.round(strength)} MPa yield strength (it can differ a lot from a real grade)`}. At ${Math.round(temperature)}°C in ${environment}, the derated working strength is ${Math.round(operating)} MPa, giving utilisation ${utilization.toFixed(2)} at a ${safety.toFixed(1)} safety factor. The estimated liquidus is ${Math.round(liquidus)}°C (weighted from the elements, not a phase-diagram calculation), and the aggregate phase state is ${vaporized.length ? 'GASEOUS / VAPORIZED' : liquid.length ? 'LIQUID' : 'SOLID'}.`,
+      hypothesis: `Offline screening of ${shortFormula(fractions)} ${strengthSource === 'grade' ? `matches the library grade ${matchedGrade.name}, so that grade's typical yield of ${Math.round(strength)} MPa is used` : strengthSource === 'custom' ? `uses the model you trained yourself (My ML) for an estimate of ${Math.round(strength)} MPa yield strength (spread between trees about ±${Math.round(mlSpread || 0)} MPa)` : strengthSource === 'steel-ml' ? `uses an on-device steel model (machine learning trained on 312 measured steels) for an estimate of ${Math.round(strength)} MPa yield strength (typical error about 84 MPa, spread between trees about ±${Math.round(mlSpread || 0)} MPa)` : strengthSource === 'ml' ? `uses an on-device machine-learning estimate of ${Math.round(strength)} MPa yield strength (a rough guide, spread about ±${Math.round(mlSpread || 0)} MPa)` : `gives a rough composition-based estimate of ${Math.round(strength)} MPa yield strength (it can differ a lot from a real grade)`}. At ${Math.round(temperature)}°C in ${environment}, the derated working strength is ${Math.round(operating)} MPa, giving utilisation ${utilization.toFixed(2)} at a ${safety.toFixed(1)} safety factor. The estimated liquidus is ${Math.round(liquidus)}°C (weighted from the elements, not a phase-diagram calculation), and the aggregate phase state is ${vaporized.length ? 'GASEOUS / VAPORIZED' : liquid.length ? 'LIQUID' : 'SOLID'}.`,
       warnings,
       guardrail: { restricted_elements: HAZARDOUS, blocked: false, cleared: phases.some((p) => p.hazardous), message: 'Dual-use guardrail evaluated locally.' },
     };

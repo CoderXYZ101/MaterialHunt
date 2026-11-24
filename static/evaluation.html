@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model evaluation — MaterialHunt</title>
+  <meta name="description" content="Reproducible test results for MaterialHunt's machine-learning models, including an independent check and the limits." />
+  <link rel="canonical" href="https://materialhunt-2026.web.app/evaluation.html" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="legal.css" />
+</head>
+<body>
+  <main class="legal wide">
+    <p><a href="/">← Back to MaterialHunt</a> · <a href="how-it-works.html">Method &amp; accuracy</a></p>
+    <h1>Model evaluation</h1>
+    <p class="updated">Reproducible results for the machine-learning models that run on your device.</p>
+
+    <div class="callout"><strong>Read this first.</strong> These models are small and trained on little data. They are a screening aid. The results below say exactly how rough they are, including where they did badly. Nothing here replaces a datasheet or a lab test.</div>
+
+    <h2>1. Steel strength model (pre-trained)</h2>
+    <p>An extra-trees ensemble (80 trees) trained offline on <strong>312 measured high-strength steels</strong> (public Matbench steels data, Dunn et al., npj Comput. Mater. 6, 138, 2020), shipped with the site and run in your browser.</p>
+    <table id="steelTable"><thead><tr><th>Test</th><th>Average error</th><th>R²</th><th>Guess-the-average error</th></tr></thead><tbody><tr><td colspan="4">Loading…</td></tr></tbody></table>
+
+    <h2>2. Independent check</h2>
+    <p>The cross-validation above only tests on the same dataset. For an independent check, the steel model (which never saw our library) predicts the yield strength of each library grade it considers inside its range, and we compare with the library value.</p>
+    <table id="indTable"><thead><tr><th>Grade</th><th>Library value (MPa)</th><th>Model said (MPa)</th></tr></thead><tbody><tr><td colspan="3">Loading…</td></tr></tbody></table>
+    <p id="indNote"></p>
+
+    <h2>3. Library yield model: does more data help?</h2>
+    <p>A random forest predicting yield strength for the 48 library grades, tested by <strong>leave-one-out</strong> (each grade is predicted by a model that never saw it). The 312 measured steels are only ever added to the <em>training</em> side, so they cannot flatter the score.</p>
+    <table id="libTable"><thead><tr><th>Model</th><th>Average error (MPa)</th><th>Average % error</th><th>R²</th></tr></thead><tbody><tr><td colspan="4">Loading…</td></tr></tbody></table>
+
+    <p><strong>The same question in the in-browser (JavaScript) version</strong>, 8-fold test on the 48 library grades, measured on the version that ships with the site: library grades only gave R² 0.26 and an average error of 226 MPa (53%); with the 312 steels added to the training side, R² 0.48 and 214 MPa (54%). So more data clearly raised R², but the average percentage error barely moved. The ML Lab recomputes these live on your device.</p>
+
+    <h2>4. Reproduce it yourself</h2>
+    <p>Everything above is produced by one script that reads only files in the project. With Python installed:</p>
+    <pre>pip install scikit-learn numpy
+python evaluation/evaluate.py</pre>
+    <p>It writes <code>static/data/evaluation.json</code>, which this page displays. Seeds are fixed. Small differences in the last digit between machines are normal. The same checks also run live in your browser: open the <a href="/" data-view-link="ml">ML Lab</a> and press "Train and test the model" (slow motion shows each step).</p>
+    <p>The in-browser model is written from scratch in JavaScript, so its numbers differ slightly from the Python figures here; the ML Lab shows its own, live.</p>
+
+    <h2>5. Known limits</h2>
+    <ul>
+      <li>The library has only 48 grades. Library values are typical datasheet numbers, and real strength depends on heat treatment.</li>
+      <li>The steel model only covers iron-based alloyed steels in roughly the 1,000 to 2,500 MPa range. For anything else it refuses and the simulator uses a library value or the weaker library model.</li>
+      <li>The independent check is tiny (see the table). We publish it because it is the honest result, not because it is flattering.</li>
+      <li>The "spread" between trees is a rough sign of uncertainty, not a calibrated confidence interval.</li>
+    </ul>
+  </main>
+  <script src="legal.js"></script>
+  <script>
+    (function () {
+      var f = function (v, d) { return v === null || v === undefined ? 'n/a' : Number(v).toFixed(d === undefined ? 0 : d); };
+      var esc = function (t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      fetch('data/evaluation.json').then(function (r) { return r.json(); }).then(function (d) {
+        var s = d.steel_cv, sh = d.steel_cv_shipped;
+        document.querySelector('#steelTable tbody').innerHTML =
+          '<tr><td>5-fold cross-validation, re-run by the script</td><td>' + f(s.mae) + ' MPa</td><td>' + f(s.r2, 2) + '</td><td>' + f(s.baseline_mae) + ' MPa</td></tr>' +
+          '<tr><td>5-fold cross-validation, recorded when the shipped model was trained</td><td>' + f(sh.mae) + ' MPa</td><td>' + f(sh.r2, 2) + '</td><td>' + f(sh.baseline_mae) + ' MPa</td></tr>';
+        var ind = d.independent_steel_on_library;
+        document.querySelector('#indTable tbody').innerHTML = ind.grades.length
+          ? ind.grades.map(function (g) { return '<tr><td>' + esc(g.name) + '</td><td>' + f(g.library_yield) + '</td><td>' + f(g.predicted) + '</td></tr>'; }).join('')
+          : '<tr><td colspan="3">No library grade was inside the model\'s range.</td></tr>';
+        document.getElementById('indNote').innerHTML = '<strong>Only ' + ind.n_tested + ' of the ' + d.library_grades + ' library grades was inside the steel model\'s range</strong> (the other ' + ind.n_outside_range + ' are stainless, aluminium, nickel and other alloys it was not trained for). ' +
+          (ind.grades.length ? 'On that one grade the error was about ' + f(ind.mape) + '%. One grade proves very little, and it shows the model is rough outside its training data. ' : '') + esc(ind.note);
+        var L = d.library_loo, row = function (n, m) { return '<tr><td>' + n + '</td><td>' + f(m.mae) + '</td><td>' + f(m.mape) + '%</td><td>' + f(m.r2, 2) + '</td></tr>'; };
+        document.querySelector('#libTable tbody').innerHTML = row('Always guess the average', L.guess_the_average) + row('Trained on the other 47 grades only', L.trained_on_47_grades) + row('Trained on the other 47 grades plus the 312 measured steels', L.trained_on_47_grades_plus_312_steels);
+      }).catch(function () {
+        document.querySelector('main').insertAdjacentHTML('beforeend', '<p><strong>The results file could not be loaded.</strong> Run the script above to generate it.</p>');
+      });
+    })();
+  </script>
+</body>
+</html>

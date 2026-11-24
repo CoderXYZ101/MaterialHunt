@@ -556,12 +556,6 @@ function applyMeta(meta) {
   // every step is independent: a missing element or one failing chart must never stop the rest from starting
   const safe = (fn) => { try { fn(); } catch (err) { console.warn('Start-up step skipped:', err.message || err); } };
   const datasets = meta.datasets || {};
-  safe(() => {
-    const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks?.random_forest?.r2) || 0), 0);
-    const el = $('#statAccuracy'); if (el) el.textContent = bestR2 ? bestR2.toFixed(3) : '—';
-    const sub = $('#statAccuracySub'); if (sub) sub.textContent = 'reference dataset only';
-    const cand = $('#statCandidates'); if (cand) cand.textContent = meta.candidate_total ? fmt(meta.candidate_total) : '—';
-  });
   safe(() => renderPersonas());
   safe(() => renderElementChips());
   safe(() => populateConditionSelects());
@@ -1428,7 +1422,7 @@ function collectSimulationRequest() {
     safety_factor: Number($('#safetySlider')?.value || 1.5),
     hazard_verified: Boolean($('#hazardVerify')?.checked),
     structure: (syncStructure(), state.structure),
-    strength_model: state.forgeRun ? 'formula' : 'ml',
+    strength_model: state.forgeRun ? 'formula' : (window.MH_ENGINE ? window.MH_ENGINE.mode() : 'ml'),
     environment_density_kgm3: Number(state.mediumDensity || 1.225),
     pressure_pa: pressurePaFromUI(),
     velocity_kmh: Number($('#velocitySlider')?.value || 0),
@@ -1561,7 +1555,8 @@ function renderSimulation(sim) {
   $('#simHazard').className = derived.hazard_cleared ? 'pill pill-amber' : 'pill pill-emerald';
 
   set('#simStrength', `${fmt(prediction.predicted)} MPa`);
-  set('#simUncertainty', `±${fmt(prediction.uncertainty)} MPa`);
+  set('#simStrengthSrc', { grade: 'library datasheet value', 'steel-ml': 'steel ML model (312 steels)', ml: 'library ML model', custom: 'your own ML model (My ML)' }[prediction.source] || 'rough formula, not ML');
+  set('#simUncertainty', (prediction.source === 'steel-ml' || prediction.source === 'ml') && prediction.ml_spread != null ? `±${fmt(prediction.ml_spread)} MPa` : prediction.source === 'grade' ? 'library value' : 'not estimated');
   set('#simWorking', `${fmt(derived.operating_strength_mpa)} MPa`);
   set('#simDensityCost', `${derived.density_gcm3.toFixed(2)} g/cm³ · ₹${fmt(derived.cost_per_kg)}/kg`);
   set('#simUtilization', derived.utilization_ratio.toFixed(2));
@@ -4001,24 +3996,6 @@ function bindEvents() {
   $('#downloadPdf')?.addEventListener('click', downloadPdf);
 
   /* Feedback */
-  // ? next to Screened candidates statistic
-  $('#statCandidates')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
-    copilotOpen();
-    copilotAsk('Explain the screened candidates count and what it means for the Matbench test set');
-  });
-
-  // ? next to Best test R² statistic
-  $('#statAccuracy')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
-    copilotOpen();
-    copilotAsk('Explain the Best test R² score and what it means for material prediction');
-  });
-
-  // ? next to Inference latency statistic
-  $('#statLatency')?.closest('.glass')?.previousElementSibling?.querySelector('button')?.addEventListener('click', () => {
-    copilotOpen();
-    copilotAsk('Explain the inference latency and Magpie + 150-tree RF ensemble');
-  });
-
   $('#feedbackToggle')?.addEventListener('click', openFeedback);
   $('#feedbackClose')?.addEventListener('click', closeFeedback);
   $('#drawerBackdrop')?.addEventListener('click', closeFeedback);
