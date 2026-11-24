@@ -431,7 +431,7 @@
       radar,
       pca: [round((fractions.Fe || 0) * 6 - 3, 3), round((fractions.Cr || 0) * 14 - 2, 3), round((fractions.Ni || 0) * 10 + 1, 3)],
       advice,
-      hypothesis: `Offline screening of ${shortFormula(fractions)} gives a rough composition-based estimate of ${Math.round(strength)} MPa yield strength (it can differ a lot from a real grade; confirm with the matched grade or a lab test). At ${Math.round(temperature)}°C in ${environment}, the derated working strength is ${Math.round(operating)} MPa, giving utilisation ${utilization.toFixed(2)} at a ${safety.toFixed(1)} safety factor. Weighted liquidus is ${Math.round(liquidus)}°C, and the aggregate phase state is ${vaporized.length ? 'GASEOUS / VAPORIZED' : liquid.length ? 'LIQUID' : 'SOLID'}.`,
+      hypothesis: `Offline screening of ${shortFormula(fractions)} gives a rough composition-based estimate of ${Math.round(strength)} MPa yield strength (it can differ a lot from a real grade; confirm with the matched grade or a lab test). At ${Math.round(temperature)}°C in ${environment}, the derated working strength is ${Math.round(operating)} MPa, giving utilisation ${utilization.toFixed(2)} at a ${safety.toFixed(1)} safety factor. The estimated liquidus is ${Math.round(liquidus)}°C (weighted from the elements, not a phase-diagram calculation), and the aggregate phase state is ${vaporized.length ? 'GASEOUS / VAPORIZED' : liquid.length ? 'LIQUID' : 'SOLID'}.`,
       warnings,
       guardrail: { restricted_elements: HAZARDOUS, blocked: false, cleared: phases.some((p) => p.hazardous), message: 'Dual-use guardrail evaluated locally.' },
     };
@@ -636,7 +636,7 @@
       `Utilisation: ${d.utilization_ratio}`,
       `Density: ${d.density_gcm3} g/cm³`,
       `Raw material cost: INR ${d.cost_per_kg}/kg`,
-      `Weighted liquidus: ${d.liquidus_c} °C`,
+      `Estimated liquidus (weighted from the elements, not a phase-diagram result): ${d.liquidus_c} °C`,
       `Service ceiling: ${d.thermal_limit_c} °C`,
       '',
       '## ELEMENTAL PHASE STATE AT OPERATING POINT',

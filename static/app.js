@@ -479,11 +479,16 @@ async function bootstrap() {
     ]);
     state.health = health;
     state.meta = meta;
-    applyMeta(meta);
-    updateHealthBadge(health);
+    try { applyMeta(meta); } catch (err) { console.warn('Start-up display step failed:', err.message || err); }
+    try { updateHealthBadge(health); } catch (err) { console.warn('Status badge failed:', err.message || err); }
   } catch (err) {
-    toast(err.message, 'error', 7000);
-    $('#offlineText').textContent = 'ENGINE OFFLINE';
+    // the engine itself could not be reached: say so plainly, and keep the page usable
+    console.warn('Engine did not start:', err.message || err);
+    const text = $('#offlineText');
+    if (text) text.textContent = 'EDGE MODE · LOCAL ENGINE';
+    const badge = $('#offlineBadge');
+    if (badge) { badge.className = 'status-pill status-amber'; badge.title = 'Running on your device. Reload the page if numbers do not appear.'; }
+    toast('The engine is starting in offline mode. If numbers do not appear, reload the page.', 'warning', 6000);
   }
 
   if (state.meta) {
@@ -542,29 +547,28 @@ function updateHealthBadge(health) {
     badge.title = `three.js ${fmt(health.assets['three.min.js'].bytes / 1024)} KB · Plotly ${fmt(health.assets['plotly.min.js'].bytes / 1024 / 1024, 1)} MB · local only`;
   } else {
     badge.className = 'status-pill status-amber';
-    text.textContent = 'DEGRADED';
+    text.textContent = 'EDGE MODE · LOCAL ENGINE';
     badge.title = health.model_error || 'Model or vendor asset missing';
   }
 }
 
 function applyMeta(meta) {
+  // every step is independent: a missing element or one failing chart must never stop the rest from starting
+  const safe = (fn) => { try { fn(); } catch (err) { console.warn('Start-up step skipped:', err.message || err); } };
   const datasets = meta.datasets || {};
-  const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks?.random_forest?.r2) || 0), 0);
-  $('#statAccuracy').textContent = bestR2 ? bestR2.toFixed(3) : '—';
-  $('#statAccuracySub').textContent = `best task · ${Object.entries(datasets).sort((a, b) => (b[1].benchmarks.random_forest.r2 - a[1].benchmarks.random_forest.r2))[0]?.[1]?.label || 'Random Forest'}`;
-  $('#statCandidates').textContent = meta.candidate_total ? fmt(meta.candidate_total) : '—';
-  $('#analyticsBadge').textContent = `${Object.keys(datasets).length} TASKS · ${meta.feature_count} FEATURES`;
-  const variance = (meta.pca_explained_variance || []).map((v) => `${(v * 100).toFixed(1)}%`).join(' / ');
-  $('#clusterVariance').textContent = `PCA-3 variance ${variance}`;
-  $('#analyticsVariance').textContent = `PCA-3 variance ${variance}`;
-
-  renderPersonas();
-  renderElementChips();
-  populateConditionSelects();
-  renderBenchmarkTable();
-  renderCoverageChart();
-  renderErrorChart();
-  renderImportanceChart();
+  safe(() => {
+    const bestR2 = Math.max(...Object.values(datasets).map((d) => Number(d.benchmarks?.random_forest?.r2) || 0), 0);
+    const el = $('#statAccuracy'); if (el) el.textContent = bestR2 ? bestR2.toFixed(3) : '—';
+    const sub = $('#statAccuracySub'); if (sub) sub.textContent = 'reference dataset only';
+    const cand = $('#statCandidates'); if (cand) cand.textContent = meta.candidate_total ? fmt(meta.candidate_total) : '—';
+  });
+  safe(() => renderPersonas());
+  safe(() => renderElementChips());
+  safe(() => populateConditionSelects());
+  safe(() => renderBenchmarkTable());
+  safe(() => renderCoverageChart());
+  safe(() => renderErrorChart());
+  safe(() => renderImportanceChart());
 
   const tierSelect = $('#roiTier');
   if (tierSelect && meta.tiers) {
@@ -572,8 +576,8 @@ function applyMeta(meta) {
       <option value="pro">Pro · ₹${fmt(meta.tiers.pro.price)} / mo</option>
       <option value="enterprise">Enterprise · ₹${fmt(meta.tiers.enterprise.price)} / mo</option>`;
   }
-  renderRoi();
-  renderPricing();
+  safe(() => renderRoi());
+  safe(() => renderPricing());
 }
 
 function renderPersonas() {
