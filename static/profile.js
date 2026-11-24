@@ -120,6 +120,7 @@
         <p class="micro-note">Do not share phone numbers, home addresses or other private details. Your name, organisation and bio can be seen by other signed-in members.</p>
         <button class="btn btn-primary full" type="submit">Save profile</button>
         <p class="form-error" id="profError"></p>
+        ${mine ? '<button class="btn btn-ghost full" type="button" id="profDelete">Delete my profile</button><p class="micro-note">Deleting removes your photo, bio and display name from MaterialHunt. Your account and past leaderboard entries stay.</p>' : ''}
       </form></div>`;
     m.classList.remove('hidden');
     q('[data-x]', m).addEventListener('click', closeModal);
@@ -147,6 +148,21 @@
         img.src = reader.result;
       };
       reader.readAsDataURL(file);
+    });
+    q('#profDelete', m)?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Tap again to delete for good'; setTimeout(() => { if (btn.isConnected) { delete btn.dataset.sure; btn.textContent = 'Delete my profile'; } }, 4000); return; }
+      btn.disabled = true;
+      try {
+        await window.MH_FIREBASE.initFirebase();
+        await db().collection('profiles').doc(uid()).delete();
+        mine = null;
+        cache.set(uid(), null);
+        draftAvatar = '';
+        applyChip();
+        notify('Your profile was deleted.', 'success', 3500);
+        closeModal();
+      } catch { q('#profError', m).textContent = 'Your profile could not be deleted right now. Please contact support.'; btn.disabled = false; }
     });
     q('#profForm', m).addEventListener('submit', async (e) => {
       e.preventDefault();
