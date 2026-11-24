@@ -27,6 +27,8 @@
   let offer = { active: false, code: '', text: '' };
   let cchal = [];
   let reports = [];
+  let signupsMap = {};
+  let publicStats = null;
   let endorsements = [];
   let photos = [];
   let showChecked = false;
@@ -262,6 +264,10 @@
       try {
         const rp = await db().collection('reports').limit(100).get();
         reports = rp.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+        const sg = await db().collection('signups').limit(1000).get();
+        signupsMap = {}; sg.docs.forEach((d) => { signupsMap[d.id] = Boolean(d.data().verified); });
+        const ps = await db().collection('stats').doc('public').get();
+        publicStats = ps.exists ? ps.data() : { total_users: 0, verified_users: 0 };
         const en = await db().collection('endorsements').limit(200).get();
         endorsements = en.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
         const pf = await db().collection('profiles').limit(400).get();
@@ -553,13 +559,28 @@
     render();
   }
 
+  /* the number shown on the home page counts only real accounts: test accounts can be left out */
+  function counting() {
+    const real = users.filter((u) => !u.exclude_stats);
+    return { total: real.length, verified: real.filter((u) => signupsMap[u.uid]).length };
+  }
+  function counterCardHtml() {
+    const c = counting();
+    const shown = publicStats ? `${Number(publicStats.verified_users || 0)} verified of ${Number(publicStats.total_users || 0)}` : 'unknown';
+    return `<div class="admin-card glass"><b>Public member counter</b>
+      <p class="admin-notes">The home page shows the number of <b>verified</b> members. Untick "Counts" for test, team and friend accounts, then press the button to update the number. It is calculated from the ticked accounts only, so it stays honest.</p>
+      <p class="admin-notes">Showing now: <b>${esc(shown)}</b> · Ticked accounts: <b>${c.verified} verified of ${c.total}</b></p>
+      <button class="btn btn-primary small" id="statsApply">Update the public counter</button></div>`;
+  }
+
   function usersHtml() {
     let list = users.slice().sort((a, b) => String(b.email).localeCompare(String(a.email)));
     if (search) list = list.filter((u) => [u.email, u.displayName, u.org, u.uid].some((v) => String(v || '').toLowerCase().includes(search)));
     if (!list.length) return '<div class="empty-state"><strong>No customers found</strong><span>Try a different search.</span></div>';
-    return `<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Customer</th><th>Plan</th><th>Business verified</th><th>User ID</th></tr></thead><tbody>${list.slice(0, 200).map((u) => `
+    return `${counterCardHtml()}<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Customer</th><th title="Tick to include this account in the public member count on the home page">Counts</th><th>Plan</th><th>Business verified</th><th>User ID</th></tr></thead><tbody>${list.slice(0, 200).map((u) => `
       <tr>
         <td><b>${esc(u.org || u.displayName || '')}</b><br><span>${esc(u.email)}</span></td>
+        <td><input type="checkbox" data-count-uid="${esc(u.uid)}" ${u.exclude_stats ? '' : 'checked'} aria-label="Counts in the public member number" /></td>
         <td><select data-tier-uid="${esc(u.uid)}">${TIERS.map((t) => `<option value="${t}" ${t === (u.tier || 'free') ? 'selected' : ''}>${planName(t)}</option>`).join('')}</select></td>
         <td><button class="btn ${u.kyb_status === 'approved' ? 'btn-primary' : 'btn-glass'} small" data-kyb="${esc(u.uid)}" data-state="${u.kyb_status === 'approved' ? 'pending' : 'approved'}">${u.kyb_status === 'approved' ? 'Verified ✓' : 'Verify'}</button></td>
         <td><code>${esc(short(u.uid))}</code> <button class="text-btn" data-copy="${esc(u.uid)}">Copy</button></td>
@@ -593,7 +614,7 @@
   }
 
   async function onClick(e) {
-    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],[data-ph],[data-en],#phAll,#prizeRun');
+    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],[data-ph],[data-en],#phAll,#prizeRun,#statsApply');
     if (!t) return;
     try {
       if (t.dataset.tab) { tab = t.dataset.tab; search = ''; render(); }
@@ -613,6 +634,13 @@
       else if (t.dataset.rp) { await reportAction(t); }
       else if (t.dataset.ph) { await photoAction(t); }
       else if (t.dataset.en) { await endorseAction(t); }
+      else if (t.id === 'statsApply') {
+        const c = counting();
+        await db().collection('stats').doc('public').set({ total_users: c.total, verified_users: c.verified });
+        publicStats = { total_users: c.total, verified_users: c.verified };
+        notify(`Public counter set to ${c.verified} verified.`, 'success', 3500);
+        render();
+      }
       else if (t.id === 'phAll') { showChecked = !showChecked; render(); }
       else if (t.id === 'prizeRun') { await runPrizeJob(t); }
       else if (t.id === 'offerOn') {
@@ -672,6 +700,16 @@
   }
 
   async function onChange(e) {
+    const cnt = e.target.closest('[data-count-uid]');
+    if (cnt) {
+      try {
+        await db().collection('users').doc(cnt.dataset.countUid).update({ exclude_stats: !cnt.checked });
+        const u = users.find((x) => x.uid === cnt.dataset.countUid);
+        if (u) u.exclude_stats = !cnt.checked;
+        render();
+      } catch (err) { notify(err.message || 'Could not change that.', 'error', 4000); cnt.checked = !cnt.checked; }
+      return;
+    }
     const sel = e.target.closest('[data-tier-uid]');
     if (!sel) return;
     try {

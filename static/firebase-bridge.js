@@ -229,6 +229,24 @@
     };
   }
 
+  /* When the composition is (almost) a grade in the library, use that grade's typical yield strength.
+     The composition-only formula below is a rough fallback for mixes that are not a known grade. */
+  function libraryGradeFor(fractions) {
+    const T = window.MH_TOOLS;
+    if (!T || !T.GRADES) return null;
+    let best = null;
+    T.GRADES.forEach((g) => {
+      const gc = {};
+      Object.entries(g.comp).forEach(([k, v]) => { if (k !== 'bal' && typeof v === 'number') gc[k] = v; });
+      if (g.comp.bal) gc[g.comp.bal] = Math.max(0, 100 - Object.values(gc).reduce((x, y) => x + y, 0));
+      const keys = new Set([...Object.keys(gc), ...Object.keys(fractions)]);
+      let d = 0;
+      keys.forEach((k) => { d += Math.abs((gc[k] || 0) - (fractions[k] || 0) * 100); });
+      if (!best || d < best.d) best = { g, d };
+    });
+    return best && best.d <= 6 ? best.g : null;
+  }
+
   function simulate(request) {
     const input = request || {};
     const raw = input.elements || { Fe: 70, Cr: 18, Ni: 8, Mo: 2, C: 2 };
@@ -312,6 +330,20 @@
     if (ti > 60) strength = 300 + al * 55 + v * 38 + (fractions.Sn || 0) * 30 + (fractions.Zr || 0) * 18;
     if ((fractions.Ni || 0) > 0.4) strength += 120;
     strength = clamp(strength, 90, 2400);
+    let strengthSource = 'estimate';
+    let matchedGrade = null;
+    if (input.use_grade_values !== false) {
+      matchedGrade = libraryGradeFor(fractions);
+      if (matchedGrade) { strength = matchedGrade.y; strengthSource = 'grade'; }
+    }
+    // for a mix that is not a known grade, the simulator page can use the on-device ML estimate (the weekly challenge keeps the fixed formula so scores stay comparable)
+    let mlSpread = null;
+    if (!matchedGrade && input.strength_model === 'ml' && window.MH_ML && window.MH_ML.model) {
+      try {
+        const e = window.MH_ML.estimate(window.MH_ML.model, Object.fromEntries(Object.entries(fractions).map(([k, v]) => [k, v * 100])), structure);
+        if (e && Number.isFinite(e.value)) { strength = clamp(e.value, 90, 2400); strengthSource = 'ml'; mlSpread = e.spread; }
+      } catch { /* keep the formula estimate */ }
+    }
     const ductility = clamp(0.46 - carbon * 1.9 + ni * 0.005 + mo * 0.003 - Math.max(0, strength - 1200) / 9000, 0.04, 0.6);
     const corrosion = clamp(0.28 + cr * 0.012 + ni * 0.008 + mo * 0.02 - carbon * 0.9, 0.12, 0.98);
     const limit = clamp(Math.min(...Object.keys(fractions).map((s) => meltingPoint(s))) * 0.46 + 95, 180, 1450);
@@ -386,7 +418,7 @@
         hazardous: phases.filter((p) => p.hazardous).map((p) => p.symbol),
       },
       structure,
-      prediction: { predicted: round(strength), uncertainty: round(strength * 0.055), confidence, unit: 'MPa', dataset: 'steels', benchmark_r2: 0.7061, benchmark_mae: 92.03 },
+      prediction: { predicted: round(strength), uncertainty: round(strength * 0.055), confidence, unit: 'MPa', dataset: 'steels', source: strengthSource, grade: matchedGrade ? matchedGrade.id : null, ml_spread: mlSpread, benchmark_r2: 0.7061, benchmark_mae: 92.03 },
       targets: {
         steels: { predicted: round(strength), uncertainty: round(strength * 0.055), confidence, unit: 'MPa' },
         glass: { predicted: 0.62, uncertainty: 0.16, confidence: 'Medium', unit: 'K' },
@@ -431,7 +463,7 @@
       radar,
       pca: [round((fractions.Fe || 0) * 6 - 3, 3), round((fractions.Cr || 0) * 14 - 2, 3), round((fractions.Ni || 0) * 10 + 1, 3)],
       advice,
-      hypothesis: `Offline screening of ${shortFormula(fractions)} gives a rough composition-based estimate of ${Math.round(strength)} MPa yield strength (it can differ a lot from a real grade; confirm with the matched grade or a lab test). At ${Math.round(temperature)}°C in ${environment}, the derated working strength is ${Math.round(operating)} MPa, giving utilisation ${utilization.toFixed(2)} at a ${safety.toFixed(1)} safety factor. The estimated liquidus is ${Math.round(liquidus)}°C (weighted from the elements, not a phase-diagram calculation), and the aggregate phase state is ${vaporized.length ? 'GASEOUS / VAPORIZED' : liquid.length ? 'LIQUID' : 'SOLID'}.`,
+      hypothesis: `Offline screening of ${shortFormula(fractions)} ${strengthSource === 'grade' ? `matches the library grade ${matchedGrade.name}, so that grade's typical yield of ${Math.round(strength)} MPa is used` : strengthSource === 'ml' ? `uses an on-device machine-learning estimate of ${Math.round(strength)} MPa yield strength (a rough guide, spread about ±${Math.round(mlSpread || 0)} MPa)` : `gives a rough composition-based estimate of ${Math.round(strength)} MPa yield strength (it can differ a lot from a real grade)`}. At ${Math.round(temperature)}°C in ${environment}, the derated working strength is ${Math.round(operating)} MPa, giving utilisation ${utilization.toFixed(2)} at a ${safety.toFixed(1)} safety factor. The estimated liquidus is ${Math.round(liquidus)}°C (weighted from the elements, not a phase-diagram calculation), and the aggregate phase state is ${vaporized.length ? 'GASEOUS / VAPORIZED' : liquid.length ? 'LIQUID' : 'SOLID'}.`,
       warnings,
       guardrail: { restricted_elements: HAZARDOUS, blocked: false, cleared: phases.some((p) => p.hazardous), message: 'Dual-use guardrail evaluated locally.' },
     };

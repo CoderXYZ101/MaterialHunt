@@ -57,6 +57,7 @@
       track('page_view', { page_title: document.title });
     } catch { /* blocked by an extension or offline */ }
   }
+  { const v = new URLSearchParams(location.search).get('view'); if (v && /^[a-z-]+$/.test(v)) setTimeout(() => { if (document.getElementById(`view-${v}`)) setView(v); }, 2500); }
   { const wants = new URLSearchParams(location.search); if (wants.get('contact') === '1' || wants.get('rate') === '1') setTimeout(() => document.querySelector('#feedbackToggle')?.click(), 1800); }
   /* the home-page box hands the sentence to the Alloy Finder */
   function goFind() {

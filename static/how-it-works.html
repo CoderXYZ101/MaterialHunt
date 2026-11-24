@@ -24,12 +24,14 @@
         <tr><td><strong>Alloy Finder</strong></td><td>Reads your sentence, pulls out limits (temperature, load, cost, density, environment, "non-magnetic" and so on), and filters a curated library of <strong>48 commercial grades</strong>. Each grade is checked against every limit and ranked.</td><td>No. Rules over a table of grades.</td></tr>
         <tr><td><strong>Failure Doctor</strong></td><td>Matches the metal, what happened and the environment to a table of failure mechanisms (rust, fatigue, cold brittleness, over-temperature), using the grade's data.</td><td>No. Rule table.</td></tr>
         <tr><td><strong>Photo check</strong></td><td>Runs on your device. A basic colour-and-texture check suggests rust, heat damage or a fresh break. It is a hint, not a trained model. You can plug in your own trained model.</td><td>No (basic heuristic).</td></tr>
-        <tr><td><strong>Simulator and weekly challenge</strong></td><td>Mixes elements by weight. Density is the standard rule of mixtures. Strength, melting point and cost are rough estimates from composition (see the results below).</td><td>No. Formulas and rules.</td></tr>
+        <tr><td><strong>Simulator</strong></td><td>Mixes elements by weight. Density is the standard rule of mixtures. <strong>Yield strength:</strong> if your mix matches a library grade (within 6 weight-percent in total), that grade's typical value is used. Otherwise an on-device <strong>random-forest model</strong> estimates it. Melting point and cost are rough estimates from composition (see below).</td><td><strong>Yes, for the strength estimate</strong>: a small random forest trained on the 48-grade library, running in your browser.</td></tr>
+        <tr><td><strong>ML Lab</strong></td><td>Lets you train the same kind of model yourself, on the library or on your own table of measurements, and shows its leave-one-out accuracy. Everything runs on your device and works offline.</td><td>Yes (random forest, written from scratch).</td></tr>
+        <tr><td><strong>Weekly challenge</strong></td><td>Uses the fixed composition formula, not the ML model, so every score stays comparable from week to week.</td><td>No.</td></tr>
         <tr><td><strong>Cost-Down Scanner</strong></td><td>For each part in a list, finds cheaper grades from the library that still meet your safety factor, using indicative price ranges.</td><td>No. Rules and arithmetic.</td></tr>
         <tr><td><strong>Assistant</strong></td><td>About 60 written answers are looked up on your device. Open-ended questions go to an AI service (a language model), which can be wrong.</td><td>Language model for open questions only.</td></tr>
       </tbody>
     </table>
-    <p>We do not claim a trained prediction model with published accuracy. Older versions of the site showed benchmark figures from a research dataset that did not describe this tool; those pages have been removed.</p>
+    <p>The machine-learning part is small and its accuracy is measured and published below. Older versions of the site showed benchmark figures from a research dataset that did not describe this tool; those pages have been removed.</p>
 
     <h2>2. What we checked against</h2>
     <p>For the checks below we compared what the simulator estimates from a grade's chemical composition with the typical values stored for that grade in our library (taken from common standards and datasheets such as ASTM, AMS and supplier datasheets), for <strong>all 48 grades</strong>. These are our own comparisons, not an independent audit. The values are typical, not guaranteed minimums, and standards often quote lower minimums. Check a number against your own datasheet before relying on it.</p>
@@ -48,7 +50,8 @@
     </table>
     <p><strong>Across all 48 grades the average error is about 1.9%.</strong> Density is reliable for screening.</p>
 
-    <h3>Yield strength (rough: do not rely on it)</h3>
+    <h3>Yield strength: the old composition formula (rough)</h3>
+    <p>This is the formula the simulator used before. It is still the fallback for the weekly challenge, so scores stay comparable.</p>
     <table>
       <thead><tr><th>Grade</th><th>Library (MPa)</th><th>Estimated</th><th>Error</th></tr></thead>
       <tbody>
@@ -61,7 +64,21 @@
         <tr><td>Inconel 718</td><td>1035</td><td>870</td><td>−16%</td></tr>
       </tbody>
     </table>
-    <p><strong>Across all 48 grades the average error is about 105%.</strong> Strength depends on heat treatment and processing, which a composition-only formula cannot capture. That is why the simulator labels its strength "Rough estimate". <strong>For real strength numbers use the matched grade in the Alloy Finder, or a lab test.</strong></p>
+    <p><strong>Across all 48 grades the average error of the formula is about 105%.</strong> Strength depends on heat treatment and processing, which a composition-only formula cannot capture.</p>
+
+    <h3>Machine-learning model (small data, honestly tested)</h3>
+    <p>A random forest, trained on the 48 library grades from their composition and crystal structure. To test it fairly we used <strong>leave-one-out cross-validation</strong>: each grade is predicted by a model that never saw it. We compare it with simply guessing the average, and with the old formula.</p>
+    <table>
+      <thead><tr><th>Property predicted</th><th>ML average % error</th><th>ML R²</th><th>Guess the average (% error)</th></tr></thead>
+      <tbody>
+        <tr><td>Yield strength</td><td>53%</td><td>0.32</td><td>83% (old formula: 105%)</td></tr>
+        <tr><td>Tensile strength</td><td>35%</td><td>0.39</td><td>56%</td></tr>
+        <tr><td>Maximum service temperature</td><td>35%</td><td>0.37</td><td>110%</td></tr>
+        <tr><td>Price (middle of range)</td><td>71%</td><td>0.53</td><td>401%</td></tr>
+      </tbody>
+    </table>
+    <p><strong>What this means:</strong> the model learns real patterns and clearly beats guessing the average and the old formula, but with only 48 samples it is still a rough guide (a typical yield error of about half). It is not a replacement for a datasheet or a test. You can reproduce these numbers yourself, or train on your own measurements, in the <a href="/" data-view-link="ml">ML Lab</a>. The "spread" between trees is shown as a rough uncertainty hint, not a calibrated confidence: the true value fell within two spreads of the prediction for about 88% of grades.</p>
+    <p><strong>For real strength numbers use the matched grade in the Alloy Finder, or a lab test.</strong> When your mix matches a library grade, the simulator now uses that grade's typical value instead of any estimate.</p>
 
     <h3>Melting temperature (usable for screening)</h3>
     <table>

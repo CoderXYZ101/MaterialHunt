@@ -1428,6 +1428,7 @@ function collectSimulationRequest() {
     safety_factor: Number($('#safetySlider')?.value || 1.5),
     hazard_verified: Boolean($('#hazardVerify')?.checked),
     structure: (syncStructure(), state.structure),
+    strength_model: state.forgeRun ? 'formula' : 'ml',
     environment_density_kgm3: Number(state.mediumDensity || 1.225),
     pressure_pa: pressurePaFromUI(),
     velocity_kmh: Number($('#velocitySlider')?.value || 0),
@@ -1587,6 +1588,7 @@ function renderSimulation(sim) {
   set('#heroStress', `${fmt(derived.applied_stress_mpa)} MPa`);
   set('#heroDerated', `${fmt(derived.operating_strength_mpa)} MPa`);
   set('#heroConfidence', 'Rough estimate');
+  window.dispatchEvent(new Event('mh:simulated'));
 
   const guardrailNote = $('#guardrailNote');
   if (guardrailNote) {
@@ -4510,7 +4512,8 @@ async function runBenchmark() {
   updateRangeLabels();
   const status = $('#benchmarkStatus');
   if (status) { status.textContent = 'TESTING'; status.className = 'status-pill status-amber'; }
-  await runSimulation({ silent: true });
+  state.forgeRun = true;   // the weekly challenge always uses the fixed formula so every score is comparable
+  try { await runSimulation({ silent: true }); } finally { state.forgeRun = false; }
   if (!state.simulation) { if (status) status.textContent = 'ERROR'; return; }
   renderBenchmarkResult(benchmark, state.simulation);
   const verdict = state.forgeResult.verdict;
@@ -4543,7 +4546,7 @@ async function applyBenchmarkFix() {
   state.composition = Object.fromEntries(Object.entries(current).filter(([, value]) => Number(value) > 0.01).map(([symbol, value]) => [symbol, Number((value / total * 105).toFixed(2))]));
   renderElementSliders();
   updateCompositionUI();
-  toast('AI fix applied to the composition — re-running the 3D stress test.', 'success', 4200);
+  toast('Suggested fix applied to the composition. Re-running the stress test.', 'success', 4200);
   await runBenchmark();
   document.querySelector('.hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

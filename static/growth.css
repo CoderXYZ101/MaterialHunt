@@ -620,3 +620,14 @@ input[type=checkbox], input[type=radio],
 }
 .oauth-note { margin: 8px 0 0; font-size: 11.5px; line-height: 1.5; }
 .site-footer a, .enterprise-footer a { text-decoration: none; }
+
+/* ---------- ML Lab ---------- */
+.ml-grid { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .ml-grid { grid-template-columns: 1fr; } }
+.ml-form, .ml-result, .ml-try { padding: 20px; }
+.ml-try { margin-top: 16px; max-width: 640px; }
+.ml-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+.ml-table th, .ml-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid rgba(148,163,184,.2); }
+.ml-table th { color: #67e8f9; font-weight: 600; }
+.ml-progress { height: 6px; border-radius: 3px; background: rgba(148,163,184,.2); margin-top: 10px; overflow: hidden; }
+.ml-progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22d3ee, #34d399); transition: width .15s; }
