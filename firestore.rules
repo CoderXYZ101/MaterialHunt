@@ -50,7 +50,8 @@ service cloud.firestore {
         && request.resource.data.pro_until <= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days + 1, 'd')
         && request.resource.data.pro_until >= prizeBase(resource.data) + duration.value(get(/databases/$(database)/documents/prizes/$(request.resource.data.award_note)).data.days - 1, 'd');
       allow update: if isAdmin();
-      allow delete: if false;
+      // a member can delete their own account record (the website also removes the rest of their data)
+      allow delete: if signedIn() && request.auth.uid == uid;
     }
 
     // Prizes are written by the automatic prize job (a bot admin account). A winner can only read their own
@@ -63,7 +64,8 @@ service cloud.firestore {
         && ((request.resource.data.rank == 1 && prizeId.matches('^.+_1$'))
           || (request.resource.data.rank == 2 && prizeId.matches('^.+_2$'))
           || (request.resource.data.rank == 3 && prizeId.matches('^.+_3$')));
-      allow delete: if isAdmin();
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.user_id == request.auth.uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
       allow update: if signedIn() && resource.data.user_id == request.auth.uid
         && resource.data.claimed == false
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed', 'claimed_at'])
@@ -101,35 +103,47 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/promos/$(request.resource.data.code))
         && get(/databases/$(database)/documents/promos/$(request.resource.data.code)).data.active == true
         && get(/databases/$(database)/documents/promos/$(request.resource.data.code)).data.uses < get(/databases/$(database)/documents/promos/$(request.resource.data.code)).data.max_uses;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if signedIn() && request.auth.uid == uid;
     }
 
     // Public profile. Readable by signed-in members only (photos are never public).
     // Members can add or change their own photo; admins review photos by hand every day (Admin -> Photos),
     // can remove a photo, reset a name or bio, and block photos for a member who misuses them.
     function profileFieldsOk() {
-      return request.resource.data.keys().hasOnly(['display_name', 'bio', 'org', 'who', 'avatar', 'show_avatar', 'updated_at', 'photo_blocked'])
+      return request.resource.data.keys().hasOnly(['display_name', 'bio', 'org', 'who', 'avatar', 'show_avatar', 'updated_at', 'name_lower', 'discoverable'])
         && request.resource.data.display_name is string && request.resource.data.display_name.size() > 0 && request.resource.data.display_name.size() <= 40
         && request.resource.data.bio is string && request.resource.data.bio.size() <= 200
         && request.resource.data.org is string && request.resource.data.org.size() <= 80
         && request.resource.data.who in ['', 'Student', 'Engineer or professional', 'Business owner or buyer', 'Educator', 'Researcher', 'Maker or hobbyist']
         && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 30000
         && request.resource.data.show_avatar is bool
+        && request.resource.data.name_lower is string && request.resource.data.name_lower == request.resource.data.display_name.lower()
+        && request.resource.data.discoverable is bool
         && request.resource.data.updated_at == request.time;
+    }
+
+    // Set by an admin when a member's photos are switched off. It lives apart from the profile so it survives profile deletion.
+    function photoBlocked() {
+      return exists(/databases/$(database)/documents/photo_blocks/$(request.auth.uid));
+    }
+
+    match /photo_blocks/{memberId} {
+      allow get: if signedIn() && request.auth.uid == memberId;
+      allow read, write: if isAdmin();
     }
 
     match /profiles/{uid} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid
         && profileFieldsOk()
-        && !('photo_blocked' in request.resource.data);
+        && (request.resource.data.avatar == '' || !photoBlocked());
       allow update: if signedIn() && request.auth.uid == uid
         && profileFieldsOk()
-        && (!resource.data.get('photo_blocked', false) || request.resource.data.avatar == '')
-        && request.resource.data.get('photo_blocked', false) == resource.data.get('photo_blocked', false);
+        && (request.resource.data.avatar == '' || request.resource.data.avatar == resource.data.get('avatar', '') || !photoBlocked());
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatar', 'show_avatar', 'photo_blocked', 'display_name', 'bio', 'org', 'who', 'updated_at']);
-      allow delete: if signedIn() && ((request.auth.uid == uid && !resource.data.get('photo_blocked', false)) || isAdmin());
+      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
     }
 
     // Reports about a profile (photo, name, bio or behaviour). One report per reporter per member.
@@ -162,7 +176,7 @@ service cloud.firestore {
         && request.resource.data.verified == true
         && request.auth.token.email_verified == true
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verified']);
-      allow delete: if false;
+      allow delete: if signedIn() && request.auth.uid == uid && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     // Public counters shown on the landing page. Increments are only allowed together with the
@@ -227,7 +241,7 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'handled_at', 'handled_by', 'admin_note'])
         && (!('admin_note' in request.resource.data) || (request.resource.data.admin_note is string && request.resource.data.admin_note.size() <= 300));
-      allow delete: if false;
+      allow delete: if signedIn() && resource.data.get('user_id', '') == request.auth.uid;
     }
 
     // Feedback.
@@ -242,7 +256,7 @@ service cloud.firestore {
       allow read: if signedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'triaged_at']);
-      allow delete: if false;
+      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
     }
 
     // Discovery registry entries: signed-in users can submit, signed-in users can read.
@@ -321,7 +335,8 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.count == resource.data.count + 1
         && request.resource.data.count <= aiCap();
-      allow delete: if false;
+      // daily counters can only be removed once the account record is gone (so the limit cannot be reset)
+      allow delete: if signedIn() && usageId.matches('^' + request.auth.uid + '_[0-9]{8}$') && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     // Site-wide settings (for example the daily AI limits). Anyone can read; only an admin can change.
@@ -362,7 +377,7 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ends_at', 'funded', 'admin_note']);
       allow delete: if isAdmin()
-        || (signedIn() && resource.data.owner == request.auth.uid && resource.data.status == 'pending');
+        || (signedIn() && resource.data.owner == request.auth.uid);
     }
 
     // One entry per member per community challenge; a new design overwrites the old one.

@@ -14,6 +14,7 @@
   const WHO = ['Student', 'Engineer or professional', 'Business owner or buyer', 'Educator', 'Researcher', 'Maker or hobbyist'];
   const cache = new Map();   // uid -> profile (or null when none)
   let mine = null;
+  let photosBlocked = false;
   let draftAvatar = '';
   const db = () => window.MH_FIREBASE?.db;
   const uid = () => window.MH_FIREBASE?.auth?.currentUser?.uid || '';
@@ -96,6 +97,7 @@
   async function openMine() {
     if (!state.user) { openAuth('register'); return; }
     await loadMine();
+    try { await window.MH_FIREBASE.initFirebase(); photosBlocked = (await db().collection('photo_blocks').doc(uid()).get()).exists; } catch { photosBlocked = false; }
     const m = modal();
     const p = mine || {};
     draftAvatar = p.avatar || '';
@@ -115,11 +117,13 @@
         <label class="field-label" for="profName">Display name</label><input id="profName" type="text" maxlength="40" value="${esc(p.display_name || state.user.organization_name || '')}" required />
         <label class="field-label" for="profWho">I am a (optional)</label>
         <select id="profWho" class="field-select"><option value="">Prefer not to say</option>${WHO.map((w) => `<option${p.who === w ? ' selected' : ''}>${esc(w)}</option>`).join('')}</select>
+        <label class="guardrail-check"><input type="checkbox" id="profFind" ${p.discoverable === false ? '' : 'checked'} /><span><strong>Let other members find me by name</strong><small>You appear in the member search. Turn off to stay out of it.</small></span></label>
         <label class="field-label" for="profOrg">Organisation (optional)</label><input id="profOrg" type="text" maxlength="80" placeholder="Company, institute or team" value="${esc(p.org || '')}" />
         <label class="field-label" for="profBio">About you (optional, <span id="profCount">0</span>/200)</label><textarea id="profBio" rows="3" maxlength="200">${esc(p.bio || '')}</textarea>
         <p class="micro-note">Do not share phone numbers, home addresses or other private details. Your name, organisation and bio can be seen by other signed-in members.</p>
         <button class="btn btn-primary full" type="submit">Save profile</button>
         <p class="form-error" id="profError"></p>
+        <button class="btn btn-ghost full acct-link" type="button" id="profDeleteAccount">Delete my account…</button>
         ${mine ? '<button class="btn btn-ghost full" type="button" id="profDelete">Delete my profile</button><p class="micro-note">Deleting removes your photo, bio and display name from MaterialHunt. Your account and past leaderboard entries stay.</p>' : ''}
       </form></div>`;
     m.classList.remove('hidden');
@@ -149,6 +153,7 @@
       };
       reader.readAsDataURL(file);
     });
+    q('#profDeleteAccount', m)?.addEventListener('click', () => window.MH_ACCOUNT?.open());
     q('#profDelete', m)?.addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Tap again to delete for good'; setTimeout(() => { if (btn.isConnected) { delete btn.dataset.sure; btn.textContent = 'Delete my profile'; } }, 4000); return; }
@@ -168,12 +173,12 @@
       e.preventDefault();
       const err = q('#profError', m);
       err.textContent = '';
-      const blocked = Boolean(mine?.photo_blocked);
+      const blocked = photosBlocked;
       const doc = {
-        display_name: q('#profName', m).value.trim().slice(0, 40), bio: q('#profBio', m).value.trim().slice(0, 200), org: q('#profOrg', m).value.trim().slice(0, 80), who: q('#profWho', m).value,
+        display_name: q('#profName', m).value.trim().slice(0, 40), bio: q('#profBio', m).value.trim().slice(0, 200), org: q('#profOrg', m).value.trim().slice(0, 80), who: q('#profWho', m).value, discoverable: q('#profFind', m).checked,
         avatar: blocked ? '' : draftAvatar, show_avatar: Boolean(!blocked && draftAvatar && q('#profShow', m).checked),
       };
-      if (blocked) doc.photo_blocked = true;
+      doc.name_lower = doc.display_name.toLowerCase();
       if (!doc.display_name) { err.textContent = 'Please enter a display name.'; return; }
       if (blocked && draftAvatar) { err.textContent = 'Photos are switched off for this account.'; return; }
       const submit = q('button[type=submit]', m);
@@ -229,6 +234,41 @@
     });
   }
 
+  /* ---------------- member search ---------------- */
+  function mountSearch() {
+    const layout = q('#view-challenge .challenge-layout');
+    if (!layout) return false;
+    if (q('#memberSearch')) return true;
+    const card = document.createElement('article');
+    card.id = 'memberSearch';
+    card.className = 'glass cm-panel';
+    card.innerHTML = `<div class="panel-title-row"><div><span class="panel-kicker">MEMBERS</span><h3>Find a member</h3></div></div>
+      <input id="msInput" type="search" maxlength="40" placeholder="Search by display name" autocomplete="off" />
+      <div id="msResults" class="ms-results"><p class="micro-note">Type at least 2 letters. Only members who chose to be listed appear. You need to be signed in.</p></div>`;
+    layout.insertAdjacentElement('afterend', card);
+    let timer = null;
+    q('#msInput', card).addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(() => searchMembers(e.target.value), 320); });
+    q('#msResults', card).addEventListener('click', (e) => { const b = e.target.closest('[data-person]'); if (b) viewPerson(b.dataset.person); });
+    return true;
+  }
+
+  async function searchMembers(raw) {
+    const box = q('#msResults');
+    if (!box) return;
+    const term = String(raw || '').trim().toLowerCase();
+    if (term.length < 2) { box.innerHTML = '<p class="micro-note">Type at least 2 letters. Only members who chose to be listed appear. You need to be signed in.</p>'; return; }
+    if (!state.user) { box.innerHTML = '<p class="micro-note">Sign in to search members.</p>'; return; }
+    box.innerHTML = '<p class="micro-note">Searching…</p>';
+    try {
+      await window.MH_FIREBASE.initFirebase();
+      const snap = await db().collection('profiles').orderBy('name_lower').startAt(term).endAt(`${term}\uf8ff`).limit(25).get();
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.discoverable !== false);
+      box.innerHTML = rows.length
+        ? rows.map((p) => `<button class="ms-row" data-person="${esc(p.id)}"><span class="lb-av">${p.show_avatar && p.avatar ? `<img src="${esc(p.avatar)}" alt="" />` : esc(initials(p.display_name))}</span><span><b>${esc(p.display_name)}</b><small>${esc([p.who, p.org].filter(Boolean).join(' · '))}</small></span></button>`).join('')
+        : '<p class="micro-note">No members found with that name.</p>';
+    } catch { box.innerHTML = '<p class="micro-note">Search is not available right now.</p>'; }
+  }
+
   /* ---------------- wiring ---------------- */
   document.addEventListener('click', (e) => {
     const person = e.target.closest('[data-person]');
@@ -236,6 +276,8 @@
     if (e.target.closest('#userAvatar, #userName')) openMine();
   });
   window.addEventListener('mh:session', (e) => { cache.clear(); if (e.detail.user) loadMine(); else { mine = null; } });
+  window.addEventListener('mh:view', () => { mountSearch(); });
+  { let n = 0; const t = setInterval(() => { if (mountSearch() || n++ > 40) clearInterval(t); }, 250); }
 
   window.MH_PROFILE = { open: openMine, view: viewPerson, decorate, displayName: () => mine?.display_name || '' };
 })();

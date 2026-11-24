@@ -556,3 +556,14 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .cam-stage video { width: 100%; height: 100%; object-fit: cover; }
 .cam-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 18px; text-align: center; font-size: 13px; opacity: .85; }
 .cam-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
+
+/* ---------- account deletion, member search ---------- */
+.acct-modal { max-width: 480px; }
+.acct-list { margin: 6px 0 10px 18px; font-size: 13px; opacity: .85; }
+.acct-danger { background: linear-gradient(135deg, #e11d48, #be123c) !important; color: #fff !important; }
+.acct-link { margin-top: 6px; font-size: 12px; opacity: .75; }
+#msInput { width: 100%; margin: 8px 0; }
+.ms-results { display: flex; flex-direction: column; gap: 6px; }
+.ms-row { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: inherit; cursor: pointer; }
+.ms-row:hover { border-color: #22d3ee; }
+.ms-row small { display: block; opacity: .65; }

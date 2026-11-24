@@ -426,7 +426,8 @@
     if (t.dataset.ph === 'ok') {
       const m = checkedMap(); m[photoKey(p)] = Date.now(); localStorage.setItem('mh_photo_ok', JSON.stringify(m));
     } else if (t.dataset.ph === 'remove') {
-      await db().collection('profiles').doc(p.uid).update({ avatar: '', show_avatar: false, photo_blocked: true });
+      await db().collection('profiles').doc(p.uid).update({ avatar: '', show_avatar: false });
+      await db().collection('photo_blocks').doc(p.uid).set({ at: FV().serverTimestamp() });
       photos = photos.filter((x) => x.uid !== p.uid);
       notify('Photo removed and photos blocked for that member.', 'success', 3500);
     }
@@ -458,7 +459,8 @@
       const snap = await pref.get();
       repView[r.target] = snap.exists ? snap.data() : null;
     } else if (t.dataset.rp === 'photo') {
-      await pref.update({ avatar: '', show_avatar: false, photo_blocked: true });
+      await pref.update({ avatar: '', show_avatar: false });
+      await db().collection('photo_blocks').doc(r.target).set({ at: FV().serverTimestamp() });
       repView[r.target] = { ...(repView[r.target] || {}), avatar: '' };
       await db().collection('reports').doc(r.id).update({ status: 'actioned', handled_at: FV().serverTimestamp() });
       r.status = 'actioned';
