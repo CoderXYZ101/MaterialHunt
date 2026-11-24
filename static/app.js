@@ -199,13 +199,41 @@ function axisBase(extra = {}) {
   };
 }
 
+/* Browsers allow only about 16 WebGL contexts per page. Every Plotly chart that uses WebGL (3D and "gl" charts)
+   takes one, so those charts are drawn only while their page is on screen and released when it is not. */
+const GL_CHART = /gl$|3d$|^surface$|^mesh3d$|^volume$/;
+const glLive = new Map();      // element -> [traces, layout, config] for GL charts currently drawn
+const glDeferred = new Map();  // element -> [traces, layout, config] for GL charts waiting to become visible
+const elementHidden = (el) => !el.isConnected || (el.offsetParent === null && getComputedStyle(el).position !== 'fixed');
+
 function renderPlot(element, traces, layout, config = chartConfig) {
   if (!element) return;
   if (!window.Plotly) {
     element.innerHTML = '<div class="empty-row">Plotly.js was not found in /static/vendor.</div>';
     return;
   }
+  const usesGl = (traces || []).some((t) => GL_CHART.test(String(t?.type || '')));
+  if (usesGl) {
+    if (elementHidden(element)) { glDeferred.set(element, [traces, layout, config]); return; }
+    glDeferred.delete(element);
+    glLive.set(element, [traces, layout, config]);
+  }
   Plotly.react(element, traces, layout, config).catch((err) => console.warn('Plotly render failed', err));
+}
+
+function syncGlCharts() {
+  glLive.forEach((args, el) => {
+    if (!elementHidden(el)) return;
+    try { Plotly.purge(el); } catch { /* already gone */ }
+    glLive.delete(el);
+    glDeferred.set(el, args);
+  });
+  glDeferred.forEach((args, el) => {
+    if (elementHidden(el)) return;
+    glDeferred.delete(el);
+    glLive.set(el, args);
+    Plotly.react(el, ...args).catch((err) => console.warn('Plotly render failed', err));
+  });
 }
 
 function toast(message, type = 'info', timeout = 4200) {
@@ -306,6 +334,7 @@ function setView(view, scroll = true) {
     if (unlocked) renderAdminSnapshot(state.adminSnapshot);
   }
   if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(syncGlCharts, 60);
   setTimeout(resizeCharts, 160);
 }
 
@@ -6229,7 +6258,14 @@ function initEnterpriseFeatures() {
   if ($('#failureGrid')) { renderFailureAnalysis(); bindFailureFilters(); }
   if ($('#complianceChecklist')) renderCompliance();
   if ($('#apiAccessPanel')) renderApiAccess();
-  if ($('#genomeCanvas')) initAlloyGenome();
+  if ($('#genomeCanvas')) {
+    const canvas = $('#genomeCanvas');
+    const start = () => { try { initAlloyGenome(); } catch (err) { console.warn('Alloy genome view could not start', err.message || err); } };
+    if (typeof IntersectionObserver === 'function') {
+      const watcher = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) { watcher.disconnect(); start(); } });
+      watcher.observe(canvas);
+    } else start();
+  }
   if ($('#digitalTwinFormats')) renderDigitalTwinExport();
   if ($('#aiDesignPanel')) renderAIDesign();
   if ($('#exportControlPanel')) renderExportControl();
