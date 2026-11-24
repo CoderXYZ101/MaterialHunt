@@ -88,6 +88,18 @@
     grade('tungsten', 'Tungsten (pure)', 'Refractory metal', { bal: 'W' }, { al: ['tungsten', 'w', 'wolfram'], y: 750, uts: 980, t: 2000, d: 19.3, price: [5000, 8000], av: 'import', std: { astm: 'B760 / R07005', is: '-', en: '-' }, m: 'hard', w: 'poor', am: 'possible', c: 2, s: 'BCC', cryo: false }),
     grade('mgaz31', 'Magnesium AZ31B', 'Magnesium', { Al: 3, Zn: 1, Mn: 0.3, bal: 'Mg' }, { al: ['az31', 'az31b', 'magnesium'], y: 200, uts: 260, t: 120, d: 1.77, price: [450, 650], av: 'order', std: { astm: 'B90 / AZ31B', is: '-', en: 'MgAl3Zn1' }, m: 'easy', w: 'fair', am: 'possible', c: 1, s: 'HCP', cryo: false }),
   ];
+  /* Typical published melting ranges in °C [solidus, liquidus] for grades where the handbook value is well known.
+     Quoted as typical values (they move a little between sources), so confirm with your supplier. A grade not listed
+     here has no stored range and the simulator falls back to the rough weighted estimate. */
+  const MELT = {
+    ss304: [1400, 1450], ss304l: [1400, 1450], ss316: [1375, 1400], ss316l: [1375, 1400], ss321: [1398, 1446], ss310: [1400, 1450],
+    ss410: [1480, 1530], ss430: [1425, 1510], ss174: [1400, 1440], du2205: [1385, 1450],
+    al6061: [582, 652], al6063: [615, 655], al7075: [477, 635], al2024: [502, 638], al5083: [574, 638], al5052: [607, 650], alsi10mg: [570, 595],
+    ti2: [1660, 1665], ti64: [1604, 1660], cuetp: [1083, 1083], brass70: [915, 955],
+    ni200: [1435, 1446], in718: [1260, 1336], in625: [1290, 1350], in600: [1354, 1413], c276: [1325, 1370], monel400: [1300, 1350], monelk500: [1315, 1350],
+    tungsten: [3410, 3422], mgaz31: [566, 632],
+  };
+  GRADES.forEach((g) => { if (MELT[g.id]) g.melt = MELT[g.id]; });
   const BY_ID = Object.fromEntries(GRADES.map((g) => [g.id, g]));
   const AVAIL = {
     stock: { label: 'Readily stocked in India', tone: 'good' },

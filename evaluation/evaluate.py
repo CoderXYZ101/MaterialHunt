@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor
 from sklearn.model_selection import KFold
+from sklearn.cluster import KMeans
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'static'
@@ -178,9 +179,22 @@ for fam, idx in fams.items():
 fam_rows = []
 for fam, idx in fams.items():
     fam_rows.append(dict(family=fam, n=len(idx), mape=round(float(np.mean(np.abs(yl[idx] - pfam[idx]) / yl[idx]) * 100), 1),
+                         loo_mape=round(float(np.mean(np.abs(yl[idx] - p359[idx]) / yl[idx]) * 100), 1),
                          guess_mape=round(float(np.mean(np.abs(yl[idx] - np.delete(yl, idx).mean()) / yl[idx]) * 100), 1)))
 out['family_holdout'] = dict(overall=metrics(yl, pfam), families=fam_rows,
                              method='leave-one-family-out: every grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels')
+
+# 5b. steels: hold out whole groups of similar compositions (k-means on composition), the strictest split available inside this dataset
+km = KMeans(n_clusters=6, n_init=10, random_state=0).fit(Xs)
+pc = np.zeros(len(ys))
+cl = []
+for c in range(6):
+    te = np.where(km.labels_ == c)[0]
+    tr = np.where(km.labels_ != c)[0]
+    pc[te] = ExtraTreesRegressor(n_estimators=80, random_state=0).fit(Xs[tr], ys[tr]).predict(Xs[te])
+    cl.append(dict(group=c + 1, n=int(len(te)), mape=round(float(np.mean(np.abs(ys[te] - pc[te]) / ys[te]) * 100), 1), mae=round(float(np.mean(np.abs(ys[te] - pc[te]))), 1)))
+out['steel_cluster_holdout'] = dict(overall=metrics(ys, pc), groups=cl, baseline_mae=round(float(np.mean(np.abs(ys - ys.mean()))), 1),
+                                    method='k-means groups of similar steel compositions (6 groups); each group is hidden, the model trains on the other five, then predicts the hidden group')
 
 # 6. calculation checks against reference values
 hb = json.loads((SRC / 'data' / 'handbook.json').read_text(encoding='utf-8'))
@@ -213,7 +227,16 @@ for g, lo, hi in melt_ref:
     v = mix_liquidus(r['comp'])
     mid = (lo + hi) / 2
     liq.append(dict(name=r['name'], ref_low=lo, ref_high=hi, calculated=round(v), error_c=round(v - mid), inside=bool(lo <= v <= hi), close=bool(lo - 25 <= v <= hi + 25)))
-out['calc_checks'] = dict(density=dens_check, liquidus=liq,
+cost_ratio = []
+for r in lib:
+    pr = re.search(r"price: \[([\d.]+), ([\d.]+)\]", [l for l in (SRC / 'tools.js').read_text(encoding='utf-8').splitlines() if f"grade('{r['id']}'" in l][0])
+    mid = (float(pr.group(1)) + float(pr.group(2))) / 2
+    t = sum(r['comp'].values())
+    raw = sum((EL.get(e, {}).get('cost') or PER.get(e, {}).get('cost') or 1500) * v / t for e, v in r['comp'].items())
+    cost_ratio.append(max(raw / mid, mid / raw))
+cost_check = dict(n=len(lib), median_factor=round(float(np.median(cost_ratio)), 2), within_1_5x=int(sum(1 for x in cost_ratio if x <= 1.5)), within_2x=int(sum(1 for x in cost_ratio if x <= 2)),
+                  worst_factor=round(float(max(cost_ratio)), 1), method='raw-element cost of each library grade against the middle of its indicative stockist price range')
+out['calc_checks'] = dict(density=dens_check, liquidus=liq, cost=cost_check,
                           liquidus_note='Reference: typical published melting ranges (handbook values). The simulator uses a weighted average of the element melting points times 0.92, not a phase diagram.')
 # exact formulas: dynamic pressure q = 1/2 rho v^2 and applied stress = load x safety factor, against hand calculation
 hand = [('Air at 100 m/s (360 km/h)', 1.225, 360, 0.5 * 1.225 * 100 ** 2), ('Seawater at 10 m/s (36 km/h)', 1025, 36, 0.5 * 1025 * 10 ** 2), ('Water at 5 m/s (18 km/h)', 998, 18, 0.5 * 998 * 5 ** 2)]
@@ -254,7 +277,12 @@ block('vsteel', rows(out['validation_steels'], [lambda g: g['composition'], lamb
 
 fh, cc = out['family_holdout'], out['calc_checks']
 block('famsum', f"Overall, with whole families hidden, the library model's average error is <strong>{f(fh['overall']['mape'])}%</strong> and R² is <strong>{f(fh['overall']['r2'], 2)}</strong> (compare {f(L['trained_on_47_grades_plus_312_steels']['mape'])}% and {f(L['trained_on_47_grades_plus_312_steels']['r2'], 2)} when only single grades are hidden).")
-block('fam', rows(fh['families'], [lambda g: g['family'], lambda g: str(g['n']), lambda g: f"{g['mape']:.0f}%", lambda g: f"{g['guess_mape']:.0f}%"]))
+block('fam', rows(fh['families'], [lambda g: g['family'], lambda g: str(g['n']), lambda g: f"{g['mape']:.0f}%", lambda g: f"{g['loo_mape']:.0f}%", lambda g: f"{g['guess_mape']:.0f}%"]))
+cc2 = out['steel_cluster_holdout']
+block('clus', rows(cc2['groups'], [lambda g: f"Group {g['group']}", lambda g: str(g['n']), lambda g: f"{g['mae']:.0f} MPa", lambda g: f"{g['mape']:.0f}%"]))
+block('clussum', f"Overall with whole groups hidden: average error <strong>{f(cc2['overall']['mae'])} MPa</strong> ({f(cc2['overall']['mape'])}%), R² <strong>{f(cc2['overall']['r2'], 2)}</strong>, compared with {f(sc['mae'])} MPa and R² {f(sc['r2'], 2)} in ordinary cross-validation and {f(cc2['baseline_mae'])} MPa for guessing the average.")
+ct = cc['cost']
+block('cost', f"Across the {ct['n']} library grades, the raw-element cost is off from the middle of the grade's stockist price range by a median factor of <strong>{ct['median_factor']}</strong>; {ct['within_1_5x']} of {ct['n']} are within 1.5×, {ct['within_2x']} within 2×, and the worst is {ct['worst_factor']}×. That is why, when your mix matches a library grade, the simulator shows the grade's price range instead.")
 dc = cc['density']
 block('dens', f"The simulator mixes densities so that volumes add. Across all {dc['n']} grades the mean difference from the datasheet density is <strong>{dc['mean_error_pct']}%</strong> (worst {dc['worst_error_pct']}%, {dc['worst_grade']}); {dc['within_3pct']} of {dc['n']} are within 3%. An earlier version averaged densities by weight and was off by {dc['previous_mean_error_pct']}% on average and up to {dc['previous_worst_error_pct']}%; the check found that, and it was fixed.")
 block('liq', rows(cc['liquidus'], [lambda g: g['name'], lambda g: f"{g['ref_low']}" if g['ref_low'] == g['ref_high'] else f"{g['ref_low']}–{g['ref_high']}", lambda g: f"{g['calculated']}", lambda g: 'yes' if g['inside'] else ('close (within 25 °C)' if g['close'] else f"no ({g['error_c']:+d} °C from the middle)")]))

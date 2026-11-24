@@ -217,88 +217,149 @@
     "family": "Carbon steel",
     "n": 3,
     "mape": 55.6,
+    "loo_mape": 35.5,
     "guess_mape": 44.6
    },
    {
     "family": "Low-alloy steel",
     "n": 3,
     "mape": 33.3,
+    "loo_mape": 20.5,
     "guess_mape": 43.2
    },
    {
     "family": "Tool steel",
     "n": 2,
     "mape": 36.6,
+    "loo_mape": 22.4,
     "guess_mape": 69.2
    },
    {
     "family": "Specialty steel",
     "n": 1,
     "mape": 38.5,
+    "loo_mape": 43.7,
     "guess_mape": 76.9
    },
    {
     "family": "Cast iron",
     "n": 1,
     "mape": 224.4,
+    "loo_mape": 205.4,
     "guess_mape": 137.7
    },
    {
     "family": "Stainless steel",
     "n": 12,
     "mape": 164.3,
+    "loo_mape": 41.7,
     "guess_mape": 112.3
    },
    {
     "family": "Aluminium",
     "n": 7,
     "mape": 49.6,
+    "loo_mape": 34.5,
     "guess_mape": 95.7
    },
    {
     "family": "Titanium",
     "n": 2,
     "mape": 70.5,
+    "loo_mape": 69.8,
     "guess_mape": 58.1
    },
    {
     "family": "Copper alloy",
     "n": 5,
     "mape": 101.1,
+    "loo_mape": 69.5,
     "guess_mape": 142.8
    },
    {
     "family": "Nickel superalloy",
     "n": 5,
     "mape": 31.4,
+    "loo_mape": 26.0,
     "guess_mape": 41.2
    },
    {
     "family": "Nickel alloy",
     "n": 3,
     "mape": 50.6,
+    "loo_mape": 62.2,
     "guess_mape": 118.1
    },
    {
     "family": "Cobalt alloy",
     "n": 1,
     "mape": 42.3,
+    "loo_mape": 49.8,
     "guess_mape": 28.3
    },
    {
     "family": "Refractory metal",
     "n": 2,
     "mape": 43.3,
+    "loo_mape": 44.6,
     "guess_mape": 28.0
    },
    {
     "family": "Magnesium",
     "n": 1,
     "mape": 77.9,
+    "loo_mape": 107.4,
     "guess_mape": 137.7
    }
   ],
   "method": "leave-one-family-out: every grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels"
+ },
+ "steel_cluster_holdout": {
+  "overall": {
+   "mae": 246.2,
+   "mape": 17.0,
+   "r2": -0.053
+  },
+  "groups": [
+   {
+    "group": 1,
+    "n": 40,
+    "mape": 31.7,
+    "mae": 491.5
+   },
+   {
+    "group": 2,
+    "n": 49,
+    "mape": 13.3,
+    "mae": 216.8
+   },
+   {
+    "group": 3,
+    "n": 89,
+    "mape": 13.6,
+    "mae": 173.2
+   },
+   {
+    "group": 4,
+    "n": 75,
+    "mape": 14.3,
+    "mae": 173.5
+   },
+   {
+    "group": 5,
+    "n": 38,
+    "mape": 17.6,
+    "mae": 279.0
+   },
+   {
+    "group": 6,
+    "n": 21,
+    "mape": 21.0,
+    "mae": 356.6
+   }
+  ],
+  "baseline_mae": 229.4,
+  "method": "k-means groups of similar steel compositions (6 groups); each group is hidden, the model trains on the other five, then predicts the hidden group"
  },
  "calc_checks": {
   "density": {
@@ -403,6 +464,14 @@
     "close": true
    }
   ],
+  "cost": {
+   "n": 48,
+   "median_factor": 2.38,
+   "within_1_5x": 14,
+   "within_2x": 21,
+   "worst_factor": 9.0,
+   "method": "raw-element cost of each library grade against the middle of its indicative stockist price range"
+  },
   "liquidus_note": "Reference: typical published melting ranges (handbook values). The simulator uses a weighted average of the element melting points times 0.92, not a phase diagram.",
   "pressure": [
    {

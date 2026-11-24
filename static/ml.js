@@ -300,7 +300,7 @@
       const cv = steel?.d?.cv;
       if (label) label.textContent = 'Steel ML estimate';
       strong.textContent = `≈ ${Math.round(state.simulation.prediction.predicted)} MPa`;
-      strong.title = `Machine-learning model trained offline on 312 measured high-strength steels and run on your device. Tested on steels it had not seen (5-fold cross-validation): average error ${cv ? Math.round(cv.mae) : '84'} MPa, R² ${cv ? cv.r2 : '0.85'}. Spread between trees ±${Math.round(state.simulation.prediction.ml_spread || 0)} MPa. A guide, not a lab measurement.`;
+      strong.title = `Machine-learning model trained offline on 312 measured high-strength steels and run on your device. Tested on steels it had not seen (5-fold cross-validation): average error ${cv ? Math.round(cv.mae) : '84'} MPa, R² ${cv ? cv.r2 : '0.85'}. Spread between trees ±${Math.round(state.simulation.prediction.ml_spread || 0)} MPa. That score holds for steels similar to its training data; for a new kind of steel it is no better than guessing. A guide, not a lab measurement.`;
       if (pill) { pill.textContent = 'Steel ML'; pill.className = 'pill pill-cyan'; }
       return;
     }

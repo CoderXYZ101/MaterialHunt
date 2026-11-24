@@ -281,6 +281,8 @@
     const burstRatio = totalPressure / Math.max(1, burstPressure);
     const isBurst = totalPressure >= burstPressure;
 
+    // a mix that matches a library grade uses that grade's stored price range and melting range instead of the rough element estimates
+    const libMatch = input.use_grade_values !== false ? libraryGradeFor(fractions) : null;
     let specificVolume = 0; // cm³ per gram: volumes add, densities do not (checked against the 48 library grades)
     let cost = 0;
     let liquidus = 0;
@@ -292,6 +294,10 @@
     });
     const density = 1 / Math.max(1e-6, specificVolume);
     if (Object.keys(fractions).length > 1) liquidus *= 0.92;
+    let costSource = 'elements';
+    let liquidusSource = 'estimate';
+    if (libMatch && Array.isArray(libMatch.price) && libMatch.price.length === 2) { cost = (Number(libMatch.price[0]) + Number(libMatch.price[1])) / 2; costSource = 'library'; }
+    if (libMatch && Array.isArray(libMatch.melt)) { liquidus = Number(libMatch.melt[1]); liquidusSource = 'library'; }
     liquidus = clamp(liquidus, -273.15, 4500);
     const isMelted = temperature >= liquidus;
     const phases = Object.entries(fractions).sort((a, b) => b[1] - a[1]).map(([sym, frac]) => {
@@ -334,7 +340,7 @@
     let strengthSource = 'estimate';
     let matchedGrade = null;
     if (input.use_grade_values !== false) {
-      matchedGrade = libraryGradeFor(fractions);
+      matchedGrade = libMatch;
       if (matchedGrade) { strength = matchedGrade.y; strengthSource = 'grade'; }
     }
     // for a mix that is not a known grade, the simulator page can use the on-device ML estimate (the weekly challenge keeps the fixed formula so scores stay comparable)
@@ -430,7 +436,7 @@
         expt_gap: { predicted: 0.44, uncertainty: 0.45, confidence: 'Medium', unit: 'eV' },
       },
       derived: {
-        density_gcm3: round(density, 3), cost_per_kg: round(cost), thermal_limit_c: round(limit), liquidus_c: round(liquidus, 2),
+        density_gcm3: round(density, 3), cost_per_kg: round(cost), cost_source: costSource, liquidus_source: liquidusSource, thermal_limit_c: round(limit), liquidus_c: round(liquidus, 2),
         is_melted: isMelted, is_vaporized: isVaporized, is_gas: isGas, liquidus_message: isGas ? 'Gas' : isVaporized ? 'Vaporised' : isMelted ? 'Liquidus failure' : 'Solid state',
         corrosion_index: round(corrosion, 3), ductility_index: round(ductility, 3), modulus_gpa: round(modulus, 1),
         crystal_structure: structure, environment_factor: round(envFactor, 3), profile_factor: profileFactor,
@@ -672,8 +678,8 @@
       `Derated working strength: ${d.operating_strength_mpa} MPa`,
       `Utilisation: ${d.utilization_ratio}`,
       `Density: ${d.density_gcm3} g/cm³`,
-      `Raw material cost: INR ${d.cost_per_kg}/kg`,
-      `Estimated liquidus (weighted from the elements, not a phase-diagram result): ${d.liquidus_c} °C`,
+      d.cost_source === 'library' ? `Indicative price (middle of the library grade's stockist range): INR ${d.cost_per_kg}/kg` : `Raw-element cost, not a bar or plate price, often off by a factor of two or more: INR ${d.cost_per_kg}/kg`,
+      d.liquidus_source === 'library' ? `Melting point (typical published liquidus for the matched grade): ${d.liquidus_c} °C` : `Estimated liquidus (weighted from the elements, rough: can be off by 100 to 200 °C): ${d.liquidus_c} °C`,
       `Service ceiling: ${d.thermal_limit_c} °C`,
       '',
       '## ELEMENTAL PHASE STATE AT OPERATING POINT',

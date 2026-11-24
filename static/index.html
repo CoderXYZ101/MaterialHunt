@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.16.10" />
+  <link rel="stylesheet" href="growth.css?v=4.16.12" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -217,7 +217,7 @@
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. On a separate check against our library only one grade was in range, and it was about 33% off, so treat it as a guide. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model · cross-validated · <a href="evaluation.html">see the evaluation</a></small></div>
+            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. It holds for steels that resemble ones the model learned from. When a whole group of similar steels is hidden, the score drops to about zero, no better than guessing, so the model is best for steels close to its training data. On a separate check against our library only one grade was in range, and it was about 33% off. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model · similar steels only · <a href="evaluation.html">see the evaluation</a></small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
@@ -234,7 +234,7 @@
           <span><strong>Dynamic Head</strong> pressure from moving fluid <i class="term-hint" title="Dynamic head q = ½ρv²: airspeed or flow adds pressure on top of static pressure.">i</i></span>
           <span><strong>Epistemic Uncertainty</strong> model disagreement <i class="term-hint" data-hint="Epistemic uncertainty: how much the trees of a machine-learning model disagree with each other. A smaller spread means the model is more sure. It is only shown when an ML model made the estimate." data-ask="What is the model spread and uncertainty?">i</i></span>
           <span><strong>PREN</strong> pitting resistance <i class="term-hint" title="PREN = Cr + 3.3·Mo + 16·N. Above ~40 resists seawater pitting; above ~50 handles harsh chlorides.">i</i></span>
-          <span><strong>Creep</strong> slow hot deformation <i class="term-hint" title="Creep: time-dependent stretching under load at high temperature. It limits long-life hot sections.">i</i></span>
+          <span><strong>Creep</strong> slow hot deformation <i class="term-hint" title="Creep: time-dependent stretching under load at high temperature. It limits long-life hot sections. MaterialHunt only warns when your temperature is high enough for creep to matter. It does not predict creep life.">i</i></span>
         </div>
 
         <section class="glass ml-home" aria-label="Machine learning on this site">
@@ -1092,27 +1092,27 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.16.10"></script>
-  <script src="app.js?v=4.16.10"></script>
-  <script src="config.js?v=4.16.10"></script>
-  <script src="tools.js?v=4.16.10"></script>
-  <script src="growth.js?v=4.16.10"></script>
-  <script src="ai.js?v=4.16.10"></script>
-  <script src="admin.js?v=4.16.10"></script>
-  <script src="designs.js?v=4.16.10"></script>
-  <script src="profile.js?v=4.16.10"></script>
-  <script src="promo.js?v=4.16.10"></script>
-  <script src="community.js?v=4.16.10"></script>
-  <script src="forum.js?v=4.16.10"></script>
-  <script src="workspace.js?v=4.16.10"></script>
-  <script src="showcase.js?v=4.16.10"></script>
-  <script src="brain.js?v=4.16.10"></script>
-  <script src="vision.js?v=4.16.10"></script>
-  <script src="ml.js?v=4.16.10"></script>
-  <script src="engine.js?v=4.16.10"></script>
-  <script src="hints.js?v=4.16.10"></script>
-  <script src="account.js?v=4.16.10"></script>
-  <script src="endorse.js?v=4.16.10"></script>
-  <script src="notifications.js?v=4.16.10"></script>
+  <script src="firebase-bridge.js?v=4.16.12"></script>
+  <script src="app.js?v=4.16.12"></script>
+  <script src="config.js?v=4.16.12"></script>
+  <script src="tools.js?v=4.16.12"></script>
+  <script src="growth.js?v=4.16.12"></script>
+  <script src="ai.js?v=4.16.12"></script>
+  <script src="admin.js?v=4.16.12"></script>
+  <script src="designs.js?v=4.16.12"></script>
+  <script src="profile.js?v=4.16.12"></script>
+  <script src="promo.js?v=4.16.12"></script>
+  <script src="community.js?v=4.16.12"></script>
+  <script src="forum.js?v=4.16.12"></script>
+  <script src="workspace.js?v=4.16.12"></script>
+  <script src="showcase.js?v=4.16.12"></script>
+  <script src="brain.js?v=4.16.12"></script>
+  <script src="vision.js?v=4.16.12"></script>
+  <script src="ml.js?v=4.16.12"></script>
+  <script src="engine.js?v=4.16.12"></script>
+  <script src="hints.js?v=4.16.12"></script>
+  <script src="account.js?v=4.16.12"></script>
+  <script src="endorse.js?v=4.16.12"></script>
+  <script src="notifications.js?v=4.16.12"></script>
 </body>
 </html>

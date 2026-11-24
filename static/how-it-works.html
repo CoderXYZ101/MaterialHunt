@@ -88,6 +88,7 @@
       </tbody>
     </table>
     <p><strong>What this means:</strong> the model learns real patterns and clearly beats guessing the average and the old formula, but with only 48 samples it is still a rough guide (a typical yield error of about half). It is not a replacement for a datasheet or a test. The yield rows are from the reproducible Python script on the <a href="evaluation.html">Evaluation page</a> (the other properties were measured in the browser). You can reproduce the browser numbers yourself, or train on your own measurements, in the <a href="/" data-view-link="ml">ML Lab</a>. The "spread" between trees is shown as a rough uncertainty hint, not a calibrated confidence: the true value fell within two spreads of the prediction for about 88% of grades.</p>
+    <p><strong>Steel model caveat:</strong> its high score holds for steels like the 312 it learned from. When a whole group of similar steels is hidden, it is no better than guessing (see the Evaluation page).</p>
     <p><strong>For real strength numbers use the matched grade in the Alloy Finder, or a lab test.</strong> When your mix matches a library grade, the simulator now uses that grade's typical value instead of any estimate.</p>
 
     <h3>Melting temperature (usable for screening)</h3>
@@ -101,10 +102,10 @@
         <tr><td>Inconel 718</td><td>1509 °C</td><td>1260–1336 °C</td><td>about 13–20% high</td></tr>
       </tbody>
     </table>
-    <p>The published ranges are typical figures from manufacturer datasheets, quoted from memory of common values, so confirm them against your own source before you cite them.</p>
+    <p>The published ranges are typical handbook figures, so confirm them against your own source before you cite them. These rows test the rough weighted estimate, which is used for mixes that are not known grades and can be off by 100 to 200 °C. For the library grades that have a stored range, the simulator now uses the typical published liquidus instead.</p>
 
     <h3>Cost</h3>
-    <p>The simulator adds up the raw-element prices of a mix. That is not the price of a finished bar or plate, so it can be off by a factor of two or more. Use the <strong>indicative price range</strong> shown for a matched grade, and ask a supplier for a real quote.</p>
+    <p>For a mix that matches a library grade, the simulator uses the middle of that grade's indicative stockist price range. For any other mix it adds up the raw-element prices, which is not the price of a finished bar or plate and can be off by a factor of two or more (the Evaluation page measures it). Always ask a supplier for a real quote.</p>
 
     <h2>3. Data sources</h2>
     <ul>
@@ -119,7 +120,7 @@
       <li>Strength in the simulator is a rough estimate. Use grade values for planning.</li>
       <li>Prices are indicative ranges and change; supplier listings are for information only.</li>
       <li>The grade library has 48 grades and does not cover every alloy, heat treatment or product form.</li>
-      <li>Some effects are not modelled (fatigue life, creep life, fracture toughness, specific standards). The Alloy Finder tells you when your request includes things it cannot check.</li>
+      <li>Some effects are not modelled (fatigue life, creep life, fracture toughness, specific standards). For creep the simulator only shows a warning when your temperature is high enough for it to matter; it does not predict how long a part will last. The Alloy Finder tells you when your request includes things it cannot check.</li>
       <li>The lattice pictures and 3D shapes are for representation only.</li>
       <li>The photo check is a basic heuristic and can be wrong.</li>
     </ul>

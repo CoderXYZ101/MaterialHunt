@@ -6071,8 +6071,7 @@ function generateAIAlloys(prompt) {
       strength: Math.round(800 + Math.random() * 600),
       density: Number((6 + Math.random() * 12).toFixed(1)),
       cost: Math.round(500 + Math.random() * 8000),
-      liquidus: Math.round(1200 + Math.random() * 1500),
-      creep: Math.round(Math.random() * 10000)
+      liquidus: Math.round(1200 + Math.random() * 1500)
     },
     route: ['LPBF', 'EBM', 'Directed Energy', 'Casting', 'Forging'][Math.floor(Math.random() * 5)],
     uncertainty: Number((0.05 + Math.random() * 0.15).toFixed(2))
@@ -6117,7 +6116,6 @@ function renderAIResults(results) {
         <span class="ai-result-prop">⚖️ ${r.props.density} g/cm³</span>
         <span class="ai-result-prop">💰 ₹${r.props.cost}/kg</span>
         <span class="ai-result-prop">🔥 ${r.props.liquidus}°C</span>
-        <span class="ai-result-prop">⏱️ ${r.props.creep}h creep</span>
         <span class="ai-result-prop">📦 ${r.route}</span>
         <span class="ai-result-prop">📊 ±${(r.uncertainty*100).toFixed(0)}%</span>
       </div>
@@ -6175,7 +6173,6 @@ function downloadAIReport(alloy) {
     `  Density: ${alloy.props.density} g/cm³`,
     `  Cost: ₹${alloy.props.cost}/kg`,
     `  Liquidus: ${alloy.props.liquidus}°C`,
-    `  Creep Life: ${alloy.props.creep} hours`,
     '',
     '--- SIMULATED OUTPUT ---',
     'Validate with physical testing before production use.'
