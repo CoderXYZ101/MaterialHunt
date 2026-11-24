@@ -48,15 +48,15 @@
     <table>
       <thead><tr><th>Grade</th><th>Library (g/cm³)</th><th>Estimated</th><th>Error</th></tr></thead>
       <tbody>
-        <tr><td>Stainless steel 316L</td><td>8.00</td><td>7.90</td><td>−1.3%</td></tr>
-        <tr><td>Aluminium 6061-T6</td><td>2.70</td><td>2.71</td><td>+0.4%</td></tr>
-        <tr><td>Titanium Ti-6Al-4V</td><td>4.43</td><td>4.46</td><td>+0.7%</td></tr>
-        <tr><td>Steel EN19 (4140)</td><td>7.85</td><td>7.83</td><td>−0.3%</td></tr>
-        <tr><td>Inconel 718</td><td>8.19</td><td>8.35</td><td>+2.0%</td></tr>
-        <tr><td>Aluminium 7075-T6</td><td>2.81</td><td>3.04</td><td>+8.2%</td></tr>
+        <tr><td>Stainless steel 316</td><td>8.00</td><td>7.79</td><td>−2.6%</td></tr>
+        <tr><td>Aluminium 6061-T6</td><td>2.70</td><td>2.69</td><td>−0.3%</td></tr>
+        <tr><td>Titanium Ti-6Al-4V</td><td>4.43</td><td>4.38</td><td>−1.2%</td></tr>
+        <tr><td>Steel EN19 (4140)</td><td>7.85</td><td>7.74</td><td>−1.4%</td></tr>
+        <tr><td>Inconel 718</td><td>8.19</td><td>8.19</td><td>0.0%</td></tr>
+        <tr><td>Aluminium 7075-T6</td><td>2.81</td><td>2.79</td><td>−0.6%</td></tr>
       </tbody>
     </table>
-    <p><strong>Across all 48 grades the average error is about 1.9%.</strong> Density is reliable for screening.</p>
+    <p><strong>Across all 48 grades the average error is 1.37% and the worst is 4.59%</strong> (same numbers as the <a href="evaluation.html">Evaluation page</a>). The simulator adds volumes, not weights; an older weight-average version was up to 11% off and was fixed. Density is reliable for screening.</p>
 
     <h3>Yield strength: the old composition formula (rough)</h3>
     <p>This is the formula the simulator used before. It is still the fallback for the weekly challenge, so scores stay comparable.</p>
@@ -91,7 +91,7 @@
     <p><strong>Steel model caveat:</strong> its high score holds for steels like the 312 it learned from. When a whole group of similar steels is hidden, it is no better than guessing (see the Evaluation page).</p>
     <p><strong>For real strength numbers use the matched grade in the Alloy Finder, or a lab test.</strong> When your mix matches a library grade, the simulator now uses that grade's typical value instead of any estimate.</p>
 
-    <h3>Melting temperature (usable for screening)</h3>
+    <h3>Melting temperature (rough warning only)</h3>
     <table>
       <thead><tr><th>Grade</th><th>Estimated liquidus</th><th>Typical published range</th><th>Result</th></tr></thead>
       <tbody>
@@ -106,6 +106,18 @@
 
     <h3>Cost</h3>
     <p>For a mix that matches a library grade, the simulator uses the middle of that grade's indicative stockist price range. For any other mix it adds up the raw-element prices, which is not the price of a finished bar or plate and can be off by a factor of two or more (the Evaluation page measures it). Always ask a supplier for a real quote.</p>
+
+    <h3>How the verdict is calculated</h3>
+    <p>The verdict uses simple screening formulas. It is not a finite-element or code-compliance calculation.</p>
+    <ul>
+      <li><strong>Strength</strong>: the matched library grade's typical yield, or an estimate (formula, or the ML model if you choose it).</li>
+      <li><strong>Working strength</strong> = strength × temperature factor × environment factor × load-profile factor. The temperature factor falls as you approach the alloy's rough service limit; the other two are fixed multipliers (for example seawater or cyclic loading lower it).</li>
+      <li><strong>Applied stress</strong> = the load you enter × the safety factor you choose (1 to 3).</li>
+      <li><strong>Utilisation</strong> = applied stress ÷ working strength. Above 1.0 the verdict is UNSAFE; above 0.85 it is MARGINAL; otherwise SAFE.</li>
+      <li><strong>Pressure</strong>: total pressure = static pressure + ½ × fluid density × speed². The "burst ceiling" is a fixed 5 GPa scale reduced by temperature, <strong>not</strong> a hoop-stress calculation from a wall thickness, so it only flags absurd pressures.</li>
+      <li><strong>Worked example</strong>: 6061-T6 (yield 276 MPa) at 25 °C in air, 150 MPa load, safety factor 1.5 gives applied stress 225 MPa; with a working strength near 276 MPa, utilisation is about 0.82, so SAFE but close to the 0.85 marginal line.</li>
+      <li><strong>Not modelled</strong>: geometry, wall thickness, stress concentrations, welds, fatigue S-N data, creep life, corrosion rates and manufacturing defects. Use it to rank options before a real calculation or test, not to certify a part.</li>
+    </ul>
 
     <h2>3. Data sources</h2>
     <ul>

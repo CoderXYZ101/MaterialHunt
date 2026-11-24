@@ -79,7 +79,7 @@
     <p>The published melting ranges are typical handbook values; check them against your supplier's datasheet before relying on them.</p>
 
     <h2>7. Reproduce it yourself</h2>
-    <p>Everything above is produced by one script that reads only files in the project. With Python installed:</p>
+    <p>Everything above is produced by one script that reads only files in the project. The code is public: <a href="https://github.com/CoderXYZ101/MaterialHunt/tree/master/evaluation">github.com/CoderXYZ101/MaterialHunt</a>. With Python installed:</p>
     <pre>pip install scikit-learn numpy
 python evaluation/evaluate.py</pre>
     <p>It writes <code>static/data/evaluation.json</code> and fills the numbers in this page. Seeds are fixed. Small differences in the last digit between machines are normal. The same checks also run live in your browser: open the <a href="/" data-view-link="ml">ML Lab</a> and press "Train and test the model" (slow motion shows each step).</p>

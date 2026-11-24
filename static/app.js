@@ -1618,7 +1618,7 @@ function renderSimulation(sim) {
   if (guardrailNote) {
     guardrailNote.classList.toggle('blocked', false);
     guardrailNote.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 3 20h18L12 3Z"/><path d="M12 9v5M12 17v.5"/></svg>
-      ${derived.hazard_cleared ? 'Dual-use guardrail cleared with your hazardous-material handling confirmation.' : 'Dual-Use Guardrail active: restricted elements are blocked without verified clearance.'}`;
+      ${derived.hazard_cleared ? 'Restricted elements allowed because you acknowledged them (self-declaration, not checked).' : 'Restricted elements are blocked until you tick the acknowledgement.'}`;
   }
 
   state.lastRadar = sim.radar;
@@ -4010,7 +4010,7 @@ function bindEvents() {
     if (note) {
       note.classList.toggle('blocked', false);
       note.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 3 20h18L12 3Z"/><path d="M12 9v5M12 17v.5"/></svg>
-        ${$('#hazardVerify').checked ? 'Clearance acknowledged. Restricted-element simulations will be written to the audit trail.' : 'Dual-Use Guardrail active: restricted elements are blocked without verified clearance.'}`;
+        ${$('#hazardVerify').checked ? 'Acknowledged. Restricted-element simulations will be written to the audit trail.' : 'Restricted elements are blocked until you tick the acknowledgement.'}`;
     }
     scheduleSimulation(250);
   });

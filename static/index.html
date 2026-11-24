@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="MaterialHunt: test a metal before you build with it. Find the closest Indian grade, live ₹/kg price, manufacturability, failure diagnosis and a ready-to-send RFQ - free." />
+  <meta name="description" content="MaterialHunt: test a metal before you build with it. Find the closest Indian grade, indicative ₹/kg range, manufacturability, failure diagnosis and a ready-to-send RFQ. Screening tool, free beta." />
   <meta property="og:title" content="MaterialHunt - test a metal before you build with it" />
   <meta property="og:description" content="Closest Indian grade + ₹/kg, failure doctor, BOM cost-down scanner and 1-click RFQ for engineers, makers and procurement teams." />
   <meta property="og:type" content="website" />
@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.16.12" />
+  <link rel="stylesheet" href="growth.css?v=4.16.13" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -217,7 +217,7 @@
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. It holds for steels that resemble ones the model learned from. When a whole group of similar steels is hidden, the score drops to about zero, no better than guessing, so the model is best for steels close to its training data. On a separate check against our library only one grade was in range, and it was about 33% off. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model · similar steels only · <a href="evaluation.html">see the evaluation</a></small></div>
+            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. It holds for steels that resemble ones the model learned from. When a whole group of similar steels is hidden, the score drops to about zero, no better than guessing, so the model is best for steels close to its training data. On a separate check against our library only one grade was in range, and it was about 33% off. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model on similar steels; about 0 on new steel types. Library model: yield error about 47%. <a href="evaluation.html">See the evaluation</a></small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
@@ -225,7 +225,7 @@
           </article>
           <article class="stat-card glass">
             <span class="stat-icon violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg></span>
-            <div><span class="stat-label">Guardrail coverage</span><strong>8 / 8</strong><small>Dual-use elements blocked</small></div>
+            <div><span class="stat-label">Restricted elements</span><strong>8</strong><small>restricted elements need an acknowledgement</small></div>
           </article>
         </section>
 
@@ -349,8 +349,8 @@
             <label class="guardrail-check guardrail-warn">
               <input type="checkbox" id="hazardVerify" />
               <span>
-                <strong>Hazardous-material clearance verified</strong>
-                <small>Required for U, Pu, Th, Be, Br, Cd, Hg, As. Acknowledges KYB-approved handling authority.</small>
+                <strong>I acknowledge these elements are restricted</strong>
+                <small>Needed to simulate U, Pu, Th, Be, Br, Cd, Hg, As. This is a self-declaration; nothing is checked. Simulation only, never a supply request.</small>
               </span>
             </label>
             <div class="guardrail-note" id="guardrailNote">
@@ -460,7 +460,7 @@
             <div>
               <span class="panel-kicker">PRODUCT FORGE · STRESS-TEST BENCHMARKS</span>
               <h3>Forge a real part. Survive its worst day.</h3>
-              <p class="panel-sub">Pick an engineering blueprint, tune the chemistry, then run the live stress test. Verdicts are PASS, MELT, BURST, OVERWEIGHT or OVER BUDGET. Passing designs earn a medal.</p>
+              <p class="panel-sub">Pick an engineering blueprint, tune the chemistry, then run the live stress test. Verdicts are PASS, MELT, BURST, OVERWEIGHT or OVER BUDGET. Passing designs earn a medal. <b>Educational scenarios: not validated for aerospace, medical or pressure-vessel use.</b></p>
             </div>
             <div class="forge-head-actions">
               <label class="sr-only" for="benchmarkSelect">Blueprint</label>
@@ -469,7 +469,7 @@
                 <option value="submersible">Deep-Sea Submersible Hull — 110 MPa + seawater</option>
                 <option value="ev-enclosure">EV Solid-State Battery Enclosure</option>
                 <option value="turbine-blade">Hypersonic Turbine Blade — 1,450°C + 45,000 RPM</option>
-                <option value="bone-implant">Orthopedic Bone Implant — zero toxic elements</option>
+                <option value="bone-implant">Orthopedic Bone Implant — avoids listed toxic elements</option>
                 <option value="custom">Custom Part (define your own)</option>
               </select>
               <button class="btn btn-primary small" id="runBenchmark">Run Stress Test</button>
@@ -1092,27 +1092,27 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.16.12"></script>
-  <script src="app.js?v=4.16.12"></script>
-  <script src="config.js?v=4.16.12"></script>
-  <script src="tools.js?v=4.16.12"></script>
-  <script src="growth.js?v=4.16.12"></script>
-  <script src="ai.js?v=4.16.12"></script>
-  <script src="admin.js?v=4.16.12"></script>
-  <script src="designs.js?v=4.16.12"></script>
-  <script src="profile.js?v=4.16.12"></script>
-  <script src="promo.js?v=4.16.12"></script>
-  <script src="community.js?v=4.16.12"></script>
-  <script src="forum.js?v=4.16.12"></script>
-  <script src="workspace.js?v=4.16.12"></script>
-  <script src="showcase.js?v=4.16.12"></script>
-  <script src="brain.js?v=4.16.12"></script>
-  <script src="vision.js?v=4.16.12"></script>
-  <script src="ml.js?v=4.16.12"></script>
-  <script src="engine.js?v=4.16.12"></script>
-  <script src="hints.js?v=4.16.12"></script>
-  <script src="account.js?v=4.16.12"></script>
-  <script src="endorse.js?v=4.16.12"></script>
-  <script src="notifications.js?v=4.16.12"></script>
+  <script src="firebase-bridge.js?v=4.16.13"></script>
+  <script src="app.js?v=4.16.13"></script>
+  <script src="config.js?v=4.16.13"></script>
+  <script src="tools.js?v=4.16.13"></script>
+  <script src="growth.js?v=4.16.13"></script>
+  <script src="ai.js?v=4.16.13"></script>
+  <script src="admin.js?v=4.16.13"></script>
+  <script src="designs.js?v=4.16.13"></script>
+  <script src="profile.js?v=4.16.13"></script>
+  <script src="promo.js?v=4.16.13"></script>
+  <script src="community.js?v=4.16.13"></script>
+  <script src="forum.js?v=4.16.13"></script>
+  <script src="workspace.js?v=4.16.13"></script>
+  <script src="showcase.js?v=4.16.13"></script>
+  <script src="brain.js?v=4.16.13"></script>
+  <script src="vision.js?v=4.16.13"></script>
+  <script src="ml.js?v=4.16.13"></script>
+  <script src="engine.js?v=4.16.13"></script>
+  <script src="hints.js?v=4.16.13"></script>
+  <script src="account.js?v=4.16.13"></script>
+  <script src="endorse.js?v=4.16.13"></script>
+  <script src="notifications.js?v=4.16.13"></script>
 </body>
 </html>
