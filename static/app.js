@@ -2904,38 +2904,38 @@ class MaterialScene {
     }
   }
 
-  /* a small block of crystal (2x2x2 cubic cells, or three close-packed hexagonal layers) instead of a single cell */
+  /* One standard unit cell, drawn the way a textbook draws it:
+     BCC  = 8 corners + 1 centre (2 atoms per cell), FCC = 8 corners + 6 face centres (4 atoms per cell),
+     HCP  = hexagonal prism: 12 corners + 2 face centres + 3 inside (6 atoms per cell, c/a = 1.633). */
   unitCellPositions() {
     const k = this.cellScale || 1;
-    const u = 1.9 * k;
     const P = [];
-    const add = (x, y, z) => P.push(new THREE.Vector3(x * u - u, y * u - u, z * u - u));
     if (this.structure === 'HCP') {
-      const a = u * 0.85;
-      const c = a * 1.633;
-      const reach = a * 1.62;
-      const layer = (shiftX, shiftZ, y) => {
-        for (let m = -3; m <= 3; m += 1) {
-          for (let n = -3; n <= 3; n += 1) {
-            const x = a * (m + n / 2) + shiftX;
-            const z = a * n * 0.866 + shiftZ;
-            if (Math.hypot(x, z) <= reach) P.push(new THREE.Vector3(x, y, z));
-          }
+      const R = 1.5 * k;
+      const c = R * 1.633;
+      for (let level = -1; level <= 1; level += 2) {
+        for (let i = 0; i < 6; i += 1) {
+          const t = (i / 6) * Math.PI * 2;
+          P.push(new THREE.Vector3(R * Math.cos(t), (c / 2) * level, R * Math.sin(t)));
         }
-      };
-      layer(0, 0, -c / 2);
-      layer(a / 2, a * 0.2887, 0);
-      layer(0, 0, c / 2);
-      return { positions: P, threshold: a * 1.06, hcp: true, unit: u };
+        P.push(new THREE.Vector3(0, (c / 2) * level, 0));
+      }
+      for (let i = 0; i < 3; i += 1) {
+        const t = (i / 3) * Math.PI * 2 + Math.PI / 6;
+        P.push(new THREE.Vector3((R / Math.sqrt(3)) * Math.cos(t), 0, (R / Math.sqrt(3)) * Math.sin(t)));
+      }
+      // atom radius when the neighbours just touch is R/2 (we draw a fraction of that so the cell stays readable)
+      return { positions: P, threshold: R * 1.04, touch: R / 2, edge: R };
     }
-    for (let i = 0; i <= 2; i += 1) for (let j = 0; j <= 2; j += 1) for (let l = 0; l <= 2; l += 1) add(i, j, l);
+    const a = 2.6 * k;
+    const h = a / 2;
+    [-h, h].forEach((x) => [-h, h].forEach((y) => [-h, h].forEach((z) => P.push(new THREE.Vector3(x, y, z)))));
     if (this.structure === 'BCC') {
-      for (let i = 0; i < 2; i += 1) for (let j = 0; j < 2; j += 1) for (let l = 0; l < 2; l += 1) add(i + 0.5, j + 0.5, l + 0.5);
-      return { positions: P, threshold: u * 0.9, hcp: false, unit: u };
+      P.push(new THREE.Vector3(0, 0, 0));
+      return { positions: P, threshold: a * 0.88, touch: (Math.sqrt(3) / 4) * a, edge: a };
     }
-    const halves = [0.5, 1.5];
-    halves.forEach((x) => halves.forEach((y) => { for (let z = 0; z <= 2; z += 1) { add(x, y, z); add(x, z, y); add(z, x, y); } }));
-    return { positions: P, threshold: u * 0.75, hcp: false, unit: u };
+    P.push(new THREE.Vector3(-h, 0, 0), new THREE.Vector3(h, 0, 0), new THREE.Vector3(0, -h, 0), new THREE.Vector3(0, h, 0), new THREE.Vector3(0, 0, -h), new THREE.Vector3(0, 0, h));
+    return { positions: P, threshold: a * 0.72, touch: (Math.SQRT2 / 4) * a, edge: a };
   }
 
   buildLattice() {
@@ -2949,15 +2949,10 @@ class MaterialScene {
     // the cell grows or shrinks with the average atom size of the mix (Vegard's law, simplified)
     const totalPct = this.composition.reduce((sum, el) => sum + Math.max(0.001, Number(el.pct)), 0);
     const avgRadius = this.composition.reduce((sum, el) => sum + Math.max(0.001, Number(el.pct)) * (Number(el.radius) || 126), 0) / totalPct;
-    this.cellScale = clamp(avgRadius / 130, 0.82, 1.3);
-    // size mismatch between the atoms distorts the lattice (as in high-entropy alloys)
-    const mismatch = Math.sqrt(this.composition.reduce((sum, el) => {
-      const c = Math.max(0.001, Number(el.pct)) / totalPct;
-      return sum + c * (1 - (Number(el.radius) || 126) / avgRadius) ** 2;
-    }, 0));
+    this.cellScale = clamp(avgRadius / 130, 0.85, 1.25);
     const data = this.unitCellPositions();
 
-    // the same mix always draws the same lattice: a seeded shuffle, with exact shares of each element
+    // the same mix always draws the same picture: exact shares of each element, placed by a seeded shuffle
     let seed = 2166136261;
     `${this.structure}|${this.composition.map((el) => `${el.symbol}${Number(el.pct).toFixed(1)}`).sort().join(',')}`.split('').forEach((ch) => { seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619); });
     const rand = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -2971,62 +2966,45 @@ class MaterialScene {
     const bag = [];
     share.forEach((x) => { for (let i = 0; i < x.n; i += 1) bag.push(x.el); });
     for (let i = bag.length - 1; i > 0; i -= 1) { const j = Math.floor(rand() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
-    const amp = clamp(mismatch * 4, 0, 0.12) * (data.unit / 2.35) * 1.2;
-    data.positions.forEach((p) => { if (amp > 0) p.add(new THREE.Vector3((rand() - 0.5) * 2 * amp, (rand() - 0.5) * 2 * amp, (rand() - 0.5) * 2 * amp)); });
-    this.latticeInfo = { cell: this.cellScale, mismatch, structure: this.structure };
+    const facts = { BCC: '2 atoms per cell · 8 nearest neighbours · 68% packed', FCC: '4 atoms per cell · 12 nearest neighbours · 74% packed', HCP: '6 atoms per cell · 12 nearest neighbours · 74% packed' }[this.structure] || '';
+    this.latticeInfo = { cell: this.cellScale, structure: this.structure, facts };
+    const note = document.getElementById('latticeNote');
+    if (note) note.textContent = `${this.structure}: ${facts}. The lattice is for representation purposes only.`;
 
-    const sphereGeometry = new THREE.SphereGeometry(1, 32, 24);
+    const sphereGeometry = new THREE.SphereGeometry(1, 36, 28);
     const materialMap = new Map();
     data.positions.forEach((position, index) => {
       const el = bag[index] || this.composition[0];
       const key = el.symbol;
       if (!materialMap.has(key)) {
         const color = new THREE.Color(el.color || '#7FB3FF');
-        materialMap.set(key, {
-          material: new THREE.MeshStandardMaterial({
-            color, emissive: color, emissiveIntensity: 0.34, metalness: 0.72, roughness: 0.23,
-          }),
-          base: color.clone(),
-        });
+        materialMap.set(key, { material: new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.28, metalness: 0.55, roughness: 0.3 }), base: color.clone() });
       }
-      const entry = materialMap.get(key);
-      const mesh = new THREE.Mesh(sphereGeometry, entry.material);
-      const atomRadius = clamp(0.205 * ((Number(el.radius) || 126) / 126) ** 1.6, 0.14, 0.33);
-      mesh.scale.setScalar(atomRadius);
+      const mesh = new THREE.Mesh(sphereGeometry, materialMap.get(key).material);
+      // about 40% of the touching radius keeps the cell readable; sizes follow each element's relative atomic radius
+      mesh.scale.setScalar(data.touch * 0.4 * clamp((Number(el.radius) || 126) / avgRadius, 0.75, 1.3));
       mesh.position.copy(position);
       mesh.userData.base = position.clone();
       mesh.userData.phase = index * 0.73;
       this.latticeGroup.add(mesh);
       this.atomMeshes.push(mesh);
-
-      const glowMaterial = new THREE.SpriteMaterial({
-        map: this.glowTexture, color: new THREE.Color(el.color || '#7FB3FF'), transparent: true,
-        opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false,
-      });
-      const halo = new THREE.Sprite(glowMaterial);
-      halo.scale.setScalar(atomRadius * 4.2);
-      halo.position.copy(position);
-      this.latticeGroup.add(halo);
     });
     this.atomMaterials = Array.from(materialMap.values());
 
-    const bondGeometry = new THREE.CylinderGeometry(0.028, 0.028, 1, 8, 1, false);
-    const bondMaterial = new THREE.MeshStandardMaterial({
-      color: 0x6f8dab, emissive: 0x0e7490, emissiveIntensity: 0.4, metalness: 0.9, roughness: 0.32,
-      transparent: true, opacity: 0.62,
-    });
+    // thin lines between nearest neighbours only
+    const bondGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1, 8, 1, false);
+    const bondMaterial = new THREE.MeshStandardMaterial({ color: 0x8fa6bd, emissive: 0x0e7490, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.5, transparent: true, opacity: 0.4 });
     this.bondMaterial = bondMaterial;
     const up = new THREE.Vector3(0, 1, 0);
     for (let i = 0; i < data.positions.length; i += 1) {
       for (let j = i + 1; j < data.positions.length; j += 1) {
-        const a = data.positions[i];
-        const b = data.positions[j];
-        const distance = a.distanceTo(b);
+        const pa = data.positions[i];
+        const pb = data.positions[j];
+        const distance = pa.distanceTo(pb);
         if (distance > data.threshold) continue;
-        const direction = b.clone().sub(a);
         const bond = new THREE.Mesh(bondGeometry, bondMaterial);
-        bond.position.copy(a).add(b).multiplyScalar(0.5);
-        bond.quaternion.setFromUnitVectors(up, direction.clone().normalize());
+        bond.position.copy(pa).add(pb).multiplyScalar(0.5);
+        bond.quaternion.setFromUnitVectors(up, pb.clone().sub(pa).normalize());
         bond.scale.set(1, distance, 1);
         bond.userData.baseLength = distance;
         bond.userData.phase = (i + j) * 0.51;
@@ -3034,7 +3012,6 @@ class MaterialScene {
         this.bondMeshes.push(bond);
       }
     }
-
     this.latticeGroup.rotation.set(0.12, -0.3, 0.05);
     this.updateTint();
   }
@@ -3295,7 +3272,7 @@ class MaterialScene {
       this.buildLattice();
       this.needsRebuild = false;
     }
-    this.radius = this.mode === 'dogbone' ? 9.8 : this.mode === 'lattice' ? 11.2 : 8.0;
+    this.radius = this.mode === 'dogbone' ? 9.8 : this.mode === 'lattice' ? 8.8 : 8.0;
     this.applyPhaseVisual();
   }
 

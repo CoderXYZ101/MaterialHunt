@@ -400,6 +400,26 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
     }
 
+    // Endorsements: short notes from real members. Public only after an admin approves them. One per member.
+    match /endorsements/{memberId} {
+      allow read: if resource.data.status == 'approved' || (signedIn() && request.auth.uid == memberId) || isAdmin();
+      allow create, update: if signedIn() && request.auth.uid == memberId
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['user_id', 'name', 'role', 'org', 'rating', 'quote', 'status', 'verified', 'created_at'])
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.verified == false
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 60
+        && request.resource.data.role is string && request.resource.data.role.size() > 0 && request.resource.data.role.size() <= 80
+        && request.resource.data.org is string && request.resource.data.org.size() <= 80
+        && request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.quote is string && request.resource.data.quote.size() >= 20 && request.resource.data.quote.size() <= 400
+        && request.resource.data.created_at == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'verified', 'admin_note']);
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == memberId);
+    }
+
     // Record of prizes handed out (admin only).
     match /awards/{awardId} {
       allow read, write: if isAdmin();

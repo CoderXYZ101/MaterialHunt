@@ -56,7 +56,7 @@
     }
   }
 
-  /* ---------------- modals ---------------- */
+  /* ---------------- modal (other members' profiles) ---------------- */
   function modal() {
     let m = q('#profileModal');
     if (!m) {
@@ -94,40 +94,62 @@
     throw new Error(PHOTO_ERRORS[code] || 'something went wrong. Please try again.');
   }
 
+  /* ---------------- my profile: its own page ---------------- */
+  function pageRoot() {
+    let root = q('#profileRoot');
+    if (!root) {
+      const main = q('main');
+      const sec = document.createElement('section');
+      sec.className = 'view';
+      sec.id = 'view-profile';
+      sec.innerHTML = '<div id="profileRoot"></div>';
+      main.appendChild(sec);
+      root = q('#profileRoot', sec);
+    }
+    return root;
+  }
+
   async function openMine() {
     if (!state.user) { openAuth('register'); return; }
     await loadMine();
     try { await window.MH_FIREBASE.initFirebase(); photosBlocked = (await db().collection('photo_blocks').doc(uid()).get()).exists; } catch { photosBlocked = false; }
-    const m = modal();
+    const m = pageRoot();
     const p = mine || {};
     draftAvatar = p.avatar || '';
-    m.innerHTML = `<div class="auth-modal glass tool-modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profTitle">
-      <button class="modal-close" data-x aria-label="Close">×</button>
-      <span class="panel-kicker">MY PROFILE</span><h2 id="profTitle">Your profile</h2>
-      <div class="prof-top">
-        <div class="prof-avatar" id="profAvatar"></div>
-        <div class="prof-photo-actions">
-          <button class="btn btn-glass small" type="button" id="profPick">Add a photo</button>
-          <button class="btn btn-ghost small" type="button" id="profClear">Remove</button>
-          <input type="file" id="profFile" accept="image/*" class="hidden" />
-          <label class="guardrail-check prof-show"><input type="checkbox" id="profShow" ${p.show_avatar ? 'checked' : ''} /><span><strong>Show my photo on the leaderboard</strong><small>Only signed-in members can see it. Off by default. Photos are reviewed by our team and can be reported.</small></span></label>
-        </div>
-      </div>
-      <form class="auth-form" id="profForm">
-        <label class="field-label" for="profName">Display name</label><input id="profName" type="text" maxlength="40" value="${esc(p.display_name || state.user.organization_name || '')}" required />
-        <label class="field-label" for="profWho">I am a (optional)</label>
-        <select id="profWho" class="field-select"><option value="">Prefer not to say</option>${WHO.map((w) => `<option${p.who === w ? ' selected' : ''}>${esc(w)}</option>`).join('')}</select>
-        <label class="guardrail-check"><input type="checkbox" id="profFind" ${p.discoverable === false ? '' : 'checked'} /><span><strong>Let other members find me by name</strong><small>You appear in the member search. Turn off to stay out of it.</small></span></label>
-        <label class="field-label" for="profOrg">Organisation (optional)</label><input id="profOrg" type="text" maxlength="80" placeholder="Company, institute or team" value="${esc(p.org || '')}" />
-        <label class="field-label" for="profBio">About you (optional, <span id="profCount">0</span>/200)</label><textarea id="profBio" rows="3" maxlength="200">${esc(p.bio || '')}</textarea>
-        <p class="micro-note">Do not share phone numbers, home addresses or other private details. Your name, organisation and bio can be seen by other signed-in members.</p>
-        <button class="btn btn-primary full" type="submit">Save profile</button>
-        <p class="form-error" id="profError"></p>
-        <button class="btn btn-ghost full acct-link" type="button" id="profDeleteAccount">Delete my account…</button>
-        ${mine ? '<button class="btn btn-ghost full" type="button" id="profDelete">Delete my profile</button><p class="micro-note">Deleting removes your photo, bio and display name from MaterialHunt. Your account and past leaderboard entries stay.</p>' : ''}
-      </form></div>`;
-    m.classList.remove('hidden');
-    q('[data-x]', m).addEventListener('click', closeModal);
+    m.innerHTML = `<div class="section-head"><div><span class="panel-kicker">YOUR ACCOUNT</span><h2>My profile</h2><p>What other members see about you, and your account controls.</p></div>
+        <div class="prof-head-actions"><button class="btn btn-glass" type="button" id="profMembers">Find members</button><button class="btn btn-glass" type="button" id="profEndorse">Endorse MaterialHunt</button></div></div>
+      <div class="profile-grid">
+        <article class="glass tool-form profile-card">
+          <div class="prof-top">
+            <div class="prof-avatar" id="profAvatar"></div>
+            <div class="prof-photo-actions">
+              <div class="prof-btns"><button class="btn btn-glass small" type="button" id="profPick">Add a photo</button><button class="btn btn-ghost small" type="button" id="profClear">Remove</button></div>
+              <input type="file" id="profFile" accept="image/*" class="hidden" />
+              <p class="micro-note">${photosBlocked ? 'Photos are switched off for your account.' : 'Optional. Photos are reviewed by our team and can be reported.'}</p>
+            </div>
+          </div>
+          <form class="auth-form" id="profForm">
+            <label class="field-label" for="profName">Display name</label><input id="profName" type="text" maxlength="40" value="${esc(p.display_name || state.user.organization_name || '')}" required />
+            <label class="field-label" for="profWho">I am a (optional)</label>
+            <select id="profWho" class="field-select"><option value="">Prefer not to say</option>${WHO.map((w) => `<option${p.who === w ? ' selected' : ''}>${esc(w)}</option>`).join('')}</select>
+            <label class="field-label" for="profOrg">Organisation (optional)</label><input id="profOrg" type="text" maxlength="80" placeholder="Company, institute or team" value="${esc(p.org || '')}" />
+            <label class="field-label" for="profBio">About you (optional, <span id="profCount">0</span>/200)</label><textarea id="profBio" rows="3" maxlength="200">${esc(p.bio || '')}</textarea>
+            <label class="guardrail-check"><input type="checkbox" id="profShow" ${p.show_avatar ? 'checked' : ''} /><span><strong>Show my photo on the leaderboard</strong><small>Only signed-in members can see it. Off by default.</small></span></label>
+            <label class="guardrail-check"><input type="checkbox" id="profFind" ${p.discoverable === false ? '' : 'checked'} /><span><strong>Let other members find me by name</strong><small>You appear in Find members. Turn off to stay out of it.</small></span></label>
+            <p class="micro-note">Do not share phone numbers, home addresses or other private details. Your name, organisation and bio can be seen by other signed-in members.</p>
+            <button class="btn btn-primary full" type="submit">Save profile</button>
+            <p class="form-error" id="profError"></p>
+          </form>
+        </article>
+        <article class="glass tool-form profile-card danger-zone">
+          <span class="panel-kicker">DANGER ZONE</span><h3>Delete my data</h3>
+          <p class="micro-note">You can do this at any time, even if your photo was removed or your account was reported.</p>
+          <div class="dz-row"><div><b>Delete my profile</b><small>Removes your photo, bio and display name. Your account and leaderboard entries stay.</small></div>
+            <button class="btn btn-ghost" type="button" id="profDelete" ${mine ? '' : 'disabled'}>${mine ? 'Delete profile' : 'No profile yet'}</button></div>
+          <div class="dz-row"><div><b>Delete my account</b><small>Permanently deletes your account and everything linked to it. You confirm with your password. This cannot be undone.</small></div>
+            <button class="btn acct-danger" type="button" id="profDeleteAccount">Delete account…</button></div>
+        </article>
+      </div>`;
     const paint = () => { q('#profAvatar', m).innerHTML = draftAvatar ? `<img src="${esc(draftAvatar)}" alt="Your photo" />` : `<span>${esc(initials(q('#profName', m).value))}</span>`; };
     paint();
     q('#profName', m).addEventListener('input', () => { if (!draftAvatar) paint(); });
@@ -153,21 +175,22 @@
       };
       reader.readAsDataURL(file);
     });
-    q('#profDeleteAccount', m)?.addEventListener('click', () => window.MH_ACCOUNT?.open());
-    q('#profDelete', m)?.addEventListener('click', async (e) => {
+    q('#profMembers', m).addEventListener('click', () => setView('members'));
+    q('#profEndorse', m).addEventListener('click', () => window.MH_ENDORSE?.open());
+    q('#profDeleteAccount', m).addEventListener('click', () => window.MH_ACCOUNT?.open());
+    q('#profDelete', m).addEventListener('click', async (e) => {
       const btn = e.currentTarget;
-      if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Tap again to delete for good'; setTimeout(() => { if (btn.isConnected) { delete btn.dataset.sure; btn.textContent = 'Delete my profile'; } }, 4000); return; }
+      if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'Tap again to delete for good'; setTimeout(() => { if (btn.isConnected) { delete btn.dataset.sure; btn.textContent = 'Delete profile'; } }, 4000); return; }
       btn.disabled = true;
       try {
         await window.MH_FIREBASE.initFirebase();
         await db().collection('profiles').doc(uid()).delete();
         mine = null;
         cache.set(uid(), null);
-        draftAvatar = '';
         applyChip();
         notify('Your profile was deleted.', 'success', 3500);
-        closeModal();
-      } catch { q('#profError', m).textContent = 'Your profile could not be deleted right now. Please contact support.'; btn.disabled = false; }
+        openMine();
+      } catch { q('#profError', m).textContent = 'Your profile could not be deleted right now. Please try again.'; btn.disabled = false; }
     });
     q('#profForm', m).addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -190,10 +213,10 @@
         cache.set(uid(), mine);
         applyChip();
         notify('Profile saved.', 'success', 2500);
-        closeModal();
       } catch (error) { err.textContent = error.message || 'Could not save your profile.'; }
       submit.disabled = false;
     });
+    setView('profile');
   }
 
   async function viewPerson(id) {
@@ -234,38 +257,55 @@
     });
   }
 
-  /* ---------------- member search ---------------- */
-  function mountSearch() {
-    const layout = q('#view-challenge .challenge-layout');
-    if (!layout) return false;
-    if (q('#memberSearch')) return true;
-    const card = document.createElement('article');
-    card.id = 'memberSearch';
-    card.className = 'glass cm-panel';
-    card.innerHTML = `<div class="panel-title-row"><div><span class="panel-kicker">MEMBERS</span><h3>Find a member</h3></div></div>
-      <input id="msInput" type="search" maxlength="40" placeholder="Search by display name" autocomplete="off" />
-      <div id="msResults" class="ms-results"><p class="micro-note">Type at least 2 letters. Only members who chose to be listed appear. You need to be signed in.</p></div>`;
-    layout.insertAdjacentElement('afterend', card);
-    let timer = null;
-    q('#msInput', card).addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(() => searchMembers(e.target.value), 320); });
-    q('#msResults', card).addEventListener('click', (e) => { const b = e.target.closest('[data-person]'); if (b) viewPerson(b.dataset.person); });
-    return true;
+  /* ---------------- Members page (search any member) ---------------- */
+  const HINT = 'Type at least 2 letters of a name. Only members who chose to be listed appear.';
+  function mountMembers() {
+    const main = q('main');
+    if (!main) return false;
+    if (!q('#view-members')) {
+      const sec = document.createElement('section');
+      sec.className = 'view';
+      sec.id = 'view-members';
+      sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">COMMUNITY</span><h2>Find members</h2><p>Search engineers, students and makers on MaterialHunt by name.</p></div></div>
+        <article class="glass tool-form members-card">
+          <input id="msInput" type="search" maxlength="40" placeholder="Search by display name" autocomplete="off" />
+          <div id="msResults" class="ms-results"><p class="micro-note">${HINT}</p></div>
+        </article>`;
+      main.appendChild(sec);
+      let timer = null;
+      q('#msInput', sec).addEventListener('input', (e) => { clearTimeout(timer); timer = setTimeout(() => searchMembers(e.target.value), 320); });
+      q('#msResults', sec).addEventListener('click', (e) => { const b = e.target.closest('[data-person]'); if (b) viewPerson(b.dataset.person); });
+    }
+    const actions = q('.top-actions');
+    if (actions && !q('#membersBtn')) {
+      const btn = document.createElement('button');
+      btn.id = 'membersBtn';
+      btn.className = `icon-btn${state.user ? '' : ' hidden'}`;
+      btn.title = 'Find members';
+      btn.setAttribute('aria-label', 'Find members');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.4 3.4 0 0 1 0 6.8M18 14.2A6.5 6.5 0 0 1 21.5 20"/></svg>';
+      btn.addEventListener('click', () => { setView('members'); setTimeout(() => q('#msInput')?.focus(), 200); });
+      actions.insertBefore(btn, q('#helpBtn') || actions.firstChild);
+    }
+    return Boolean(q('#view-members') && q('#membersBtn'));
   }
+
+  const row = (p) => `<button class="ms-row" data-person="${esc(p.id)}"><span class="lb-av">${p.show_avatar && p.avatar ? `<img src="${esc(p.avatar)}" alt="" />` : esc(initials(p.display_name))}</span><span><b>${esc(p.display_name)}</b><small>${esc([p.who, p.org].filter(Boolean).join(' · '))}</small></span></button>`;
 
   async function searchMembers(raw) {
     const box = q('#msResults');
     if (!box) return;
     const term = String(raw || '').trim().toLowerCase();
-    if (term.length < 2) { box.innerHTML = '<p class="micro-note">Type at least 2 letters. Only members who chose to be listed appear. You need to be signed in.</p>'; return; }
     if (!state.user) { box.innerHTML = '<p class="micro-note">Sign in to search members.</p>'; return; }
+    if (term.length === 1) { box.innerHTML = `<p class="micro-note">${HINT}</p>`; return; }
     box.innerHTML = '<p class="micro-note">Searching…</p>';
     try {
       await window.MH_FIREBASE.initFirebase();
-      const snap = await db().collection('profiles').orderBy('name_lower').startAt(term).endAt(`${term}\uf8ff`).limit(25).get();
-      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.discoverable !== false);
-      box.innerHTML = rows.length
-        ? rows.map((p) => `<button class="ms-row" data-person="${esc(p.id)}"><span class="lb-av">${p.show_avatar && p.avatar ? `<img src="${esc(p.avatar)}" alt="" />` : esc(initials(p.display_name))}</span><span><b>${esc(p.display_name)}</b><small>${esc([p.who, p.org].filter(Boolean).join(' · '))}</small></span></button>`).join('')
-        : '<p class="micro-note">No members found with that name.</p>';
+      let snap; let label = '';
+      if (term.length >= 2) snap = await db().collection('profiles').orderBy('name_lower').startAt(term).endAt(`${term}\uf8ff`).limit(40).get();
+      else { snap = await db().collection('profiles').orderBy('updated_at', 'desc').limit(30).get(); label = '<p class="micro-note">Recently active members:</p>'; }
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.discoverable !== false && p.display_name);
+      box.innerHTML = rows.length ? label + rows.map(row).join('') : '<p class="micro-note">No members found. People appear here once they have set up their profile.</p>';
     } catch { box.innerHTML = '<p class="micro-note">Search is not available right now.</p>'; }
   }
 
@@ -276,8 +316,16 @@
     if (e.target.closest('#userAvatar, #userName')) openMine();
   });
   window.addEventListener('mh:session', (e) => { cache.clear(); if (e.detail.user) loadMine(); else { mine = null; } });
-  window.addEventListener('mh:view', () => { mountSearch(); });
-  { let n = 0; const t = setInterval(() => { if (mountSearch() || n++ > 40) clearInterval(t); }, 250); }
+  window.addEventListener('mh:session', (e) => { q('#membersBtn')?.classList.toggle('hidden', !e.detail.user); });
+  { let n = 0; const t = setInterval(() => { if (mountMembers() || n++ > 40) clearInterval(t); }, 250); }
+  const prevSetView = window.setView;
+  if (typeof prevSetView === 'function') {
+    window.setView = function profileSetView(view, scroll) {
+      if (view === 'members') { mountMembers(); }
+      prevSetView(view, scroll);
+      if (view === 'members' && !q('#msResults .ms-row')) searchMembers('');
+    };
+  }
 
   window.MH_PROFILE = { open: openMine, view: viewPerson, decorate, displayName: () => mine?.display_name || '' };
 })();

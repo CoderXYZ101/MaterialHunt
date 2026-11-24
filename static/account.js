@@ -36,7 +36,7 @@
       <button class="modal-close" data-x aria-label="Close">×</button>
       <span class="panel-kicker">DANGER ZONE</span><h2 id="acctTitle">Delete my account</h2>
       <p>This permanently deletes your account and everything linked to it:</p>
-      <ul class="acct-list"><li>your profile, photo and bio</li><li>saved designs</li><li>your leaderboard and community entries and challenges</li><li>your requests, feedback, notifications and prizes</li><li>your promo and plan records</li></ul>
+      <ul class="acct-list"><li>your profile, photo and bio</li><li>saved designs</li><li>your leaderboard and community entries and challenges</li><li>your requests, feedback, notifications and prizes</li><li>your endorsement, promo and plan records</li></ul>
       <p><b>This cannot be undone.</b> Any Pro time left on the account is lost. You can sign up again later with a fresh, empty account.</p>
       <form class="auth-form" id="acctForm">
         ${usesPassword
@@ -101,6 +101,7 @@
       const first = db.batch();
       first.delete(db.collection('profiles').doc(uid));
       first.delete(db.collection('redemptions').doc(uid));
+      first.delete(db.collection('endorsements').doc(uid));
       first.delete(db.collection('users').doc(uid));
       await first.commit();
       say('Removing the rest…');

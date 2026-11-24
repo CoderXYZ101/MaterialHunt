@@ -567,3 +567,47 @@ button.pay-option:hover { border-color: var(--cyan); background: var(--cyan-soft
 .ms-row { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: inherit; cursor: pointer; }
 .ms-row:hover { border-color: #22d3ee; }
 .ms-row small { display: block; opacity: .65; }
+
+/* ---------- tick boxes: one clean size everywhere (the form styles used to stretch them) ---------- */
+input[type=checkbox], input[type=radio],
+.tool-form input[type=checkbox], .tool-modal input[type=checkbox], .auth-form input[type=checkbox], .tool-form input[type=radio], .tool-modal input[type=radio] {
+  width: 18px !important; height: 18px !important; min-width: 18px; padding: 0 !important; margin: 1px 0 0 !important;
+  flex: none; border-radius: 5px; box-shadow: none !important; accent-color: #22d3ee; cursor: pointer; vertical-align: middle;
+}
+.guardrail-check { gap: 12px; padding: 11px 13px; margin-top: 12px; border-color: var(--border); background: var(--panel-soft); }
+.guardrail-check.guardrail-warn { border-color: rgba(244,63,94,.28); background: var(--rose-soft); }
+.guardrail-check.guardrail-warn input { accent-color: #f43f5e; }
+.guardrail-check strong { font-size: 13px; line-height: 1.35; }
+.guardrail-check small { font-size: 11.5px; line-height: 1.5; }
+.guardrail-check > span { min-width: 0; }
+
+.engine-strip.in-drawer { padding: 4px 14px 8px; justify-content: flex-start; }
+.engine-strip.in-drawer .engine-pill { font-size: 10.5px; }
+
+/* ---------- profile page, members page ---------- */
+.profile-grid { display: grid; grid-template-columns: minmax(300px, 1.2fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .profile-grid { grid-template-columns: 1fr; } }
+.profile-card { padding: 22px; }
+.prof-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.profile-card .prof-top { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+.profile-card .prof-btns { display: flex; gap: 8px; }
+.danger-zone { border: 1px solid rgba(244,63,94,.3); }
+.danger-zone h3 { margin: 4px 0 6px; }
+.dz-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.dz-row small { display: block; opacity: .7; margin-top: 3px; max-width: 320px; font-size: 12px; line-height: 1.45; }
+.dz-row .btn { flex: none; }
+.members-card { padding: 20px; max-width: 760px; }
+
+/* ---------- endorsements ---------- */
+.endorse-strip { margin-top: 36px; }
+.endorse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.endorse-card { margin: 0; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.endorse-card blockquote { margin: 0; font-size: 14px; line-height: 1.55; }
+.endorse-card figcaption b { display: block; }
+.endorse-card figcaption span { display: block; font-size: 12px; opacity: .7; margin-top: 2px; }
+.endorse-stars { color: #f5c451; letter-spacing: 2px; font-size: 14px; }
+.endorse-tick { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: #10b981; color: #fff; font-size: 10px; margin-left: 4px; vertical-align: middle; }
+.endorse-modal { max-width: 520px; width: 94vw; }
+.tool-modal textarea, .auth-form textarea, .profile-card textarea {
+  width: 100%; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 10px 12px; font-size: 13px; font-family: inherit; resize: vertical;
+}

@@ -27,6 +27,7 @@
   let offer = { active: false, code: '', text: '' };
   let cchal = [];
   let reports = [];
+  let endorsements = [];
   let photos = [];
   let showChecked = false;
   let repView = {};
@@ -155,13 +156,14 @@
         <button class="${tab === 'reviews' ? 'active' : ''}" data-tab="reviews">Reviews${newReviews ? ` <i>${newReviews}</i>` : ''}</button>
         <button class="${tab === 'winners' ? 'active' : ''}" data-tab="winners">Winners</button>
         <button class="${tab === 'photos' ? 'active' : ''}" data-tab="photos">Photos${photosToCheck().length ? ` (${photosToCheck().length})` : ''}</button>
+        <button class="${tab === 'endorse' ? 'active' : ''}" data-tab="endorse">Endorsements${endorsements.some((x) => x.status === 'pending') ? ' •' : ''}</button>
         <button class="${tab === 'reports' ? 'active' : ''}" data-tab="reports">Reports${reports.some((r) => r.status === 'new') ? ' •' : ''}</button>
         <button class="${tab === 'community' ? 'active' : ''}" data-tab="community">Community${cchal.some((c) => c.status === 'pending') ? ' •' : ''}</button>
         <button class="${tab === 'promos' ? 'active' : ''}" data-tab="promos">Promo codes</button>
         <button class="${tab === 'users' ? 'active' : ''}" data-tab="users">Customers</button>
       </div>
-      ${['reviews', 'winners', 'promos', 'community', 'reports', 'photos'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
-      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : tab === 'reports' ? reportsHtml() : tab === 'photos' ? photosHtml() : usersHtml()}`;
+      ${['reviews', 'winners', 'promos', 'community', 'reports', 'photos', 'endorse'].includes(tab) ? '' : `<input id="adminSearch" class="admin-search" type="search" placeholder="${tab === 'users' ? 'Search by email, name or user ID' : 'Search requests by email, name or organisation'}" value="${esc(search)}" />`}
+      ${tab === 'requests' ? requestsHtml() : tab === 'reviews' ? reviewsHtml() : tab === 'winners' ? winnersHtml() : tab === 'promos' ? promosHtml() : tab === 'community' ? communityHtml() : tab === 'reports' ? reportsHtml() : tab === 'photos' ? photosHtml() : tab === 'endorse' ? endorseHtml() : usersHtml()}`;
   }
 
   function requestsHtml() {
@@ -260,6 +262,8 @@
       try {
         const rp = await db().collection('reports').limit(100).get();
         reports = rp.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
+        const en = await db().collection('endorsements').limit(200).get();
+        endorsements = en.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.created_at?.toMillis ? b.created_at.toMillis() : 0) - (a.created_at?.toMillis ? a.created_at.toMillis() : 0));
         const pf = await db().collection('profiles').limit(400).get();
         photos = pf.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => p.avatar).sort((a, b) => (b.updated_at?.toMillis ? b.updated_at.toMillis() : 0) - (a.updated_at?.toMillis ? a.updated_at.toMillis() : 0));
         const pz = await db().collection('prizes').limit(300).get();
@@ -405,6 +409,35 @@
 
   /* ------------------------- reports (photos and misuse) ------------------------- */
   const REASONS = { photo: 'Inappropriate photo', name_or_bio: 'Inappropriate name or bio', harassment: 'Harassment or abuse', other: 'Something else' };
+
+  /* ------------------------- endorsements ------------------------- */
+  function endorseHtml() {
+    if (!endorsements.length) return '<div class="empty-state"><strong>No endorsements yet</strong><span>Share the link  ?endorse=1  with engineers you would like feedback from.</span></div>';
+    const order = { pending: 0, approved: 1, rejected: 2 };
+    const list = endorsements.slice().sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3));
+    return `<p class="micro-note">Approve only what you are happy to show publicly. Press "Approve and mark identity checked" only after you have actually confirmed the person is real (for example their LinkedIn profile, a company email address, or you met them). The tick on the home page means exactly that.</p>
+      <div class="admin-list">${list.map((x) => `<div class="admin-card glass ${x.status === 'pending' ? '' : 'done'}"><header><b>${esc(x.name)}</b><span class="admin-org">${esc([x.role, x.org].filter(Boolean).join(' · '))}</span><span class="admin-status">${esc(x.status)}${x.verified ? ' · identity checked' : ''}</span><span class="admin-time">${'★'.repeat(x.rating || 0)}</span></header>
+        <p class="admin-notes">${esc(x.quote)}</p>
+        <div class="admin-actions">
+          ${x.status !== 'approved' ? `<button class="btn btn-primary small" data-en="approve" data-id="${esc(x.id)}">Approve</button>` : ''}
+          ${x.status !== 'approved' || !x.verified ? `<button class="btn btn-glass small" data-en="verify" data-id="${esc(x.id)}">Approve and mark identity checked</button>` : ''}
+          ${x.status === 'approved' ? `<button class="btn btn-ghost small" data-en="hide" data-id="${esc(x.id)}">Hide</button>` : ''}
+          ${x.status === 'pending' ? `<button class="btn btn-ghost small" data-en="reject" data-id="${esc(x.id)}">Reject</button>` : ''}
+          <button class="text-btn" data-copy="${esc(x.user_id)}">Copy ID</button></div></div>`).join('')}</div>`;
+  }
+
+  async function endorseAction(t) {
+    const x = endorsements.find((e) => e.id === t.dataset.id);
+    if (!x) return;
+    const ref = db().collection('endorsements').doc(x.id);
+    const act = t.dataset.en;
+    const patch = act === 'approve' ? { status: 'approved' } : act === 'verify' ? { status: 'approved', verified: true } : act === 'hide' ? { status: 'rejected', verified: false } : { status: 'rejected' };
+    await ref.update(patch);
+    Object.assign(x, patch);
+    window.MH_ENDORSE?.refresh?.();
+    notify(act === 'approve' || act === 'verify' ? 'Shown on the home page.' : 'Hidden.', 'success', 2500);
+    render();
+  }
 
   /* ------------------------- daily photo check by hand ------------------------- */
   const photoKey = (p) => `${p.uid}:${String(p.avatar).length}:${String(p.avatar).slice(-24)}`;
@@ -560,7 +593,7 @@
   }
 
   async function onClick(e) {
-    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],[data-ph],#phAll,#prizeRun');
+    const t = e.target.closest('[data-tab],[data-filter],[data-revfilter],[data-revmark],[data-approve],[data-kybok],[data-mark],[data-kyb],[data-copy],[data-award],[data-promo-toggle],[data-promo-del],#promoCreate,#limSave,#offerOn,#offerOff,[data-cc],[data-rp],[data-ph],[data-en],#phAll,#prizeRun');
     if (!t) return;
     try {
       if (t.dataset.tab) { tab = t.dataset.tab; search = ''; render(); }
@@ -579,6 +612,7 @@
       else if (t.dataset.cc) { await communityAction(t); }
       else if (t.dataset.rp) { await reportAction(t); }
       else if (t.dataset.ph) { await photoAction(t); }
+      else if (t.dataset.en) { await endorseAction(t); }
       else if (t.id === 'phAll') { showChecked = !showChecked; render(); }
       else if (t.id === 'prizeRun') { await runPrizeJob(t); }
       else if (t.id === 'offerOn') {
