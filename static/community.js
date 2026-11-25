@@ -239,12 +239,17 @@
       const u = window.MH_FIREBASE.auth.currentUser;
       const comp = Object.fromEntries(Object.entries(normalisedComposition()).map(([k, v]) => [k, Number(Number(v).toFixed(2))]));
       const name = (window.MH_PROFILE?.displayName?.() || state.user.organization_name || 'A member').toString().slice(0, 40);
-      await db().collection('community_challenges').add({
+      const base = {
         ...draft, owner: u.uid, owner_name: name, funded: false, status: 'pending',
         ref_formula: String(humanFormula(comp, 4)).slice(0, 60), ref_sf: Number(Number(r.sf).toFixed(2)), created_at: FV().serverTimestamp(),
-      });
+      };
+      const BAD = /(https?:|www\.|\.com|\.net|\.org|\.in\/|@|[0-9]{8,}|\b(fuck|shit|bitch|bastard|asshole|cunt|slut|porn|nude|sex|madarchod|bhenchod|chutiya|gandu|randi|harami)\w*\b)/i;
+      let auto = Number(base.prize_days) === 0 && ![base.title, base.brief, base.owner_name].some((t) => BAD.test(String(t || '')));
+      const ends = window.firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 14 * 86400000));
+      try { await db().collection('community_challenges').add(auto ? { ...base, status: 'live', ends_at: ends } : base); }
+      catch (e1) { if (!auto) throw e1; auto = false; await db().collection('community_challenges').add(base); }
       state.communityDraft = null;
-      notify('Sent for review. It goes live once an admin approves it.', 'success', 6000);
+      notify(auto ? 'Your challenge is live for 14 days.' : 'Sent for review. Challenges with a prize, a link or a long number go live once an admin approves them.', 'success', 6000);
       window.MH_GROWTH?.track?.('community_challenge_created');
       setView('challenge');
       loadMine();

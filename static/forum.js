@@ -1,7 +1,7 @@
 /* ==========================================================================
    MATERIALHUNT — forum
    A place to ask a question, check a result with other people, and answer. Verified members can post.
-   Nothing is public until an admin approves it (questions and answers alike), so the forum stays safe
+   Clean posts go live at once; posts with a link, a long number or a rude word wait for an admin; two reports hide a post.
    for a school-run site. Replies are plain text. Nobody is asked for personal details.
    ========================================================================== */
 'use strict';
@@ -37,6 +37,32 @@
     return `${Math.round(m / 1440)} d ago`;
   };
 
+  /* the same automatic check as the database rules: posts with links, long numbers, @ or rude words wait for a person */
+  const CLEAN_BAD = /(https?:|www\.|\.com|\.net|\.org|\.in\/|@|[0-9]{8,}|\b(fuck|shit|bitch|bastard|asshole|cunt|slut|porn|nude|sex|madarchod|bhenchod|chutiya|gandu|randi|harami)\w*\b)/i;
+  const isClean = (...parts) => parts.every((s) => !CLEAN_BAD.test(String(s || '')));
+  let reported = {};
+  const hidden = (id, owner) => (reported[id] || 0) >= 2 && owner !== window.MH_FIREBASE?.auth?.currentUser?.uid;
+
+  async function loadReports() {
+    reported = {};
+    try {
+      const s = await db().collection('forum_reports').limit(800).get();
+      s.docs.forEach((d) => { const t = d.data().target; if (t) reported[t] = (reported[t] || 0) + 1; });
+    } catch { /* without reports nothing is hidden */ }
+  }
+
+  async function report(id) {
+    if (!state.user) { notify('Sign in to report a post.', 'info', 3000); return; }
+    if (!state.user.email_verified) { notify('Verify your email first, then you can report.', 'warning', 4000); return; }
+    try {
+      const uid = window.MH_FIREBASE.auth.currentUser.uid;
+      await db().collection('forum_reports').doc(`${uid}_${id}`).set({ reporter: uid, target: id, created_at: FV().serverTimestamp() });
+      reported[id] = (reported[id] || 0) + 1;
+      notify('Thank you. Two reports hide a post until our team has looked at it.', 'success', 4500);
+      render();
+    } catch { notify('You have already reported this, or it could not be sent.', 'info', 3500); }
+  }
+
   async function load() {
     const host = q('#forumList');
     try {
@@ -49,6 +75,7 @@
       r.docs.forEach((d) => { const x = { id: d.id, ...d.data() }; (replies[x.thread] = replies[x.thread] || []).push(x); });
       Object.values(replies).forEach((a) => a.sort((x, y) => ms(x.created_at) - ms(y.created_at)));
       loaded = true;
+      await loadReports();
     } catch {
       loaded = false;
       if (host) host.innerHTML = '<div class="empty-state"><strong>The forum could not load</strong><span>It needs an internet connection. Check your connection and press Refresh.</span></div>';
@@ -71,7 +98,7 @@
   function render() {
     const host = q('#forumList');
     if (!host) return;
-    const list = threads.filter((t) => filter === 'all' || t.category === filter);
+    const list = threads.filter((t) => (filter === 'all' || t.category === filter) && !hidden(t.id, t.owner));
     const chips = ['all', ...Object.keys(CATS)].map((k) => `<button class="forum-chip${filter === k ? ' on' : ''}" data-f="${k}">${k === 'all' ? 'All' : esc(CATS[k][0])}</button>`).join('');
     const pend = mine.length ? `<div class="forum-pending">${mine.map((m) => `<div><b>${esc(m.title)}</b> <span>${m.status === 'rejected' ? 'was not approved' : 'is waiting for our team to read it'}</span></div>`).join('')}</div>` : '';
     host.innerHTML = `<div class="forum-chips">${chips}</div>${pend}` + (list.length ? list.map((t) => {
@@ -84,10 +111,11 @@
           <small>${esc(t.owner_name || 'Member')} · ${esc(ago(t.created_at))} · ${rs.length} ${rs.length === 1 ? 'answer' : 'answers'}</small>
         </button>
         ${open ? `<div class="forum-body"><p>${esc(t.body).replace(/\n/g, '<br>')}</p>
-          ${rs.map((r) => `<div class="forum-reply"><p>${esc(r.body).replace(/\n/g, '<br>')}</p><small>${esc(r.owner_name || 'Member')} · ${esc(ago(r.created_at))}</small></div>`).join('')}
+          <button class="text-btn" type="button" data-report="${esc(t.id)}">Report this question</button>
+          ${rs.filter((r) => !hidden(r.id, r.owner)).map((r) => `<div class="forum-reply"><p>${esc(r.body).replace(/\n/g, '<br>')}</p><small>${esc(r.owner_name || 'Member')} · ${esc(ago(r.created_at))} · <button class="text-btn" type="button" data-report="${esc(r.id)}">Report</button></small></div>`).join('')}
           <form class="forum-answer" data-t="${esc(t.id)}"><label class="field-label" for="fa-${esc(t.id)}">Your answer or check</label>
             <textarea id="fa-${esc(t.id)}" rows="3" maxlength="500" minlength="5" placeholder="Share what you know, or what you got when you tried it. Please do not share personal details." required></textarea>
-            <button class="btn btn-glass small" type="submit">Send for review</button></form></div>` : ''}
+            <button class="btn btn-glass small" type="submit">Post answer</button></form></div>` : ''}
       </article>`;
     }).join('') : `<div class="empty-state"><strong>${loaded ? 'No questions here yet' : 'Loading…'}</strong><span>${loaded ? 'Be the first to ask. A real question about a real part is the best kind.' : ''}</span></div>`);
   }
@@ -119,14 +147,14 @@
     m.innerHTML = `<div class="auth-modal glass tool-modal endorse-modal" role="dialog" aria-modal="true" aria-labelledby="fqTitle">
       <button class="modal-close" data-x aria-label="Close">×</button>
       <span class="panel-kicker">FORUM</span><h2 id="fqTitle">Ask a question</h2>
-      <p class="micro-note">Our team reads every post before it appears, which can take a little while. Do not put your phone number, address or other personal details in a post.</p>
+      <p class="micro-note">Posts are checked automatically and appear at once. A post with a link, a long number or a rude word waits for a person to read it. Do not put your phone number, address or other personal details in a post.</p>
       <form class="auth-form" id="fqForm">
         <label class="field-label" for="fqCat">What is it about?</label>
         <select id="fqCat" class="field-select">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${esc(v[0])}: ${esc(v[1])}</option>`).join('')}</select>
         <label class="field-label" for="fqTitleIn">Short title</label><input id="fqTitleIn" type="text" minlength="5" maxlength="100" placeholder="e.g. Aluminium or steel for a motor bracket at 120 °C?" required />
         <label class="field-label" for="fqBody">Details (<span id="fqCount">0</span>/600)</label>
         <textarea id="fqBody" rows="5" minlength="10" maxlength="600" placeholder="What are you making, what is it used for, and what have you tried? If you are checking a result, say what you measured and how." required></textarea>
-        <button class="btn btn-primary full" type="submit">Send for review</button>
+        <button class="btn btn-primary full" type="submit">Post question</button>
         <p class="form-error" id="fqError"></p>
       </form></div>`;
     m.classList.remove('hidden');
@@ -140,15 +168,17 @@
       const btn = q('button[type=submit]', m);
       btn.disabled = true;
       try {
-        await db().collection('forum_threads').add({
+        const doc = {
           owner: window.MH_FIREBASE.auth.currentUser.uid, owner_name: who(), category: q('#fqCat', m).value,
           title: q('#fqTitleIn', m).value.trim().slice(0, 100), body: q('#fqBody', m).value.trim().slice(0, 600), status: 'pending', created_at: FV().serverTimestamp(),
-        });
+        };
+        let live = isClean(doc.title, doc.body);
+        try { await db().collection('forum_threads').add({ ...doc, status: live ? 'approved' : 'pending' }); }
+        catch (e1) { if (!live) throw e1; live = false; await db().collection('forum_threads').add(doc); }
         stamp();
         m.classList.add('hidden');
-        notify('Thank you! Your question will appear once our team has read it.', 'success', 6000);
-        await loadMine();
-        render();
+        notify(live ? 'Posted. Your question is live.' : 'Thank you! This post has a link, a long number or a word that needs a person to look at it, so it will appear once our team has read it.', live ? 'success' : 'info', 6500);
+        if (live) await load(); else { await loadMine(); render(); }
       } catch { err.textContent = 'Could not send it. Please try again in a moment.'; btn.disabled = false; }
     });
   }
@@ -161,12 +191,14 @@
     const btn = q('button', form);
     btn.disabled = true;
     try {
-      await db().collection('forum_replies').add({
-        thread: form.dataset.t, owner: window.MH_FIREBASE.auth.currentUser.uid, owner_name: who(), body, status: 'pending', created_at: FV().serverTimestamp(),
-      });
+      const doc = { thread: form.dataset.t, owner: window.MH_FIREBASE.auth.currentUser.uid, owner_name: who(), body, status: 'pending', created_at: FV().serverTimestamp() };
+      let live = isClean(body);
+      try { await db().collection('forum_replies').add({ ...doc, status: live ? 'approved' : 'pending' }); }
+      catch (e1) { if (!live) throw e1; live = false; await db().collection('forum_replies').add(doc); }
       stamp();
       ta.value = '';
-      notify('Thank you! Your answer will appear once our team has read it.', 'success', 6000);
+      notify(live ? 'Posted. Your answer is live.' : 'Thank you! This answer needs a person to look at it, so it will appear once our team has read it.', live ? 'success' : 'info', 6000);
+      if (live) await load();
     } catch { notify('Could not send it. Please try again.', 'error', 4000); }
     btn.disabled = false;
   }
@@ -178,13 +210,15 @@
     sec.className = 'view';
     sec.id = 'view-forum';
     sec.innerHTML = `<div class="section-head"><div><span class="panel-kicker">FORUM · ASK AND CHECK</span><h2>Ask people, check your result</h2>
-        <p>Not sure which material to use, or want someone to check your result? Ask here. Other members answer, and our team reads every post before it appears. Reading is open to everyone; posting needs a free, verified account.</p></div>
+        <p>Not sure which material to use, or want someone to check your result? Ask here. Other members answer, and posts are checked automatically; anyone can report one. Reading is open to everyone; posting needs a free, verified account.</p></div>
         <div class="forum-actions"><button class="btn btn-primary" id="forumAsk" type="button">Ask a question</button> <button class="btn btn-ghost" id="forumRefresh" type="button">Refresh</button></div></div>
       <div id="forumList"><div class="empty-state"><strong>Loading…</strong></div></div>`;
     main.appendChild(sec);
     sec.addEventListener('click', (e) => {
       const f = e.target.closest('[data-f]');
       if (f) { filter = f.dataset.f; render(); return; }
+      const rp = e.target.closest('[data-report]');
+      if (rp) { report(rp.dataset.report); return; }
       const o = e.target.closest('[data-open]');
       if (o) { openId = openId === o.dataset.open ? '' : o.dataset.open; render(); return; }
       if (e.target.closest('#forumAsk')) ask();

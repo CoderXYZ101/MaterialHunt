@@ -419,9 +419,12 @@ service cloud.firestore {
         || isAdmin();
       allow create: if signedIn()
         && request.auth.token.email_verified == true
-        && request.resource.data.keys().hasOnly(['owner', 'owner_name', 'title', 'brief', 'temp', 'burst', 'load', 'max_density', 'max_cost', 'min_sf', 'banned', 'metals_only', 'environment', 'prize_days', 'funded', 'status', 'ref_formula', 'ref_sf', 'created_at'])
+        && request.resource.data.keys().hasOnly(['owner', 'owner_name', 'title', 'brief', 'temp', 'burst', 'load', 'max_density', 'max_cost', 'min_sf', 'banned', 'metals_only', 'environment', 'prize_days', 'funded', 'status', 'ends_at', 'ref_formula', 'ref_sf', 'created_at'])
         && request.resource.data.owner == request.auth.uid
-        && request.resource.data.status == 'pending'
+        // no prize and clean text: live for two weeks at once. A prize (someone pays for it) or text with a link, long number or rude word waits for an admin.
+        && (request.resource.data.prize_days == 0 && cleanText(request.resource.data.title) && cleanText(request.resource.data.brief) && cleanText(request.resource.data.owner_name)
+            ? (request.resource.data.status == 'live' && request.resource.data.ends_at > request.time + duration.value(13, 'd') && request.resource.data.ends_at < request.time + duration.value(15, 'd'))
+            : (request.resource.data.status == 'pending' && !('ends_at' in request.resource.data)))
         && request.resource.data.funded == false
         && request.resource.data.owner_name is string && request.resource.data.owner_name.size() <= 40
         && request.resource.data.title is string && request.resource.data.title.size() >= 3 && request.resource.data.title.size() <= 50
@@ -486,14 +489,19 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == memberId);
     }
 
-    // Forum: questions and answers from verified members. Nothing is public until an admin approves it.
+    // Forum: questions and answers from verified members. A post with no links, long numbers (phone numbers),
+    // addresses (@) or rude words is published at once; any other post waits for an admin.
+    // Members can report a post; the site hides a post that two different members reported until an admin looks.
+    function cleanText(s) {
+      return !s.matches('(?is).*(https?:|www\\.|\\.com|\\.net|\\.org|\\.in/|@|[0-9]{8,}|\\b(fuck|shit|bitch|bastard|asshole|cunt|slut|porn|nude|sex|madarchod|bhenchod|chutiya|gandu|randi|harami)\\w*\\b).*');
+    }
     match /forum_threads/{tid} {
       allow read: if resource.data.status == 'approved' || (signedIn() && resource.data.owner == request.auth.uid) || isAdmin();
       allow create: if signedIn()
         && request.auth.token.email_verified == true
         && request.resource.data.keys().hasOnly(['owner', 'owner_name', 'category', 'title', 'body', 'status', 'created_at'])
         && request.resource.data.owner == request.auth.uid
-        && request.resource.data.status == 'pending'
+        && request.resource.data.status == (cleanText(request.resource.data.title) && cleanText(request.resource.data.body) ? 'approved' : 'pending')
         && request.resource.data.category in ['choose', 'check', 'failure', 'general']
         && request.resource.data.owner_name is string && request.resource.data.owner_name.size() > 0 && request.resource.data.owner_name.size() <= 40
         && request.resource.data.title is string && request.resource.data.title.size() >= 5 && request.resource.data.title.size() <= 100
@@ -510,7 +518,7 @@ service cloud.firestore {
         && request.auth.token.email_verified == true
         && request.resource.data.keys().hasOnly(['thread', 'owner', 'owner_name', 'body', 'status', 'created_at'])
         && request.resource.data.owner == request.auth.uid
-        && request.resource.data.status == 'pending'
+        && request.resource.data.status == (cleanText(request.resource.data.body) ? 'approved' : 'pending')
         && request.resource.data.thread is string && request.resource.data.thread.size() > 0 && request.resource.data.thread.size() <= 40
         && request.resource.data.owner_name is string && request.resource.data.owner_name.size() > 0 && request.resource.data.owner_name.size() <= 40
         && request.resource.data.body is string && request.resource.data.body.size() >= 5 && request.resource.data.body.size() <= 500
@@ -523,6 +531,18 @@ service cloud.firestore {
     // Team names work like user names: first come, first served, and a name cannot be renamed. Only a member on a
     // team plan can claim one. "plan" is a copy of the owner's plan that the owner keeps up to date (the rules check
     // it against the owner's real plan); members' own screens use it, and the rules below use the real plan.
+    match /forum_reports/{rid} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['reporter', 'target', 'created_at'])
+        && request.resource.data.reporter == request.auth.uid
+        && request.resource.data.target is string && request.resource.data.target.size() > 0 && request.resource.data.target.size() <= 40
+        && rid == request.auth.uid + '_' + request.resource.data.target
+        && request.resource.data.created_at == request.time;
+      allow delete: if isAdmin();
+    }
+
     match /team_names/{name} {
       allow read: if true;
       allow create: if signedIn()
