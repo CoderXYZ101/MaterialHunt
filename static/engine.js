@@ -169,7 +169,7 @@
     if (mode === 'rules') return 'Using fixed formulas and the library table. No machine learning is involved.';
     if (mode === 'custom' && custom) return `Using your model: ${custom.label} (${custom.n} samples, error about ${Math.round(custom.cv.mape)}%). It is used for ${PROPS[custom.prop].label}; other properties use Default ML.`;
     const m = ML && ML.model;
-    return `Order used: library grade datasheet value, then the steel model (312 measured steels), then the library model${m ? ` (${m.n} grades + ${m.extra || 0} steels)` : ''}. Outside their ranges the models refuse and the rough formula is used instead.`;
+    return `Order used: library grade datasheet value, then the steel model (312 measured steels), then the library model${m ? ` (${m.n} grades + ${m.extra || 0} measured steel and aluminium samples)` : ''}. Outside their ranges the models refuse and the rough formula is used instead.`;
   }
 
   function barHtml(view) {

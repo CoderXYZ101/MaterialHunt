@@ -35,6 +35,16 @@
   "mape": 32.7,
   "r2": null
  },
+ "aluminium_effect": {
+  "n": 7,
+  "before_mape": 26.4,
+  "after_mape": 8.2,
+  "extra_rows": 456,
+  "source": "Bhat, Barnard, Birbilis: Aluminium alloy dataset for supervised learning. Mendeley Data, 2023, doi:10.17632/b6br4yk6r3.1",
+  "licence": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)",
+  "selection": "Rows with a peak-aged (T6-like) or strain-hardened (H-temper) condition, aluminium-based, exact duplicates removed. Composition in weight percent. Used on the training side only.",
+  "note": "Each library aluminium grade is predicted by a model that never saw it. The public data holds many alloys of the same 2xxx, 5xxx, 6xxx and 7xxx series, so this shows the benefit of having aluminium data, not how well the model handles a new type of aluminium alloy."
+ },
  "library_loo": {
   "guess_the_average": {
    "mae": 291.8,
@@ -42,24 +52,29 @@
    "r2": -0.043
   },
   "trained_on_47_grades": {
-   "mae": 215.9,
-   "mape": 46.4,
-   "r2": 0.278
+   "mae": 215.2,
+   "mape": 45.4,
+   "r2": 0.266
+  },
+  "trained_on_47_grades_plus_extra": {
+   "mae": 184.8,
+   "mape": 39.1,
+   "r2": 0.46
   },
   "trained_on_47_grades_plus_312_steels": {
-   "mae": 190.9,
-   "mape": 42.3,
-   "r2": 0.505
+   "mae": 189.0,
+   "mape": 42.2,
+   "r2": 0.523
   },
   "previous_plain_scale_with_312_steels": {
-   "mae": 181.0,
-   "mape": 47.0,
-   "r2": 0.587
+   "mae": 176.6,
+   "mape": 48.3,
+   "r2": 0.621
   },
   "tried_400_trees_no_gain": {
-   "mae": 187.3,
-   "mape": 41.7,
-   "r2": 0.513
+   "mae": 192.2,
+   "mape": 41.1,
+   "r2": 0.436
   },
   "method": "leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold"
  },
@@ -67,80 +82,80 @@
   {
    "name": "Mild steel E250",
    "reference": 250.0,
-   "predicted": 435,
-   "error_pct": 73.8
+   "predicted": 411,
+   "error_pct": 64.5
   },
   {
    "name": "Medium-carbon steel EN8",
    "reference": 450.0,
-   "predicted": 369,
-   "error_pct": 18.0
+   "predicted": 356,
+   "error_pct": 20.8
   },
   {
    "name": "Nickel-chrome-moly steel EN24 (4340)",
    "reference": 1000.0,
-   "predicted": 594,
-   "error_pct": 40.6
+   "predicted": 790,
+   "error_pct": 21.0
   },
   {
    "name": "Stainless steel 304",
    "reference": 215.0,
-   "predicted": 197,
-   "error_pct": 8.2
+   "predicted": 222,
+   "error_pct": 3.1
   },
   {
    "name": "Stainless steel 316L",
    "reference": 200.0,
-   "predicted": 249,
-   "error_pct": 24.3
+   "predicted": 257,
+   "error_pct": 28.3
   },
   {
    "name": "Stainless steel 17-4PH",
    "reference": 1000.0,
-   "predicted": 429,
-   "error_pct": 57.1
+   "predicted": 387,
+   "error_pct": 61.3
   },
   {
    "name": "Duplex stainless 2205",
    "reference": 450.0,
-   "predicted": 290,
-   "error_pct": 35.5
+   "predicted": 307,
+   "error_pct": 31.7
   },
   {
    "name": "Aluminium 6061-T6",
    "reference": 275.0,
-   "predicted": 229,
-   "error_pct": 16.7
+   "predicted": 278,
+   "error_pct": 1.3
   },
   {
    "name": "Aluminium 7075-T6",
    "reference": 503.0,
-   "predicted": 236,
-   "error_pct": 53.1
+   "predicted": 495,
+   "error_pct": 1.7
   },
   {
    "name": "Titanium Ti-6Al-4V (Grade 5)",
    "reference": 880.0,
-   "predicted": 509,
-   "error_pct": 42.1
+   "predicted": 287,
+   "error_pct": 67.4
   },
   {
    "name": "Brass 70/30 (C26000)",
    "reference": 150.0,
-   "predicted": 297,
-   "error_pct": 97.9
+   "predicted": 363,
+   "error_pct": 141.7
   },
   {
    "name": "Inconel 718",
    "reference": 1035.0,
-   "predicted": 476,
-   "error_pct": 54.0
+   "predicted": 439,
+   "error_pct": 57.6
   },
   {
    "name": "Maraging steel 18Ni300",
    "reference": 1900.0,
-   "predicted": 988,
-   "error_pct": 48.0
+   "predicted": 952,
+   "error_pct": 49.9
   }
  ],
  "validation_steels": [
@@ -208,111 +223,111 @@
  "validation_note": "Every prediction here was made by a model that did not see that material (out-of-fold for the steels, leave-one-out for the library grades).",
  "family_holdout": {
   "overall": {
-   "mae": 243.0,
-   "mape": 64.7,
-   "r2": 0.248
+   "mae": 239.2,
+   "mape": 61.3,
+   "r2": 0.236
   },
   "families": [
    {
     "family": "Carbon steel",
     "n": 3,
-    "mape": 22.9,
-    "loo_mape": 31.0,
+    "mape": 28.1,
+    "loo_mape": 29.1,
     "guess_mape": 44.6
    },
    {
     "family": "Low-alloy steel",
     "n": 3,
-    "mape": 47.3,
-    "loo_mape": 36.2,
+    "mape": 38.4,
+    "loo_mape": 24.1,
     "guess_mape": 43.2
    },
    {
     "family": "Tool steel",
     "n": 2,
-    "mape": 51.5,
-    "loo_mape": 33.8,
+    "mape": 49.8,
+    "loo_mape": 39.4,
     "guess_mape": 69.2
    },
    {
     "family": "Specialty steel",
     "n": 1,
-    "mape": 49.1,
-    "loo_mape": 48.0,
+    "mape": 57.9,
+    "loo_mape": 49.9,
     "guess_mape": 76.9
    },
    {
     "family": "Cast iron",
     "n": 1,
-    "mape": 138.9,
-    "loo_mape": 154.1,
+    "mape": 149.5,
+    "loo_mape": 149.3,
     "guess_mape": 137.7
    },
    {
     "family": "Stainless steel",
     "n": 12,
-    "mape": 125.4,
-    "loo_mape": 38.3,
+    "mape": 108.2,
+    "loo_mape": 31.3,
     "guess_mape": 112.3
    },
    {
     "family": "Aluminium",
     "n": 7,
-    "mape": 28.0,
-    "loo_mape": 29.1,
+    "mape": 7.3,
+    "loo_mape": 8.2,
     "guess_mape": 95.7
    },
    {
     "family": "Titanium",
     "n": 2,
-    "mape": 41.8,
-    "loo_mape": 61.9,
+    "mape": 35.1,
+    "loo_mape": 55.9,
     "guess_mape": 58.1
    },
    {
     "family": "Copper alloy",
     "n": 5,
-    "mape": 84.1,
-    "loo_mape": 66.6,
+    "mape": 107.8,
+    "loo_mape": 71.0,
     "guess_mape": 142.8
    },
    {
     "family": "Nickel superalloy",
     "n": 5,
-    "mape": 23.2,
-    "loo_mape": 19.6,
+    "mape": 19.6,
+    "loo_mape": 21.0,
     "guess_mape": 41.2
    },
    {
     "family": "Nickel alloy",
     "n": 3,
-    "mape": 47.6,
-    "loo_mape": 59.7,
+    "mape": 43.7,
+    "loo_mape": 64.5,
     "guess_mape": 118.1
    },
    {
     "family": "Cobalt alloy",
     "n": 1,
-    "mape": 17.1,
-    "loo_mape": 13.9,
+    "mape": 43.1,
+    "loo_mape": 33.2,
     "guess_mape": 28.3
    },
    {
     "family": "Refractory metal",
     "n": 2,
-    "mape": 33.9,
-    "loo_mape": 37.9,
+    "mape": 48.1,
+    "loo_mape": 45.2,
     "guess_mape": 28.0
    },
    {
     "family": "Magnesium",
     "n": 1,
-    "mape": 55.4,
-    "loo_mape": 72.3,
+    "mape": 107.9,
+    "loo_mape": 116.0,
     "guess_mape": 137.7
    }
   ],
-  "method": "leave-one-family-out: every grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels"
+  "method": "leave-one-family-out: every library grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels and the public aluminium rows. For the aluminium row the public aluminium data stays in training, so that row measures the benefit of that data, not a family the model has never seen"
  },
  "steel_cluster_holdout": {
   "overall": {

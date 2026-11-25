@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.16.23" />
+  <link rel="stylesheet" href="growth.css?v=4.16.25" />
   <link rel="stylesheet" href="responsive.css?v=1.0.2" />
 </head>
 <body>
@@ -214,11 +214,11 @@
         <section class="stats-row" aria-label="Platform metrics">
           <article class="stat-card glass">
             <span class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3"/></svg></span>
-            <div><span class="stat-label">Training samples <button type="button" class="term-hint" data-hint="How many real alloys the on-device models learned from: the 48 library grades plus 312 measured steels. More (and more varied) data makes a model more trustworthy, and 360 is still small, so the models are a rough guide." data-ask="Why is the library model only a rough guide?">i</button></span><strong id="statCandidates">360</strong><small>48 library grades + 312 measured steels</small></div>
+            <div><span class="stat-label">Training samples <button type="button" class="term-hint" data-hint="How many real alloys the on-device models learned from: the 48 library grades, 312 measured steels and 456 public aluminium measurements. More (and more varied) data makes a model more trustworthy, and 816 is still small, so the models are a rough guide." data-ask="Why is the library model only a rough guide?">i</button></span><strong id="statCandidates">816</strong><small>48 library grades + 312 steels + 456 aluminium</small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. It holds for steels that resemble ones the model learned from. When a whole group of similar steels is hidden, the score drops to about zero, no better than guessing, so the model is best for steels close to its training data. On a separate check against our library only one grade was in range, and it was about 33% off. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model on similar steels; about 0 on new steel types. Library model: yield error about 42%. <a href="evaluation.html">See the evaluation</a></small></div>
+            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. It holds for steels that resemble ones the model learned from. When a whole group of similar steels is hidden, the score drops to about zero, no better than guessing, so the model is best for steels close to its training data. On a separate check against our library only one grade was in range, and it was about 33% off. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model on similar steels; about 0 on new steel types. Library model: yield error about 40%. <a href="evaluation.html">See the evaluation</a></small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
@@ -239,7 +239,7 @@
         </div>
 
         <section class="glass ml-home" aria-label="Machine learning on this site">
-          <p><b>Where is the machine learning?</b> Two small models run on your device and work offline. For yield strength the Simulator uses, in order: <b>1)</b> a library grade's datasheet value if your mix matches one, <b>2)</b> the <b>steel model</b> (312 measured steels) for alloyed steels inside its range, <b>3)</b> the <b>library model</b> (48 grades + the 312 steels) inside its range, <b>4)</b> otherwise no ML estimate, only a rough formula marked low reliability. It always says which one it used. Alloy Finder and Failure Doctor are rule-based, with an optional ML cross-check.</p>
+          <p><b>Where is the machine learning?</b> Two small models run on your device and work offline. For yield strength the Simulator uses, in order: <b>1)</b> a library grade's datasheet value if your mix matches one, <b>2)</b> the <b>steel model</b> (312 measured steels) for alloyed steels inside its range, <b>3)</b> the <b>library model</b> (48 grades + the 312 steels + 456 aluminium measurements) inside its range, <b>4)</b> otherwise no ML estimate, only a rough formula marked low reliability. It always says which one it used. Alloy Finder and Failure Doctor are rule-based, with an optional ML cross-check.</p>
           <button class="btn btn-primary" type="button" data-view="ml">Open the ML Lab</button>
         </section>
 
@@ -1093,27 +1093,27 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.16.23"></script>
-  <script src="app.js?v=4.16.23"></script>
-  <script src="config.js?v=4.16.23"></script>
-  <script src="tools.js?v=4.16.23"></script>
-  <script src="growth.js?v=4.16.23"></script>
-  <script src="ai.js?v=4.16.23"></script>
-  <script src="admin.js?v=4.16.23"></script>
-  <script src="designs.js?v=4.16.23"></script>
-  <script src="profile.js?v=4.16.23"></script>
-  <script src="promo.js?v=4.16.23"></script>
-  <script src="community.js?v=4.16.23"></script>
-  <script src="forum.js?v=4.16.23"></script>
-  <script src="workspace.js?v=4.16.23"></script>
-  <script src="showcase.js?v=4.16.23"></script>
-  <script src="brain.js?v=4.16.23"></script>
-  <script src="vision.js?v=4.16.23"></script>
-  <script src="ml.js?v=4.16.23"></script>
-  <script src="engine.js?v=4.16.23"></script>
-  <script src="hints.js?v=4.16.23"></script>
-  <script src="account.js?v=4.16.23"></script>
-  <script src="endorse.js?v=4.16.23"></script>
-  <script src="notifications.js?v=4.16.23"></script>
+  <script src="firebase-bridge.js?v=4.16.25"></script>
+  <script src="app.js?v=4.16.25"></script>
+  <script src="config.js?v=4.16.25"></script>
+  <script src="tools.js?v=4.16.25"></script>
+  <script src="growth.js?v=4.16.25"></script>
+  <script src="ai.js?v=4.16.25"></script>
+  <script src="admin.js?v=4.16.25"></script>
+  <script src="designs.js?v=4.16.25"></script>
+  <script src="profile.js?v=4.16.25"></script>
+  <script src="promo.js?v=4.16.25"></script>
+  <script src="community.js?v=4.16.25"></script>
+  <script src="forum.js?v=4.16.25"></script>
+  <script src="workspace.js?v=4.16.25"></script>
+  <script src="showcase.js?v=4.16.25"></script>
+  <script src="brain.js?v=4.16.25"></script>
+  <script src="vision.js?v=4.16.25"></script>
+  <script src="ml.js?v=4.16.25"></script>
+  <script src="engine.js?v=4.16.25"></script>
+  <script src="hints.js?v=4.16.25"></script>
+  <script src="account.js?v=4.16.25"></script>
+  <script src="endorse.js?v=4.16.25"></script>
+  <script src="notifications.js?v=4.16.25"></script>
 </body>
 </html>

@@ -114,7 +114,8 @@ def feat(comp, s, cols):
     tot = sum(comp.values()) or 1
     return [comp.get(e, 0) / tot * 100 for e in cols] + [1.0 if s == k else 0.0 for k in ('BCC', 'FCC', 'HCP')]
 
-cols = sorted({e for r in lib for e in r['comp']} | set(els))
+extra_alloys = json.loads((SRC / 'data' / 'alloy-extra.json').read_text(encoding='utf-8'))   # public aluminium measurements (CC BY 4.0), training side only
+cols = sorted({e for r in lib for e in r['comp']} | set(els) | {e for row in extra_alloys['rows'] for e in row['c']})
 Xl = np.array([feat(r['comp'], r['s'], cols) for r in lib])
 yl = np.array([r['y'] for r in lib])
 Xe = []
@@ -123,14 +124,20 @@ for x in Xs:
     t = sum(w.values())
     Xe.append(feat({e: v / t * 100 for e, v in w.items()}, 'BCC', cols))
 Xe = np.array(Xe)
+Xal = np.array([feat(row['c'], 'FCC', cols) for row in extra_alloys['rows']])
+yal = np.array([row['y'] for row in extra_alloys['rows']])
+XeAll = np.vstack([Xe, Xal])        # extra training rows for the library model: 312 steels + aluminium rows
+ysAll = np.concatenate([ys, yal])
 
 def loo(extra, log=False, trees=80):
     pred = []
     for i in range(len(lib)):
         tr = [k for k in range(len(lib)) if k != i]
         Xt, yt = Xl[tr], yl[tr]
-        if extra:
+        if extra == 'steels':
             Xt, yt = np.vstack([Xt, Xe]), np.concatenate([yt, ys])
+        elif extra:
+            Xt, yt = np.vstack([Xt, XeAll]), np.concatenate([yt, ysAll])
         m = RandomForestRegressor(n_estimators=trees, max_features=0.4, random_state=i).fit(Xt, np.log(yt) if log else yt)
         v = m.predict(Xl[i:i + 1])[0]
         pred.append(float(np.exp(v)) if log else float(v))
@@ -139,13 +146,21 @@ def loo(extra, log=False, trees=80):
 base = [np.delete(yl, i).mean() for i in range(len(yl))]
 # the shipped model is trained on log(value) (percent error fell in testing); the plain-scale numbers are kept for comparison
 p47 = loo(False, log=True)
-p359 = loo(True, log=True)
-p359_plain = loo(True)
+p359 = loo(True, log=True)              # shipped: 48 grades + 312 steels + aluminium rows
+p312 = loo('steels', log=True)          # the version before the aluminium data was added
+p359_plain = loo('steels')
 p400 = loo(True, log=True, trees=400)
+alu_idx = [i for i, r in enumerate(lib) if r['fam'] == 'Aluminium']
+def mape_at(pred, idx):
+    return round(float(np.mean([abs(pred[i] - yl[i]) / yl[i] * 100 for i in idx])), 1)
+out['aluminium_effect'] = dict(n=len(alu_idx), before_mape=mape_at(p312, alu_idx), after_mape=mape_at(p359, alu_idx), extra_rows=len(extra_alloys['rows']),
+    source=extra_alloys['meta']['source'], licence=extra_alloys['meta']['licence'], selection=extra_alloys['meta']['selection'],
+    note='Each library aluminium grade is predicted by a model that never saw it. The public data holds many alloys of the same 2xxx, 5xxx, 6xxx and 7xxx series, so this shows the benefit of having aluminium data, not how well the model handles a new type of aluminium alloy.')
 out['library_loo'] = dict(
     guess_the_average=metrics(yl, base),
     trained_on_47_grades=metrics(yl, p47),
-    trained_on_47_grades_plus_312_steels=metrics(yl, p359),
+    trained_on_47_grades_plus_extra=metrics(yl, p359),
+    trained_on_47_grades_plus_312_steels=metrics(yl, p312),
     previous_plain_scale_with_312_steels=metrics(yl, p359_plain),
     tried_400_trees_no_gain=metrics(yl, p400),
     method='leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold')
@@ -175,7 +190,7 @@ for i, r in enumerate(lib):
 pfam = np.zeros(len(lib))
 for fam, idx in fams.items():
     tr = [k for k in range(len(lib)) if k not in idx]
-    m = RandomForestRegressor(n_estimators=80, max_features=0.4, random_state=7).fit(np.vstack([Xl[tr], Xe]), np.log(np.concatenate([yl[tr], ys])))
+    m = RandomForestRegressor(n_estimators=80, max_features=0.4, random_state=7).fit(np.vstack([Xl[tr], XeAll]), np.log(np.concatenate([yl[tr], ysAll])))
     pfam[idx] = np.exp(m.predict(Xl[idx]))
 fam_rows = []
 for fam, idx in fams.items():
@@ -183,7 +198,7 @@ for fam, idx in fams.items():
                          loo_mape=round(float(np.mean(np.abs(yl[idx] - p359[idx]) / yl[idx]) * 100), 1),
                          guess_mape=round(float(np.mean(np.abs(yl[idx] - np.delete(yl, idx).mean()) / yl[idx]) * 100), 1)))
 out['family_holdout'] = dict(overall=metrics(yl, pfam), families=fam_rows,
-                             method='leave-one-family-out: every grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels')
+                             method='leave-one-family-out: every library grade of a family (for example all stainless steels) is hidden, the model trains on the other families plus the 312 steels and the public aluminium rows. For the aluminium row the public aluminium data stays in training, so that row measures the benefit of that data, not a family the model has never seen')
 
 # 5b. steels: hold out whole groups of similar compositions (k-means on composition), the strictest split available inside this dataset
 km = KMeans(n_clusters=6, n_init=10, random_state=0).fit(Xs)
@@ -270,14 +285,15 @@ block('indnote', f"<strong>Only {ind['n_tested']} of the {out['library_grades']}
 L = out['library_loo']
 block('lib', ''.join(f"<tr><td>{n}</td><td>{f(m['mae'])}</td><td>{f(m['mape'])}%</td><td>{f(m['r2'], 2)}</td></tr>" for n, m in [
     ('Always guess the average', L['guess_the_average']), ('Trained on the other 47 grades only', L['trained_on_47_grades']),
-    ('Trained on the other 47 grades plus the 312 measured steels', L['trained_on_47_grades_plus_312_steels']),
+    ('Trained on the other 47 grades plus the 312 measured steels (the version before the aluminium data)', L['trained_on_47_grades_plus_312_steels']),
+    ('Trained on the other 47 grades plus the 312 steels plus %d public aluminium measurements (the shipped model)' % len(extra_alloys['rows']), L['trained_on_47_grades_plus_extra']),
     ('Same, trained on the plain scale (the previous version: lower R², higher percent error)', L['previous_plain_scale_with_312_steels']),
     ('Same, with 400 trees instead of 80 (a bigger model: tried, no gain)', L['tried_400_trees_no_gain'])]))
 block('vlib', rows(out['validation_library'], [lambda g: g['name'], lambda g: f(g['reference']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
 block('vsteel', rows(out['validation_steels'], [lambda g: g['composition'], lambda g: f(g['measured']), lambda g: f(g['predicted']), lambda g: f"{g['error_pct']:.0f}%"]))
 
 fh, cc = out['family_holdout'], out['calc_checks']
-block('famsum', f"Overall, with whole families hidden, the library model's average error is <strong>{f(fh['overall']['mape'])}%</strong> and R² is <strong>{f(fh['overall']['r2'], 2)}</strong> (compare {f(L['trained_on_47_grades_plus_312_steels']['mape'])}% and {f(L['trained_on_47_grades_plus_312_steels']['r2'], 2)} when only single grades are hidden).")
+block('famsum', f"Overall, with whole families hidden, the library model's average error is <strong>{f(fh['overall']['mape'])}%</strong> and R² is <strong>{f(fh['overall']['r2'], 2)}</strong> (compare {f(L['trained_on_47_grades_plus_extra']['mape'])}% and {f(L['trained_on_47_grades_plus_extra']['r2'], 2)} when only single grades are hidden).")
 block('fam', rows(fh['families'], [lambda g: g['family'], lambda g: str(g['n']), lambda g: f"{g['mape']:.0f}%", lambda g: f"{g['loo_mape']:.0f}%", lambda g: f"{g['guess_mape']:.0f}%"]))
 cc2 = out['steel_cluster_holdout']
 block('clus', rows(cc2['groups'], [lambda g: f"Group {g['group']}", lambda g: str(g['n']), lambda g: f"{g['mae']:.0f} MPa", lambda g: f"{g['mape']:.0f}%"]))

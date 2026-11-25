@@ -327,7 +327,7 @@
     if (e) {
       if (label) label.textContent = 'ML yield estimate';
       strong.textContent = `≈ ${Math.round(e.value)} MPa`;
-      strong.title = 'Random forest trained on ' + current.n + ' library grades' + (current.extra ? ' plus ' + current.extra + ' measured steels' : '') + '. Average error on grades it had not seen (' + (current.evalMethod || 'cross-validation') + '): about ' + Math.round(current.cv.mape) + '%. Spread between trees ±' + Math.round(e.spread) + ' MPa (not a calibrated confidence). Open ML Lab for details.';
+      strong.title = 'Random forest trained on ' + current.n + ' library grades' + (current.extra ? ' plus ' + current.extra + ' measured steel and aluminium samples' : '') + '. Average error on grades it had not seen (' + (current.evalMethod || 'cross-validation') + '): about ' + Math.round(current.cv.mape) + '%. Spread between trees ±' + Math.round(e.spread) + ' MPa (not a calibrated confidence). Open ML Lab for details.';
       if (pill) { pill.textContent = 'ML estimate'; pill.className = 'pill pill-amber'; }
     } else if (label) label.textContent = 'Yield estimate';
   }
@@ -345,15 +345,32 @@
     });
   }
 
+  /* public aluminium measurements (CC BY 4.0, see data/alloy-extra.json), used on the training side only */
+  let alloyExtra = null;
+  async function loadExtra() {
+    if (alloyExtra) return alloyExtra;
+    const res = await fetch('data/alloy-extra.json');
+    if (!res.ok) throw new Error('extra data file missing');
+    alloyExtra = await res.json();
+    return alloyExtra;
+  }
+  function aluminiumRows() {
+    if (!alloyExtra) return [];
+    return alloyExtra.rows.map((r, i) => ({ name: `measured aluminium ${i + 1}`, comp: r.c, structure: 'FCC', target: r.y, extra: true }));
+  }
+  /* everything the library yield model may learn from besides the 48 grades */
+  const libraryExtras = () => steelRows().concat(aluminiumRows());
+
   async function autoTrain() {
     // the steel model is pre-trained, so it is ready as soon as its file loads
     try { await loadSteel(); } catch { /* offline without the file: the library model still works on its own */ }
+    try { await loadExtra(); } catch { /* without the aluminium file the model still works */ }
     renderDefault(); rerun();
     const saved = load();
-    if (saved && saved.kind === 'library-y' && saved.trees && saved.domain && Boolean(saved.extra) === Boolean(steel)) { current = saved; renderDefault(); rerun(); return; }
+    if (saved && saved.kind === 'library-y' && saved.trees && saved.domain && saved.extra === libraryExtras().length) { current = saved; renderDefault(); rerun(); return; }
     const rows = libraryRows('y');
     if (rows.length < 10) return;
-    const m = await trainAndEvaluate({ rows, extraRows: steelRows(), folds: 8, targetLabel: TARGETS.y.label, unit: 'MPa', params: { trees: 80 } });
+    const m = await trainAndEvaluate({ rows, extraRows: libraryExtras(), folds: 8, targetLabel: TARGETS.y.label, unit: 'MPa', params: { trees: 80 } });
     m.kind = 'library-y';
     current = m;
     save(m);
@@ -367,7 +384,7 @@
     if (!sec) return;
     const statR2 = q('#statAccuracy'); const statN = q('#statCandidates');
     if (steel && statR2) statR2.textContent = steel.d.cv.r2.toFixed(2);
-    if (statN) statN.textContent = String((steel ? steel.d.n_train : 0) + libraryRows('y').length);
+    if (statN) statN.textContent = String((steel ? steel.d.n_train : 0) + libraryRows('y').length + aluminiumRows().length);
     const card = q('#mlSteel', sec);
     if (card && steel) {
       const cv = steel.d.cv;
@@ -414,7 +431,7 @@
             <input type="file" id="mlFile" accept=".csv,.txt" /></div>
           <div class="two-col"><div><label class="field-label" for="mlTrees">Trees</label><input id="mlTrees" type="number" min="10" max="300" value="80" /></div>
             <div><label class="field-label" for="mlDepth">Maximum depth</label><input id="mlDepth" type="number" min="2" max="14" value="8" /></div></div>
-          <label class="check-row" id="mlSteelRow"><input type="checkbox" id="mlUseSteel" checked /> Also learn from the 312 measured steels <i class="term-hint" data-hint="More training data makes the yield-strength model better. The 312 steels are only used to teach the model; the score is still measured on the library grades alone, so it cannot be flattered.">i</i></label>
+          <label class="check-row" id="mlSteelRow"><input type="checkbox" id="mlUseSteel" checked /> Also learn from the 312 measured steels and the public aluminium data <i class="term-hint" data-hint="More training data makes the yield-strength model better. The 312 steels are only used to teach the model; the score is still measured on the library grades alone, so it cannot be flattered.">i</i></label>
           <label class="check-row"><input type="checkbox" id="mlSlow" checked /> Slow motion (watch it learn) <i class="term-hint" data-hint="Slows training down so you can watch each step: hide some alloys, train the trees on the rest, then predict the hidden ones.">i</i></label>
           <button class="btn btn-primary full" id="mlTrain">Train and test the model</button>
           <div class="ml-progress hidden" id="mlProg"><i></i></div>
@@ -491,7 +508,7 @@
       } else {
         const key = q('#mlTarget').value;
         rows = libraryRows(key); targetLabel = TARGETS[key].label; unit = TARGETS[key].unit; kind = `library-${key}`;
-        if (key === 'y' && q('#mlUseSteel').checked && steel) { extraRows = steelRows(); folds = 8; }
+        if (key === 'y' && q('#mlUseSteel').checked && steel) { extraRows = libraryExtras(); folds = 8; }
       }
     } catch (e) { err.textContent = e.message; return; }
     training = true;
@@ -602,7 +619,7 @@
       <div id="mlChart" class="chart-box"></div>
       <h4>Biggest misses</h4>
       <ul class="dr-evidence">${worst.map((p) => `<li>${esc(p.name)}: actual ${f0(p.actual)}, predicted ${f0(p.pred)} ${esc(m.unit)}</li>`).join('')}</ul>
-      <p class="micro-note">Tested by ${esc(m.evalMethod)} on ${m.n} samples${m.extra ? `, with ${m.extra} extra measured steels added to the training side only` : ''}. To make the other tabs use this model, press "Use as My ML" below.</p>`;
+      <p class="micro-note">Tested by ${esc(m.evalMethod)} on ${m.n} samples${m.extra ? `, with ${m.extra} extra measured samples (steels and aluminium) added to the training side only` : ''}. To make the other tabs use this model, press "Use as My ML" below.</p>`;
     const lo = Math.min(...m.points.map((p) => Math.min(p.actual, p.pred))); const hi = Math.max(...m.points.map((p) => Math.max(p.actual, p.pred)));
     if (typeof renderPlot === 'function') {
       renderPlot(q('#mlChart'), [
@@ -654,5 +671,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
   window.addEventListener('mh:engine', () => rerun());
-  window.MH_ML = { steelRows, featureList, vectorise, steelEstimate, loadSteel, get steel() { return steel; }, refreshReadout, trainForest, predictForest, parseCsv, libraryMatch, libraryRows, trainAndEvaluate, estimate, get model() { return current; }, get lab() { return lab; }, loadLab };
+  window.MH_ML = { libraryExtras, loadExtra, aluminiumRows, steelRows, featureList, vectorise, steelEstimate, loadSteel, get steel() { return steel; }, refreshReadout, trainForest, predictForest, parseCsv, libraryMatch, libraryRows, trainAndEvaluate, estimate, get model() { return current; }, get lab() { return lab; }, loadLab };
 })();
