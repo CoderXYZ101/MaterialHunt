@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.16.13" />
+  <link rel="stylesheet" href="growth.css?v=4.16.14" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true">
@@ -217,7 +217,7 @@
           </article>
           <article class="stat-card glass">
             <span class="stat-icon emerald"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 5-7"/></svg></span>
-            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. It holds for steels that resemble ones the model learned from. When a whole group of similar steels is hidden, the score drops to about zero, no better than guessing, so the model is best for steels close to its training data. On a separate check against our library only one grade was in range, and it was about 33% off. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model on similar steels; about 0 on new steel types. Library model: yield error about 47%. <a href="evaluation.html">See the evaluation</a></small></div>
+            <div><span class="stat-label">Best test R² <button type="button" class="term-hint" data-hint="R² is a score from 0 to 1 for how well a model's predictions follow the real measurements on data it never trained on. 1 is perfect; 0 is no better than always guessing the average. This is the steel model's cross-validated score on 312 measured steels. It holds for steels that resemble ones the model learned from. When a whole group of similar steels is hidden, the score drops to about zero, no better than guessing, so the model is best for steels close to its training data. On a separate check against our library only one grade was in range, and it was about 33% off. Full results are on the Evaluation page." data-ask="Explain the Best test R² score and what it means for material prediction">i</button></span><strong id="statAccuracy">0.85</strong><small id="statAccuracySub">steel model on similar steels; about 0 on new steel types. Library model: yield error about 42%. <a href="evaluation.html">See the evaluation</a></small></div>
           </article>
           <article class="stat-card glass">
             <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span>
@@ -654,7 +654,7 @@
 
         <div class="glass plan-note">
           <h3>What do Max and Ultra change for accuracy?</h3>
-          <p>The two built-in models are the same on every plan, and the Evaluation page shows exactly how well they do. We tested whether a bigger model helps: going from 80 to 400 trees changed the library model's error from 47.0% to 48.4%, so it did not. Accuracy comes from data. So the higher plans give you more room to <b>train on your own data</b> (more rows, more saved models, side-by-side comparison and a test-error report), where your own materials are what the model learns from.</p>
+          <p>The two built-in models are the same on every plan, and the Evaluation page shows exactly how well they do. We tested whether a bigger model helps: going from 80 to 400 trees changed the library model's error from 42.3% to 41.7%, which is no real gain. Accuracy comes from data. So the higher plans give you more room to <b>train on your own data</b> (more rows, more saved models, side-by-side comparison and a test-error report), where your own materials are what the model learns from.</p>
           <p class="micro-note">How to get a plan: press the button, send the form, and we email you a payment link within one business day. When your payment is confirmed we switch your plan on. Plans end by themselves and do not auto-renew. Team plans: after your plan is switched on, open the Team tab, pick a team name, and add people by email. Each person you add gets your team's plan, and the site shows "Team full" when all seats are used.</p>
         </div>
 
@@ -1092,27 +1092,27 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.16.13"></script>
-  <script src="app.js?v=4.16.13"></script>
-  <script src="config.js?v=4.16.13"></script>
-  <script src="tools.js?v=4.16.13"></script>
-  <script src="growth.js?v=4.16.13"></script>
-  <script src="ai.js?v=4.16.13"></script>
-  <script src="admin.js?v=4.16.13"></script>
-  <script src="designs.js?v=4.16.13"></script>
-  <script src="profile.js?v=4.16.13"></script>
-  <script src="promo.js?v=4.16.13"></script>
-  <script src="community.js?v=4.16.13"></script>
-  <script src="forum.js?v=4.16.13"></script>
-  <script src="workspace.js?v=4.16.13"></script>
-  <script src="showcase.js?v=4.16.13"></script>
-  <script src="brain.js?v=4.16.13"></script>
-  <script src="vision.js?v=4.16.13"></script>
-  <script src="ml.js?v=4.16.13"></script>
-  <script src="engine.js?v=4.16.13"></script>
-  <script src="hints.js?v=4.16.13"></script>
-  <script src="account.js?v=4.16.13"></script>
-  <script src="endorse.js?v=4.16.13"></script>
-  <script src="notifications.js?v=4.16.13"></script>
+  <script src="firebase-bridge.js?v=4.16.14"></script>
+  <script src="app.js?v=4.16.14"></script>
+  <script src="config.js?v=4.16.14"></script>
+  <script src="tools.js?v=4.16.14"></script>
+  <script src="growth.js?v=4.16.14"></script>
+  <script src="ai.js?v=4.16.14"></script>
+  <script src="admin.js?v=4.16.14"></script>
+  <script src="designs.js?v=4.16.14"></script>
+  <script src="profile.js?v=4.16.14"></script>
+  <script src="promo.js?v=4.16.14"></script>
+  <script src="community.js?v=4.16.14"></script>
+  <script src="forum.js?v=4.16.14"></script>
+  <script src="workspace.js?v=4.16.14"></script>
+  <script src="showcase.js?v=4.16.14"></script>
+  <script src="brain.js?v=4.16.14"></script>
+  <script src="vision.js?v=4.16.14"></script>
+  <script src="ml.js?v=4.16.14"></script>
+  <script src="engine.js?v=4.16.14"></script>
+  <script src="hints.js?v=4.16.14"></script>
+  <script src="account.js?v=4.16.14"></script>
+  <script src="endorse.js?v=4.16.14"></script>
+  <script src="notifications.js?v=4.16.14"></script>
 </body>
 </html>

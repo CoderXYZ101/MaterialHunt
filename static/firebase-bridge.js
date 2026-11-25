@@ -890,7 +890,7 @@
     let planExpired = false;
     if (tier !== 'free' && planUntil && planUntil < Date.now()) { tier = 'free'; planExpired = true; }
     const trial = tier === 'free' && trialUntil > Date.now();
-    if (trial) tier = 'pro';
+    if (trial) tier = (promoUntil > Date.now() && ['pro', 'max', 'ultra'].includes(p.promo_tier)) ? p.promo_tier : 'pro';
     const email = fbUser.email || p.email || '';
     return {
       id: fbUser.uid,

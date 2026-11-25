@@ -591,10 +591,10 @@
     return `<div class="admin-card glass"><b>Create a promo code</b>
       <p class="admin-notes">Leave the code box empty for a long random code (safest). A short readable code such as CCQBSTS2026 is easier to share but easier to guess, so give it a low number of uses. Codes live only in your database, and each person can redeem one.</p>
       <div class="promo-form"><input id="promoCustom" type="text" maxlength="40" placeholder="Code (leave empty for a random one)" autocapitalize="characters" /><input id="promoLabel" type="text" maxlength="60" placeholder="Label, e.g. Tech summit" />
-        <input id="promoDays" type="number" min="1" max="365" value="2" title="Days of Pro" /><span>days</span>
+        <select id="promoTier" title="Plan this code gives"><option value="pro">Pro</option><option value="max">Max</option><option value="ultra">Ultra</option></select><input id="promoDays" type="number" min="1" max="365" value="2" title="Days of the plan" /><span>days</span>
         <input id="promoMax" type="number" min="1" max="100000" value="500" title="Maximum uses" /><span>uses</span>
         <button class="btn btn-primary small" id="promoCreate">Generate code</button></div></div>
-      <div class="admin-list">${promos.length ? promos.map((c) => `<div class="admin-card glass ${c.active ? '' : 'done'}"><header><code class="promo-code">${esc(c.code)}</code><span class="admin-org">${esc(c.label || '')}</span><span class="admin-time">${Number(c.uses || 0)} / ${Number(c.max_uses || 0)} used · ${Number(c.days || 0)} days</span></header>
+      <div class="admin-list">${promos.length ? promos.map((c) => `<div class="admin-card glass ${c.active ? '' : 'done'}"><header><code class="promo-code">${esc(c.code)}</code><span class="admin-org">${esc(c.label || '')}</span><span class="admin-time">${Number(c.uses || 0)} / ${Number(c.max_uses || 0)} used · ${Number(c.days || 0)} days of ${esc(String(c.tier || 'pro'))}</span></header>
         <div class="admin-actions"><button class="btn btn-glass small" data-copy="${esc(c.code)}">Copy code</button>
           <button class="btn btn-ghost small" data-promo-toggle="${esc(c.code)}">${c.active ? 'Turn off' : 'Turn on'}</button>
           <button class="btn btn-ghost small" data-promo-del="${esc(c.code)}">Delete</button></div></div>`).join('') : '<div class="empty-state"><strong>No codes yet</strong><span>Generate one above.</span></div>'}</div>`;
@@ -604,12 +604,13 @@
     const days = Math.max(1, Math.min(365, Number(q('#promoDays').value) || 2));
     const max = Math.max(1, Math.min(100000, Number(q('#promoMax').value) || 100));
     const label = (q('#promoLabel').value || '').trim().slice(0, 60);
+    const tier = ['pro', 'max', 'ultra'].includes(q('#promoTier')?.value) ? q('#promoTier').value : 'pro';
     const typed = (q('#promoCustom')?.value || '').toUpperCase().replace(/\s+/g, '');
     if (typed && !/^[A-Z0-9-]{6,40}$/.test(typed)) { notify('Use 6 to 40 letters, numbers or dashes.', 'warning', 4000); return; }
     const code = typed || randomCode();
     if (typed && promos.some((p) => p.code === code)) { notify('That code already exists.', 'warning', 3500); return; }
-    await db().collection('promos').doc(code).set({ days, max_uses: max, uses: 0, active: true, label, created_at: FV().serverTimestamp() });
-    promos.unshift({ code, days, max_uses: max, uses: 0, active: true, label });
+    await db().collection('promos').doc(code).set({ days, tier, max_uses: max, uses: 0, active: true, label, created_at: FV().serverTimestamp() });
+    promos.unshift({ code, days, tier, max_uses: max, uses: 0, active: true, label });
     notify(`Code ${code} created. Copy it now.`, 'success', 5000);
     render();
   }

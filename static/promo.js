@@ -19,8 +19,9 @@
     const snap = await db().collection('promos').doc(code).get();
     const days = Number(snap.data()?.days || 0);
     if (!days) throw new Error('This code has no days attached.');
-    await db().collection('users').doc(uid()).update({ promo_code: code, promo_at: FV().serverTimestamp(), promo_days: days });
-    return days;
+    const tier = ['pro', 'max', 'ultra'].includes(snap.data()?.tier) ? snap.data().tier : 'pro';
+    await db().collection('users').doc(uid()).update({ promo_code: code, promo_at: FV().serverTimestamp(), promo_days: days, promo_tier: tier });
+    return { days, tier };
   }
 
   async function refreshSession() {
@@ -47,10 +48,11 @@
       batch.set(db().collection('redemptions').doc(uid()), { code, created_at: FV().serverTimestamp() });
       batch.update(db().collection('promos').doc(code), { uses: FV().increment(1) });
       await batch.commit();
-      const days = await activate(code);
+      const { days, tier } = await activate(code);
       await refreshSession();
-      say(`Done. ${days} days of Pro are now on your account.`, true);
-      notify(`Pro unlocked for ${days} days.`, 'success', 5000);
+      const name = tier.charAt(0).toUpperCase() + tier.slice(1);
+      say(`Done. ${days} days of ${name} are now on your account.`, true);
+      notify(`${name} unlocked for ${days} days.`, 'success', 5000);
       window.MH_GROWTH?.track?.('promo_redeemed');
     } catch (error) {
       // the database refuses invalid, used-up, inactive or already-redeemed codes with the same message on purpose

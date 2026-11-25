@@ -42,24 +42,24 @@
    "r2": -0.043
   },
   "trained_on_47_grades": {
-   "mae": 209.6,
-   "mape": 51.8,
-   "r2": 0.343
+   "mae": 215.9,
+   "mape": 46.4,
+   "r2": 0.278
   },
   "trained_on_47_grades_plus_312_steels": {
-   "mae": 181.0,
-   "mape": 47.0,
-   "r2": 0.587
-  },
-  "tried_log_scale_not_adopted": {
    "mae": 190.9,
    "mape": 42.3,
    "r2": 0.505
   },
+  "previous_plain_scale_with_312_steels": {
+   "mae": 181.0,
+   "mape": 47.0,
+   "r2": 0.587
+  },
   "tried_400_trees_no_gain": {
-   "mae": 182.0,
-   "mape": 48.4,
-   "r2": 0.599
+   "mae": 187.3,
+   "mape": 41.7,
+   "r2": 0.513
   },
   "method": "leave-one-out over the 48 library grades; random forest, 80 trees, seed per fold"
  },
@@ -67,80 +67,80 @@
   {
    "name": "Mild steel E250",
    "reference": 250.0,
-   "predicted": 472,
-   "error_pct": 88.9
+   "predicted": 435,
+   "error_pct": 73.8
   },
   {
    "name": "Medium-carbon steel EN8",
    "reference": 450.0,
-   "predicted": 464,
-   "error_pct": 3.2
+   "predicted": 369,
+   "error_pct": 18.0
   },
   {
    "name": "Nickel-chrome-moly steel EN24 (4340)",
    "reference": 1000.0,
-   "predicted": 670,
-   "error_pct": 33.0
+   "predicted": 594,
+   "error_pct": 40.6
   },
   {
    "name": "Stainless steel 304",
    "reference": 215.0,
-   "predicted": 225,
-   "error_pct": 4.6
+   "predicted": 197,
+   "error_pct": 8.2
   },
   {
    "name": "Stainless steel 316L",
    "reference": 200.0,
-   "predicted": 237,
-   "error_pct": 18.6
+   "predicted": 249,
+   "error_pct": 24.3
   },
   {
    "name": "Stainless steel 17-4PH",
    "reference": 1000.0,
-   "predicted": 565,
-   "error_pct": 43.5
+   "predicted": 429,
+   "error_pct": 57.1
   },
   {
    "name": "Duplex stainless 2205",
    "reference": 450.0,
-   "predicted": 398,
-   "error_pct": 11.6
+   "predicted": 290,
+   "error_pct": 35.5
   },
   {
    "name": "Aluminium 6061-T6",
    "reference": 275.0,
-   "predicted": 233,
-   "error_pct": 15.3
+   "predicted": 229,
+   "error_pct": 16.7
   },
   {
    "name": "Aluminium 7075-T6",
    "reference": 503.0,
-   "predicted": 233,
-   "error_pct": 53.8
+   "predicted": 236,
+   "error_pct": 53.1
   },
   {
    "name": "Titanium Ti-6Al-4V (Grade 5)",
    "reference": 880.0,
-   "predicted": 871,
-   "error_pct": 1.1
+   "predicted": 509,
+   "error_pct": 42.1
   },
   {
    "name": "Brass 70/30 (C26000)",
    "reference": 150.0,
-   "predicted": 313,
-   "error_pct": 108.9
+   "predicted": 297,
+   "error_pct": 97.9
   },
   {
    "name": "Inconel 718",
    "reference": 1035.0,
-   "predicted": 585,
-   "error_pct": 43.4
+   "predicted": 476,
+   "error_pct": 54.0
   },
   {
    "name": "Maraging steel 18Ni300",
    "reference": 1900.0,
-   "predicted": 1069,
-   "error_pct": 43.7
+   "predicted": 988,
+   "error_pct": 48.0
   }
  ],
  "validation_steels": [
@@ -208,107 +208,107 @@
  "validation_note": "Every prediction here was made by a model that did not see that material (out-of-fold for the steels, leave-one-out for the library grades).",
  "family_holdout": {
   "overall": {
-   "mae": 267.9,
-   "mape": 85.1,
-   "r2": 0.308
+   "mae": 243.0,
+   "mape": 64.7,
+   "r2": 0.248
   },
   "families": [
    {
     "family": "Carbon steel",
     "n": 3,
-    "mape": 55.6,
-    "loo_mape": 35.5,
+    "mape": 22.9,
+    "loo_mape": 31.0,
     "guess_mape": 44.6
    },
    {
     "family": "Low-alloy steel",
     "n": 3,
-    "mape": 33.3,
-    "loo_mape": 20.5,
+    "mape": 47.3,
+    "loo_mape": 36.2,
     "guess_mape": 43.2
    },
    {
     "family": "Tool steel",
     "n": 2,
-    "mape": 36.6,
-    "loo_mape": 22.4,
+    "mape": 51.5,
+    "loo_mape": 33.8,
     "guess_mape": 69.2
    },
    {
     "family": "Specialty steel",
     "n": 1,
-    "mape": 38.5,
-    "loo_mape": 43.7,
+    "mape": 49.1,
+    "loo_mape": 48.0,
     "guess_mape": 76.9
    },
    {
     "family": "Cast iron",
     "n": 1,
-    "mape": 224.4,
-    "loo_mape": 205.4,
+    "mape": 138.9,
+    "loo_mape": 154.1,
     "guess_mape": 137.7
    },
    {
     "family": "Stainless steel",
     "n": 12,
-    "mape": 164.3,
-    "loo_mape": 41.7,
+    "mape": 125.4,
+    "loo_mape": 38.3,
     "guess_mape": 112.3
    },
    {
     "family": "Aluminium",
     "n": 7,
-    "mape": 49.6,
-    "loo_mape": 34.5,
+    "mape": 28.0,
+    "loo_mape": 29.1,
     "guess_mape": 95.7
    },
    {
     "family": "Titanium",
     "n": 2,
-    "mape": 70.5,
-    "loo_mape": 69.8,
+    "mape": 41.8,
+    "loo_mape": 61.9,
     "guess_mape": 58.1
    },
    {
     "family": "Copper alloy",
     "n": 5,
-    "mape": 101.1,
-    "loo_mape": 69.5,
+    "mape": 84.1,
+    "loo_mape": 66.6,
     "guess_mape": 142.8
    },
    {
     "family": "Nickel superalloy",
     "n": 5,
-    "mape": 31.4,
-    "loo_mape": 26.0,
+    "mape": 23.2,
+    "loo_mape": 19.6,
     "guess_mape": 41.2
    },
    {
     "family": "Nickel alloy",
     "n": 3,
-    "mape": 50.6,
-    "loo_mape": 62.2,
+    "mape": 47.6,
+    "loo_mape": 59.7,
     "guess_mape": 118.1
    },
    {
     "family": "Cobalt alloy",
     "n": 1,
-    "mape": 42.3,
-    "loo_mape": 49.8,
+    "mape": 17.1,
+    "loo_mape": 13.9,
     "guess_mape": 28.3
    },
    {
     "family": "Refractory metal",
     "n": 2,
-    "mape": 43.3,
-    "loo_mape": 44.6,
+    "mape": 33.9,
+    "loo_mape": 37.9,
     "guess_mape": 28.0
    },
    {
     "family": "Magnesium",
     "n": 1,
-    "mape": 77.9,
-    "loo_mape": 107.4,
+    "mape": 55.4,
+    "loo_mape": 72.3,
     "guess_mape": 137.7
    }
   ],

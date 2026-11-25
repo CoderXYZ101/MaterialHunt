@@ -35,10 +35,11 @@ service cloud.firestore {
       allow update: if signedIn() && request.auth.uid == uid
         && !('promo_code' in resource.data)
         && exists(/databases/$(database)/documents/redemptions/$(uid))
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['promo_code', 'promo_at', 'promo_days'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['promo_code', 'promo_at', 'promo_days', 'promo_tier'])
         && request.resource.data.promo_code == get(/databases/$(database)/documents/redemptions/$(uid)).data.code
         && request.resource.data.promo_at == request.time
-        && request.resource.data.promo_days == get(/databases/$(database)/documents/promos/$(request.resource.data.promo_code)).data.days;
+        && request.resource.data.promo_days == get(/databases/$(database)/documents/promos/$(request.resource.data.promo_code)).data.days
+        && request.resource.data.get('promo_tier', 'pro') == get(/databases/$(database)/documents/promos/$(request.resource.data.promo_code)).data.get('tier', 'pro');
       // claiming a prize: adds the prize's Pro days (within a day of tolerance for clock differences),
       // and only in the same batch that marks that prize as claimed
       allow update: if signedIn() && request.auth.uid == uid
@@ -378,8 +379,9 @@ service cloud.firestore {
       let pro = t != 'free'
         || u.get('pro_until', request.time) > request.time
         || (u.get('promo_at', null) != null && request.time < u.promo_at + duration.value(u.get('promo_days', 0), 'd'));
-      let top = t in ['ultra', 'team_ultra', 'enterprise'];
-      let mid = t in ['max', 'team_max'];
+      let promoOn = u.get('promo_at', null) != null && request.time < u.promo_at + duration.value(u.get('promo_days', 0), 'd');
+      let top = t in ['ultra', 'team_ultra', 'enterprise'] || (promoOn && u.get('promo_tier', 'pro') == 'ultra');
+      let mid = t in ['max', 'team_max'] || (promoOn && u.get('promo_tier', 'pro') == 'max');
       return top ? cfg.get('ultra', 300) : (mid ? cfg.get('max', 150) : (pro ? cfg.get('pro', 60) : cfg.get('free', 15)));
     }
 

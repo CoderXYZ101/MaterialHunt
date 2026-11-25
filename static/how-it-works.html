@@ -79,15 +79,15 @@
     <table>
       <thead><tr><th>Property predicted</th><th>ML average % error</th><th>ML R²</th><th>Guess the average (% error)</th></tr></thead>
       <tbody>
-        <tr><td>Yield strength, in this browser (with the 312 steels as extra training data, 8-fold test)</td><td>54%</td><td>0.48</td><td>83% (old formula: 105%)</td></tr>
-        <tr><td>Yield strength, in this browser (library grades only, 8-fold test)</td><td>53%</td><td>0.26</td><td>83%</td></tr>
-        <tr><td>Yield strength, Python script (with the 312 steels, leave-one-out)</td><td>47%</td><td>0.59</td><td>83%</td></tr>
-        <tr><td>Tensile strength</td><td>35%</td><td>0.39</td><td>56%</td></tr>
-        <tr><td>Maximum service temperature</td><td>35%</td><td>0.37</td><td>110%</td></tr>
-        <tr><td>Price (middle of range)</td><td>71%</td><td>0.53</td><td>401%</td></tr>
+        <tr><td>Yield strength, in this browser (with the 312 steels as extra training data, 8-fold test)</td><td>43%</td><td>0.43</td><td>83% (old formula: 105%)</td></tr>
+        <tr><td>Yield strength, in this browser (library grades only, 8-fold test)</td><td>46%</td><td>0.22</td><td>83%</td></tr>
+        <tr><td>Yield strength, Python script (with the 312 steels, leave-one-out)</td><td>42%</td><td>0.51</td><td>83%</td></tr>
+        <tr><td>Tensile strength</td><td>33%</td><td>0.35</td><td>56%</td></tr>
+        <tr><td>Maximum service temperature</td><td>33%</td><td>0.30</td><td>110%</td></tr>
+        <tr><td>Price (middle of range)</td><td>34%</td><td>0.37</td><td>401%</td></tr>
       </tbody>
     </table>
-    <p><strong>What this means:</strong> the model learns real patterns and clearly beats guessing the average and the old formula, but with only 48 samples it is still a rough guide (a typical yield error of about half). It is not a replacement for a datasheet or a test. The yield rows are from the reproducible Python script on the <a href="evaluation.html">Evaluation page</a> (the other properties were measured in the browser). You can reproduce the browser numbers yourself, or train on your own measurements, in the <a href="/" data-view-link="ml">ML Lab</a>. The "spread" between trees is shown as a rough uncertainty hint, not a calibrated confidence: the true value fell within two spreads of the prediction for about 88% of grades.</p>
+    <p><strong>What this means:</strong> the model learns real patterns and clearly beats guessing the average and the old formula, but with only 48 samples it is still a rough guide (a typical yield error of about 40%). It is not a replacement for a datasheet or a test. The yield rows are from the reproducible Python script on the <a href="evaluation.html">Evaluation page</a> (the other properties were measured in the browser). You can reproduce the browser numbers yourself, or train on your own measurements, in the <a href="/" data-view-link="ml">ML Lab</a>. The "spread" between trees is shown as a rough uncertainty hint, not a calibrated confidence: the true value fell within two spreads of the prediction for about 85% of grades.</p>
     <p><strong>Steel model caveat:</strong> its high score holds for steels like the 312 it learned from. When a whole group of similar steels is hidden, it is no better than guessing (see the Evaluation page).</p>
     <p><strong>For real strength numbers use the matched grade in the Alloy Finder, or a lab test.</strong> When your mix matches a library grade, the simulator now uses that grade's typical value instead of any estimate.</p>
 
