@@ -1,0 +1,107 @@
+/* ==========================================================================
+   MATERIALHUNT — responsive layer (loaded last)
+   Phone: up to 720px. Tablet: 721 to 1100px. Desktop: above that.
+   Rules here only make things fit; they never change what the site says or does.
+   ========================================================================== */
+
+/* every device: nothing may be wider than the screen */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { max-width: 100%; }
+body { overflow-x: clip; }
+img, svg, canvas, video, iframe { max-width: 100%; }
+.stats-row > *, .pricing-grid > *, .forge-grid > *, .ml-grid > *, .profile-grid > *, .lab-grid > *,
+.battle-grid > *, .split > *, .two-col > *, .batch-grid > *, .analytics-trio > *, .mini-stat-grid > *,
+.admin-stat-grid > *, .ef-inner > *, .leader-stats > *, [class$="-grid"] > * { min-width: 0; }
+p, li, h1, h2, h3, h4, td, th, .glass { overflow-wrap: anywhere; }
+pre, code { max-width: 100%; overflow-x: auto; }
+.chart-box, .plotly-graph-div, .js-plotly-plot { max-width: 100%; }
+
+/* tablet */
+@media (min-width: 721px) and (max-width: 1100px) {
+  .app-shell { padding-left: 20px; padding-right: 20px; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .hero h1 { font-size: clamp(40px, 7vw, 58px); }
+  .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .forge-grid, .ml-grid, .profile-grid { grid-template-columns: 1fr; }
+  .modal-backdrop .auth-modal, .modal-backdrop .tool-modal { max-width: min(640px, calc(100vw - 32px)); }
+}
+
+/* phone */
+@media (max-width: 720px) {
+  body { font-size: 15px; }
+  .app-shell { padding-left: 12px; padding-right: 12px; }
+
+  /* top bar: logo and buttons on one row, tabs scroll sideways below with a fade at the edge */
+  .topbar { gap: 8px; padding: 8px 10px; }
+  .main-nav { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 2px;
+    -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+  .main-nav::-webkit-scrollbar { display: none; }
+  .nav-link { flex: 0 0 auto; white-space: nowrap; min-height: 40px; padding: 8px 12px; font-size: 13px; }
+
+  /* the top bar scrolls away with the page so the content gets the whole screen */
+  .topbar { position: relative !important; top: auto !important; }
+  .btn, button { white-space: normal; }
+  .nav-link, .forum-chip, .medium-chip { white-space: nowrap; }
+
+  /* one column everywhere */
+  .stats-row, .pricing-grid, .forge-grid, .ml-grid, .ml-live-grid, .profile-grid, .lab-grid, .battle-grid, .split, .two-col,
+  .batch-grid, .analytics-trio, .leader-stats, .ef-inner, .scan-card, .compliance-facts, .kyb-status-row, .pd-grid,
+  .ai-design-results, .team-grid, .forum-chips + * { grid-template-columns: 1fr !important; }
+  .mini-stat-grid, .admin-stat-grid, .admin-stats { grid-template-columns: 1fr 1fr; }
+  .stat-card small { white-space: normal; }
+  .stat-card { min-width: 0; }
+
+  /* type that fits */
+  .hero h1 { font-size: clamp(32px, 10vw, 43px); line-height: 1.08; }
+  .hero-lead { font-size: 14px; }
+  h2 { font-size: clamp(22px, 6.4vw, 28px); }
+  .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .section-head > * { max-width: 100%; }
+  .forum-actions, .forge-head-actions, .hero-actions, .top-actions { flex-wrap: wrap; }
+  .forge-head-actions > *, .hero-actions > * { flex: 1 1 100%; }
+
+  /* touch-friendly controls; 16px inputs stop phones zooming in on tap */
+  button, .btn, select, summary, [role="tab"] { min-height: 42px; }
+  input, select, textarea { font-size: 16px; min-height: 42px; max-width: 100%; }
+  input[type="checkbox"], input[type="radio"] { min-height: 0; }
+  .btn.small, .text-btn { min-height: 38px; }
+  .term-hint { min-width: 28px; min-height: 28px; }
+
+  /* tables and wide content scroll inside their own box instead of breaking the page */
+  table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap, .admin-list, .periodic-grid { max-width: 100%; overflow-x: auto; }
+
+  /* pop-ups and side panels fit the screen */
+  .modal-backdrop { padding: 8px; align-items: flex-end; }
+  .modal-backdrop .auth-modal, .modal-backdrop .tool-modal, .auth-modal {
+    width: 100%; max-width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 18px 18px 0 0; }
+  .feedback-drawer, .drawer { max-width: 100vw; width: 100vw; }
+  .toast-stack, #toasts { left: 10px; right: 10px; max-width: none; }
+
+  /* 3D viewport and charts get a sensible height */
+  .viewport-stage { height: min(60vw, 340px); min-height: 240px; }
+  .chart-box { height: 240px; }
+  .chart-box.tall { height: 320px; }
+
+  /* keep the floating buttons off the content */
+  .feedback-fab, .fb-fab { bottom: 12px; right: 12px; }
+  .site-footer { padding-bottom: 76px; }
+}
+
+/* very small phones */
+@media (max-width: 380px) {
+  .app-shell { padding-left: 8px; padding-right: 8px; }
+  .mini-stat-grid, .admin-stat-grid, .admin-stats { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 30px; }
+}
+
+/* phones held sideways: short screens */
+@media (max-height: 480px) and (orientation: landscape) {
+  .modal-backdrop .auth-modal, .modal-backdrop .tool-modal { max-height: 96vh; }
+  .viewport-stage { height: 70vh; }
+}
+
+/* big screens: do not let the page stretch too far */
+@media (min-width: 1700px) {
+  .app-shell { max-width: 1600px; margin-left: auto; margin-right: auto; }
+}
