@@ -524,6 +524,17 @@ Rules:
     restore();
     qa('#copilotMessages .chat-extras').forEach((n) => { qa('.chat-followups', n).forEach((f) => f.remove()); });
     const text = question || 'What can you tell me about this part?';
+    // safety filter: no help with explosives, bombs or weapons (checked before any answer, local or live)
+    if (/\b(explosive|explosives|bomb|bombs|detonat\w*|grenade|landmine|warhead|shrapnel|ied|pipe bomb|blast (a|the|an)\b)/i.test(text)) {
+      restore();
+      const u = addMessage('user'); q('.chat-body', u).textContent = text;
+      const a = addMessage('assistant');
+      q('.chat-body', a).innerHTML = '<p>I cannot help with explosives, bombs or weapons. MaterialHunt is a pre-screening tool for ordinary engineering materials. If you are designing a safe structural part, such as a bracket, a pressure vessel or a frame, tell me the temperature, load and budget and I will help.</p>';
+      decorate(a, { actions: [], followups: ['Metal for 600°C under ₹1,000/kg', 'Is 316L good for seawater?'] });
+      messages.push({ role: 'user', text }); messages.push({ role: 'assistant', text: 'Declined: explosives and weapons.', followups: [] });
+      save();
+      return;
+    }
     // Answers from the built-in (local) assistant are unlimited. Only cloud answers are counted and limited.
     let liveBlock = '';
     if (!state.user) liveBlock = 'sign_in_required';

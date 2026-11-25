@@ -741,7 +741,16 @@
       return jsonResponse({ ok: true, count: (handbook.alloys || []).length, alloys: handbook.alloys || [] });
     }
     if (route === '/api/prescreen') return jsonResponse(prescreen(body));
-    if (route === '/api/simulate') return jsonResponse(simulate(body));
+    if (route === '/api/simulate') {
+      // dual-use guardrail: restricted elements need the user to tick the acknowledgement (a self-declaration, nothing is checked)
+      const els = (body && (body.elements || body.composition)) || {};
+      const restricted = HAZARDOUS.filter((s) => Number(els[s]) > 0);
+      if (restricted.length && !body.hazard_verified) {
+        return jsonResponse({ detail: { code: 'DUAL_USE_BLOCKED', message: `Restricted elements (${restricted.join(', ')}) need an acknowledgement before they can be simulated.`,
+          blocked: restricted.map((symbol) => ({ symbol, reason: 'Restricted dual-use element' })), requires: 'Tick "I acknowledge these elements are restricted" in the Simulator, then run it again. This is a self-declaration, nothing is checked.' } }, 403);
+      }
+      return jsonResponse(simulate(body));
+    }
     if (route === '/api/mission-search') return jsonResponse(missionSearch(body));
     if (route === '/api/optimize') return jsonResponse(optimize(body));
     if (route === '/api/environment') {
