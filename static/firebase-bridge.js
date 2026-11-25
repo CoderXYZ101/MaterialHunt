@@ -292,7 +292,8 @@
       cost += (Number(info.cost) || 1500) * frac;
       liquidus += meltingPoint(sym) * frac;
     });
-    const density = 1 / Math.max(1e-6, specificVolume);
+    let density = 1 / Math.max(1e-6, specificVolume);
+    if (libMatch && Number(libMatch.d) > 0) density = Number(libMatch.d); // a known grade uses its datasheet density
     if (Object.keys(fractions).length > 1) liquidus *= 0.92;
     let costSource = 'elements';
     let liquidusSource = 'estimate';

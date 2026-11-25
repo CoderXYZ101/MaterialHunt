@@ -292,7 +292,7 @@ Rules:
       const lines = window.MH_ENGINE.describeComposition(comp);
       return { html: lines.map((l) => `<p>${esc(l).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</p>`).join(''), followups: ['Open the ML Lab', 'What is the model spread?', 'Explain the Best test R² score'], actions: [['view', 'ml', 'Open the ML Lab']] };
     }
-    const strong = (mentionedGrades(text).length === 0 || /(how|why|can i|should i|weld|machin|prevent|heat treat)/i.test(text)) ? window.MH_BRAIN?.answer(text, 0.26) : null;
+    const strong = (mentionedGrades(text).length === 0 || /\b(how|why|can i|should i|weld|machin|prevent|heat treat)/i.test(text)) ? window.MH_BRAIN?.answer(text, 0.26) : null;
     if (strong) return strong;
     const t = T();
     const lower = text.toLowerCase();
@@ -313,7 +313,7 @@ Rules:
       return out;
     }
 
-    if (req.constraintCount >= 2 || req.rank || /(recommend|suggest|which|what|best).*(metal|alloy|material|grade|steel)/.test(lower) || /(rust|rusted|corroded|cracked|melted|warped|failed|broke)/.test(lower)) {
+    if (req.constraintCount >= 2 || req.rank || /\b(recommend|suggest|which|what|best)\b.*\b(metal|alloy|material|grade|steel)\b/.test(lower) || /\b(rust|rusted|corroded|cracked|melted|warped|failed|broke)\b/.test(lower)) {
       if (req.functional) { out.html = 'That reads like a functional-materials request (magnetic, catalytic or amorphous). My search covers structural alloys. If you need a <b>non-magnetic structural</b> metal, say so with your load and conditions.'; return out; }
       const res = t.findAlloys(text);
       if (res.failure) {
@@ -382,7 +382,7 @@ Rules:
       try {
         const a = copilotAnswer(text);
         const generic = /^Here is the current picture/.test(a?.text || '');
-        if (a && a.text && !/Run one simulation first/.test(a.text) && (!generic || /(my|this|current|result|simulation|verdict|alloy|it|part)/i.test(text))) { out.html = a.text; out.followups = ['How can I make it cheaper?', 'Is it easy to machine?', 'Find a better alloy']; if (a.action) out.actions = [['fix', '', 'Apply suggested fix']]; return out; }
+        if (a && a.text && !/Run one simulation first/.test(a.text) && (!generic || /\b(my|this|current|result|simulation|verdict|alloy|it|part)\b/i.test(text))) { out.html = a.text; out.followups = ['How can I make it cheaper?', 'Is it easy to machine?', 'Find a better alloy']; if (a.action) out.actions = [['fix', '', 'Apply suggested fix']]; return out; }
       } catch { /* fall through */ }
     }
     const loose = window.MH_BRAIN?.answer(text, 0.12);
