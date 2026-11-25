@@ -117,7 +117,7 @@
             <textarea id="fa-${esc(t.id)}" rows="3" maxlength="500" minlength="5" placeholder="Share what you know, or what you got when you tried it. Please do not share personal details." required></textarea>
             <button class="btn btn-glass small" type="submit">Post answer</button></form></div>` : ''}
       </article>`;
-    }).join('') : `<div class="empty-state"><strong>${loaded ? 'No questions here yet' : 'Loading…'}</strong><span>${loaded ? 'Be the first to ask. A real question about a real part is the best kind.' : ''}</span></div>`);
+    }).join('') : `<div class="empty-state"><strong>${loaded ? 'No questions here yet' : 'Loading…'}</strong><span>${loaded ? 'Be the first to ask. Examples of good questions: "Aluminium or steel for a motor bracket at 120 °C?", "I got 200 MPa for 316L, is that right?", "Why did my mild steel bolt rust through in two months?"' : ''}</span></div>`);
   }
 
   function modal() {

@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="style.css?v=3.1.0" />
-  <link rel="stylesheet" href="growth.css?v=4.16.16" />
+  <link rel="stylesheet" href="growth.css?v=4.16.19" />
   <link rel="stylesheet" href="responsive.css?v=1.0.2" />
 </head>
 <body>
@@ -170,7 +170,7 @@
               </div>
               <div class="viewport-legend" id="heroLegend"></div>
               <div class="viewport-readout">
-                <div><span>Applied ≤</span><strong id="heroStress">250 MPa</strong></div>
+                <div><span>Applied ≤</span><strong id="heroStress">100 MPa</strong></div>
                 <div><span>Derated strength</span><strong id="heroDerated">—</strong></div>
                 <div><span>Yield estimate</span><strong id="heroConfidence">—</strong></div>
               </div>
@@ -272,7 +272,7 @@
             </button>
             <div class="composition-summary">
               <span>Normalised formula</span>
-              <strong id="simFormula">Fe70 Cr18 Ni8 Mo2 C2</strong>
+              <strong id="simFormula">Fe68 Cr17 Ni12 Mo2.5 C0.03</strong>
             </div>
 
             <div class="divider"></div>
@@ -301,8 +301,8 @@
             </div>
 
             <div class="range-field">
-              <div class="range-head"><label for="loadSlider">Applied stress</label><output id="loadOut">250 MPa</output></div>
-              <input id="loadSlider" type="range" min="0" max="2000" step="5" value="250" />
+              <div class="range-head"><label for="loadSlider">Applied stress</label><output id="loadOut">100 MPa</output></div>
+              <input id="loadSlider" type="range" min="0" max="2000" step="5" value="100" />
             </div>
             <div class="range-field">
               <div class="range-head"><label for="safetySlider">Safety factor</label><output id="safetyOut">1.50</output></div>
@@ -519,7 +519,7 @@
           <div>
             <span class="panel-kicker">HEAD-TO-HEAD SCREENING</span>
             <h2>Alloy A vs. B Comparative Analysis</h2>
-            <p>Run two chemistries under identical service conditions. The arena compares strength, liquidus margin, density, cost and pressure containment simultaneously.</p>
+            <p>Run two chemistries under identical service conditions. Both are loaded with the same 250 MPa at a safety factor of 1.5, so a metal with a yield below about 375 MPa shows UNSAFE. The arena compares strength, liquidus margin, density, cost and pressure containment simultaneously.</p>
           </div>
           <div class="sim-actions">
             <span class="status-pill status-cyan" id="comparisonStatus">READY</span>
@@ -1093,27 +1093,27 @@
 
   <script src="vendor/three.min.js?v=quiet2"></script>
   <script src="vendor/plotly.min.js"></script>
-  <script src="firebase-bridge.js?v=4.16.16"></script>
-  <script src="app.js?v=4.16.16"></script>
-  <script src="config.js?v=4.16.16"></script>
-  <script src="tools.js?v=4.16.16"></script>
-  <script src="growth.js?v=4.16.16"></script>
-  <script src="ai.js?v=4.16.16"></script>
-  <script src="admin.js?v=4.16.16"></script>
-  <script src="designs.js?v=4.16.16"></script>
-  <script src="profile.js?v=4.16.16"></script>
-  <script src="promo.js?v=4.16.16"></script>
-  <script src="community.js?v=4.16.16"></script>
-  <script src="forum.js?v=4.16.16"></script>
-  <script src="workspace.js?v=4.16.16"></script>
-  <script src="showcase.js?v=4.16.16"></script>
-  <script src="brain.js?v=4.16.16"></script>
-  <script src="vision.js?v=4.16.16"></script>
-  <script src="ml.js?v=4.16.16"></script>
-  <script src="engine.js?v=4.16.16"></script>
-  <script src="hints.js?v=4.16.16"></script>
-  <script src="account.js?v=4.16.16"></script>
-  <script src="endorse.js?v=4.16.16"></script>
-  <script src="notifications.js?v=4.16.16"></script>
+  <script src="firebase-bridge.js?v=4.16.19"></script>
+  <script src="app.js?v=4.16.19"></script>
+  <script src="config.js?v=4.16.19"></script>
+  <script src="tools.js?v=4.16.19"></script>
+  <script src="growth.js?v=4.16.19"></script>
+  <script src="ai.js?v=4.16.19"></script>
+  <script src="admin.js?v=4.16.19"></script>
+  <script src="designs.js?v=4.16.19"></script>
+  <script src="profile.js?v=4.16.19"></script>
+  <script src="promo.js?v=4.16.19"></script>
+  <script src="community.js?v=4.16.19"></script>
+  <script src="forum.js?v=4.16.19"></script>
+  <script src="workspace.js?v=4.16.19"></script>
+  <script src="showcase.js?v=4.16.19"></script>
+  <script src="brain.js?v=4.16.19"></script>
+  <script src="vision.js?v=4.16.19"></script>
+  <script src="ml.js?v=4.16.19"></script>
+  <script src="engine.js?v=4.16.19"></script>
+  <script src="hints.js?v=4.16.19"></script>
+  <script src="account.js?v=4.16.19"></script>
+  <script src="endorse.js?v=4.16.19"></script>
+  <script src="notifications.js?v=4.16.19"></script>
 </body>
 </html>

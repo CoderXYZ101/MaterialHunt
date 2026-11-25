@@ -38,7 +38,7 @@ const state = {
   health: null,
   view: 'simulator',
   persona: 'Aerospace',
-  composition: { Fe: 70, Cr: 18, Ni: 8, Mo: 2, C: 2, Ti: 0, Al: 0 },
+  composition: { Fe: 68, Cr: 17, Ni: 12, Mo: 2.5, C: 0.03, Ti: 0, Al: 0 },
   structure: 'BCC',
   structureMode: 'AUTO',
   shapeColor: '',
@@ -3988,7 +3988,7 @@ function bindEvents() {
     toast(`${button.textContent.trim()} chemistry loaded.`, 'success', 2400);
   });
   $('#resetComposition')?.addEventListener('click', () => {
-    state.composition = { Fe: 70, Cr: 18, Ni: 8, Mo: 2, C: 2, Ti: 0, Al: 0 };
+    state.composition = { Fe: 68, Cr: 17, Ni: 12, Mo: 2.5, C: 0.03, Ti: 0, Al: 0 };
     renderElementSliders();
     updateCompositionUI();
     runSimulation();
@@ -5435,11 +5435,11 @@ function downloadReport(template) {
 // --- REAL-TIME METAL PRICING ---
 const METAL_PRICES = [
   { symbol: 'Ni', name: 'Nickel', lme: 16420, shfe: 128500, indian: 1480, change: '+2.3%', unit: '$/t' },
-  { symbol: 'Co', name: 'Cobalt', lme: 28500, shfe: 225000, indian: 3200, change: '-1.1%', unit: '$/t' },
-  { symbol: 'Mo', name: 'Molybdenum', lme: 46200, shfe: 368000, indian: 2850, change: '+0.8%', unit: '$/t' },
-  { symbol: 'W', name: 'Tungsten', lme: 285, shfe: 2280, indian: 2450, change: '+1.5%', unit: '$/kg' },
-  { symbol: 'Cr', name: 'Chromium', lme: 8500, shfe: 68000, indian: 185, change: '-0.4%', unit: '$/t' },
-  { symbol: 'Fe', name: 'Iron Ore (62%)', lme: 98, shfe: 780, indian: 5200, change: '+3.2%', unit: '$/t' },
+  { symbol: 'Co', name: 'Cobalt', lme: 28500, shfe: 225000, indian: 2500, change: '-1.1%', unit: '$/t' },
+  { symbol: 'Mo', name: 'Molybdenum', lme: 46200, shfe: 368000, indian: 3900, change: '+0.8%', unit: '$/t' },
+  { symbol: 'W', name: 'Tungsten', lme: 35, shfe: 280, indian: 3000, change: '+1.5%', unit: '$/kg' },
+  { symbol: 'Cr', name: 'Chromium', lme: 8500, shfe: 68000, indian: 720, change: '-0.4%', unit: '$/t' },
+  { symbol: 'Fe', name: 'Iron Ore (62%)', lme: 98, shfe: 780, indian: 8, change: '+3.2%', unit: '$/t' },
   { symbol: 'Al', name: 'Aluminum', lme: 2180, shfe: 18900, indian: 215, change: '+1.8%', unit: '$/t' },
   { symbol: 'Ti', name: 'Titanium Sponge', lme: 8.5, shfe: 68, indian: 720, change: '+0.5%', unit: '$/kg' },
   { symbol: 'Cu', name: 'Copper', lme: 8420, shfe: 68500, indian: 785, change: '-0.7%', unit: '$/t' },
@@ -5447,7 +5447,7 @@ const METAL_PRICES = [
   { symbol: 'V', name: 'Vanadium', lme: 18.5, shfe: 145, indian: 1650, change: '-1.2%', unit: '$/kg' },
   { symbol: 'Nb', name: 'Niobium', lme: 42, shfe: 335, indian: 3800, change: '+0.9%', unit: '$/kg' },
   { symbol: 'Ta', name: 'Tantalum', lme: 185, shfe: 1480, indian: 18500, change: '+2.4%', unit: '$/kg' },
-  { symbol: 'RE', name: 'Rare Earth (NdPr)', lme: 52, shfe: 420, indian: 480, change: '-2.1%', unit: '$/kg' },
+  { symbol: 'RE', name: 'Rare Earth (NdPr)', lme: 52, shfe: 420, indian: 4400, change: '-2.1%', unit: '$/kg' },
 ];
 
 function renderMetalPricing() {
@@ -5457,7 +5457,7 @@ function renderMetalPricing() {
   container.innerHTML = `
     <div class="pricing-header">
       <span class="pricing-title">Reference metal prices</span>
-      <span class="pricing-source">Indicative values for budgeting. Not a live market feed.</span>
+      <span class="pricing-source">Rough ballpark for budgeting (converted at about ₹85 per US$). Not a live market feed.</span>
     </div>
     <div class="pricing-table">
       <table>

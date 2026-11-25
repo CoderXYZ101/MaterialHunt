@@ -373,7 +373,7 @@
   let current = null; // { dataUrl, result }
 
   function barsHtml(result) {
-    return result.ranked.map((r) => `<div class="sc-bar"><span>${esc(r.label)}</span><div><i style="width:${Math.round(r.confidence * 100)}%"></i></div><b>${Math.round(r.confidence * 100)}%</b></div>`).join('');
+    return result.ranked.map((r) => `<div class="sc-bar"><span>${esc(r.label)}</span><div><i style="width:${Math.round(r.confidence * 100)}%"></i></div><b>${result.source === 'heuristic' ? '' : Math.round(r.confidence * 100) + '%'}</b></div>`).join('');
   }
 
   async function analyse(dataUrl, label) {
@@ -452,7 +452,7 @@
     lastPhoto = { dataUrl: attached.preview, result };
     const best = result.best;
     const real = best.key !== 'unclear' && best.key !== 'other';
-    const html = `<p><b>${esc(best.label)}</b> (${Math.round(best.confidence * 100)}% on-device confidence).</p><p>${esc(WHY[best.key] || '')}</p>${result.notes.length ? `<ul>${result.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}<p class="micro-note">Checked on your device, no cloud tokens used. ${result.source === 'heuristic' ? 'This is a quick colour-and-texture screening, so treat it as a hint.' : ''}</p>`;
+    const html = `<p><b>${esc(best.label)}</b> (${result.source === 'heuristic' ? 'a quick colour and texture hint, not a trained model' : Math.round(best.confidence * 100) + '% on-device confidence'}).</p><p>${esc(WHY[best.key] || '')}</p>${result.notes.length ? `<ul>${result.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}<p class="micro-note">Checked on your device, no cloud tokens used. ${result.source === 'heuristic' ? 'This is a quick colour-and-texture screening, so treat it as a hint.' : ''}</p>`;
     return {
       html,
       followups: real ? ['Why does this happen?', 'Which metal would not fail like this?'] : ['What causes metals to crack?'],
