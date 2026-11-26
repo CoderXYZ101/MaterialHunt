@@ -359,7 +359,9 @@
     if (!user) throw new Error('Please sign in again.');
     const token = await user.getIdToken();
     const small = await loadImage(dataUrl).then((i) => shrink(i, 640, 0.72).dataUrl);
-    const res = await fetch(`${base}/analyze-image`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: small, hint: local?.best?.label || '' }) });
+    let res;
+    try { res = await fetch(`${base}/analyze-image`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: small, hint: local?.best?.label || '' }) });
+    } catch { throw new Error('Cloud AI could not be reached. Check your internet connection. The on-device result above still applies.'); }
     if (res.status === 429) throw new Error('You have used today\'s Cloud AI questions. The on-device result above still applies.');
     if (!res.ok) throw new Error('Cloud AI is not available right now. The on-device result above still applies.');
     const j = await res.json();
