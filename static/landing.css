@@ -1,0 +1,114 @@
+/* ==========================================================================
+   MATERIALHUNT — landing page, team page and the signed-out view
+   ========================================================================== */
+
+/* ---------- order on the home view ---------- */
+#view-simulator.active > #mhModules { order: 2; }
+#view-simulator.active > #mhHow { order: 3; }
+#view-simulator.active > #mhProof { order: 8; }
+#view-simulator.active > #mhTrust { order: 9; }
+#view-simulator.active > #mhNote { order: 10; }
+#view-simulator.active > #mhCta { order: 11; }
+
+/* ---------- signed out: the home view is a landing page, tools stay closed ---------- */
+html[data-auth="out"] #view-simulator > :not(.hero):not(.mh-band):not(.mh-block):not(.mh-note):not(.mh-cta) { display: none !important; }
+html[data-auth="out"] .main-nav .nav-link:not([data-view="simulator"]):not([data-view="pricing"]):not([data-view="forum"]):not([data-view="about"]) { display: none !important; }
+html[data-auth="out"] #openPeriodic, html[data-auth="out"] .ai-fab, html[data-auth="out"] #copilotToggle, html[data-auth="out"] #aiCopilotBtn,
+html[data-auth="out"] .copilot-fab, html[data-auth="out"] .viewport-card .mode-toggle, html[data-auth="out"] .viewport-card .lattice-controls,
+html[data-auth="out"] .viewport-card .viewport-readout, html[data-auth="out"] .viewport-card .viewport-legend { display: none !important; }
+
+/* ---------- signed in: straight to the tools ---------- */
+html[data-auth="in"] #view-simulator > .mh-band, html[data-auth="in"] #view-simulator > .mh-block,
+html[data-auth="in"] #view-simulator > .mh-note, html[data-auth="in"] #view-simulator > .mh-cta { display: none !important; }
+
+/* ---------- shared blocks ---------- */
+.mh-band, .mh-block { margin: 18px 0 34px; padding: clamp(28px, 5vw, 64px) clamp(18px, 4.5vw, 56px); border-radius: 32px; }
+.mh-block { padding-top: clamp(18px, 3vw, 36px); padding-bottom: clamp(18px, 3vw, 36px); }
+.mh-kicker { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .18em; color: var(--cyan); margin-bottom: 10px; }
+.mh-band h2, .mh-block h2, .mh-hero-team h2, .mh-howbuilt h2 { font-size: clamp(28px, 3.6vw, 46px); font-weight: 750; letter-spacing: -.035em; line-height: 1.08; margin: 0 0 12px; }
+.mh-sub { max-width: 620px; color: var(--muted); font-size: 15.5px; margin: 0 0 22px; }
+
+/* a light band and a dark band, whatever the theme, so the page has rhythm */
+.mh-light { --text: #0b1626; --muted: #52617a; --cyan: #0e7490; color: var(--text); background: linear-gradient(180deg, #ffffff, #f1f6fc); border: 1px solid rgba(15, 23, 42, .08); box-shadow: 0 34px 80px -46px rgba(var(--accent-rgb), .55); }
+.mh-dark { --text: #eef4ff; --muted: #a3b4cd; --cyan: #5eead4; color: var(--text); background: radial-gradient(ellipse 70% 80% at 0% 0%, rgba(var(--accent-rgb), .22), transparent 60%), radial-gradient(ellipse 60% 70% at 100% 100%, rgba(var(--accent2-rgb), .18), transparent 60%), #08101f; border: 1px solid rgba(255, 255, 255, .08); }
+html[data-skin="sky"] .mh-dark, html[data-skin="mint"] .mh-dark, html[data-skin="lavender"] .mh-dark, html[data-skin="peach"] .mh-dark, html[data-skin="daylight"] .mh-dark { --cyan: #5eead4; }
+
+/* ---------- module cards ---------- */
+.mh-bento { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; margin-top: 8px; }
+.mh-bento > .mh-card { grid-column: span 2; }
+.mh-bento > .mh-card:nth-child(-n+2) { grid-column: span 3; }
+.mh-bento.mh-trust > .mh-card { grid-column: span 2; }
+.mh-card { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left; padding: 24px; border-radius: 22px; color: var(--text); font: inherit;
+  background: linear-gradient(150deg, rgba(var(--accent-rgb), .09), rgba(var(--accent2-rgb), .03) 55%, transparent), var(--panel-strong); border: 1px solid var(--border); transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+.mh-light .mh-card { background: linear-gradient(150deg, #fff 40%, rgba(var(--accent-rgb), .12)); border-color: rgba(15, 23, 42, .09); box-shadow: 0 14px 36px -28px rgba(15, 23, 42, .45); }
+.mh-card h3 { font-size: 18px; margin: 4px 0 0; }
+.mh-card p { margin: 0; color: var(--muted); font-size: 13.8px; line-height: 1.6; }
+.mh-ico { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; color: #fff; background: linear-gradient(140deg, #0b1626, #16314f); box-shadow: 0 10px 22px -12px rgba(var(--accent-rgb), .9); }
+.mh-dark .mh-ico, html[data-theme="dark"] .mh-block .mh-ico { background: linear-gradient(140deg, var(--cyan), var(--accent2)); color: #06121f; }
+.mh-ico svg { width: 23px; height: 23px; }
+.mh-open { margin-top: auto; padding-top: 6px; font-weight: 700; font-size: 13px; color: var(--cyan); }
+button.mh-card { cursor: pointer; }
+@media (hover: hover) { .mh-card:hover { transform: translateY(-5px); border-color: rgba(var(--accent-rgb), .6); box-shadow: 0 26px 52px -30px rgba(var(--accent-rgb), .85); } .mh-flat:hover { transform: translateY(-3px); } }
+
+/* ---------- four steps on a line ---------- */
+.mh-steps { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; position: relative; }
+.mh-steps::before { content: ""; position: absolute; left: 24px; right: 12%; top: 23px; height: 2px; background: linear-gradient(90deg, var(--cyan), var(--accent2), transparent); opacity: .55; }
+.mh-steps li { position: relative; }
+.mh-num { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; font-weight: 800; font-family: var(--font-mono); color: #06121f; background: linear-gradient(140deg, var(--cyan), var(--accent2)); box-shadow: 0 12px 26px -12px rgba(var(--accent-rgb), .9); }
+html[data-theme="light"] .mh-num { color: #fff; }
+.mh-steps h3 { font-size: 16.5px; margin: 16px 0 6px; }
+.mh-steps p { margin: 0; color: var(--muted); font-size: 13.6px; }
+
+/* ---------- evidence rows ---------- */
+.mh-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 34px; align-items: center; }
+.mh-rows { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.mh-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 16px 13px 18px; border-radius: 14px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .09); border-left: 4px solid #64748b; }
+.mh-row b { display: block; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mh-row span { display: block; font-size: 13.8px; margin-top: 2px; }
+.mh-row em { font-style: normal; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .09); }
+.mh-row.good { border-left-color: #34d399; } .mh-row.mid { border-left-color: #fbbf24; } .mh-row.low { border-left-color: #38bdf8; } .mh-row.none { border-left-color: #fb7185; }
+
+.mh-note { margin: 6px 0 20px; padding: 16px 20px; border-radius: 16px; background: rgba(245, 158, 11, .12); border: 1px solid rgba(245, 158, 11, .45); font-size: 13.8px; text-align: center; }
+.mh-cta { text-align: center; padding: clamp(36px, 7vw, 84px) 18px; margin-bottom: 20px; border-radius: 32px; background: radial-gradient(ellipse 60% 90% at 50% 0%, rgba(var(--accent-rgb), .24), transparent 65%); }
+.mh-cta h2 { font-size: clamp(30px, 4.4vw, 54px); letter-spacing: -.04em; margin: 0 0 12px; }
+.mh-cta p { color: var(--muted); margin: 0 0 22px; font-size: 15.5px; }
+.mh-cta .btn { margin: 4px; }
+
+.mh-ticks { list-style: none; padding: 0; margin: 18px 0 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 12.8px; color: var(--muted); }
+.mh-ticks li::before { content: "✓"; margin-right: 7px; font-weight: 800; color: var(--cyan); }
+
+/* ---------- team page ---------- */
+.mh-hero-team { text-align: center; padding: clamp(28px, 6vw, 70px) 12px 26px; }
+.mh-hero-team .mh-sub { margin: 0 auto; }
+.mh-people { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 18px; margin-bottom: 30px; align-items: start; }
+.mh-person { padding: 28px; border-radius: 26px; background: linear-gradient(160deg, rgba(var(--accent-rgb), .14), rgba(var(--accent2-rgb), .04) 55%, transparent), var(--panel-strong); border: 1px solid var(--border); box-shadow: var(--shadow-soft); }
+.mh-avatar { display: grid; place-items: center; width: 78px; height: 78px; border-radius: 24px; font-size: 26px; font-weight: 800; color: #06121f; background: linear-gradient(135deg, var(--cyan), var(--accent2)); box-shadow: 0 18px 36px -18px rgba(var(--accent-rgb), .95); margin-bottom: 16px; }
+html[data-theme="light"] .mh-avatar { color: #fff; }
+.mh-person h3 { font-size: 24px; margin: 0 0 4px; }
+.mh-person p { color: var(--muted); margin: 8px 0 0; }
+.mh-person .mh-role { color: var(--cyan); font-weight: 700; margin: 0; }
+.mh-person h4 { margin: 22px 0 10px; font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.mh-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.mh-link { display: block; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel-soft); color: var(--text); transition: transform .18s ease, border-color .18s ease; }
+.mh-link b { display: block; font-size: 13.5px; }
+.mh-link b::after { content: " ↗"; color: var(--cyan); }
+.mh-link span { display: block; font-size: 11.8px; color: var(--muted); margin-top: 2px; }
+@media (hover: hover) { .mh-link:hover { transform: translateY(-3px); border-color: var(--cyan); } }
+
+/* ---------- gentle entrance (only when the script is running) ---------- */
+html.mh-anim .mh-reveal { opacity: 0; transform: translateY(18px); transition: opacity .55s ease, transform .55s ease; }
+html.mh-anim .mh-reveal.in { opacity: 1; transform: none; }
+
+@media (max-width: 1000px) {
+  .mh-bento > .mh-card, .mh-bento > .mh-card:nth-child(-n+2), .mh-bento.mh-trust > .mh-card { grid-column: span 3; }
+  .mh-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mh-steps::before { display: none; }
+  .mh-split, .mh-people { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .mh-bento > .mh-card, .mh-bento > .mh-card:nth-child(-n+2), .mh-bento.mh-trust > .mh-card { grid-column: 1 / -1; }
+  .mh-steps, .mh-links { grid-template-columns: minmax(0, 1fr); }
+  .mh-band { border-radius: 24px; }
+  .mh-person { padding: 20px; }
+  .mh-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
