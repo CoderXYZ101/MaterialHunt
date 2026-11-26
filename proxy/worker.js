@@ -20,7 +20,7 @@ const DEFAULT_PROJECT = 'materialhunt-2026';
 const WORKERS_AI_MODELS = [
   '@cf/mistralai/mistral-small-3.1-24b-instruct',
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-  '@cf/meta/llama-3.2-3b-instruct',
+  '@cf/meta/llama-4-scout-17b-16e-instruct',
   '@cf/ibm-granite/granite-4.0-h-micro',
 ];
 
@@ -255,15 +255,25 @@ async function handleRun(request, env, headers) {
    is safe for a public audience that includes students, and writes the photo itself (the member's
    own database writes cannot replace a photo). If the check cannot run, the photo is refused.
    ========================================================================== */
-const VISION_MODELS = ['@cf/llava-hf/llava-1.5-7b-hf', '@cf/meta/llama-3.2-11b-vision-instruct'];
+// llava-1.5-7b was retired on 20 November 2026; Moondream is Cloudflare's named replacement
+const VISION_MODELS = ['@cf/moondream/moondream3.1-9B-A2B', '@cf/meta/llama-4-scout-17b-16e-instruct', '@cf/meta/llama-3.2-11b-vision-instruct'];
+
+/* ask one vision model about a JPEG data URI; each family takes the request in its own shape */
+async function runVision(env, model, image, prompt, maxTokens) {
+  const input = /moondream/.test(model)
+    ? { task: 'query', image, question: prompt, reasoning: false, max_tokens: maxTokens }
+    : { messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: image } }] }], max_tokens: maxTokens };
+  const out = await env.AI.run(model, input);
+  const r = (out && out.result) || out || {};
+  return String(r.answer || r.response || r.description || r.choices?.[0]?.message?.content || '').trim();
+}
 const VISION_PROMPT = 'You are a strict safety moderator for a school-friendly website. Look at this profile picture. Does it contain nudity, sexual content, violence, blood, gore, weapons, drugs, hate symbols, or anything disturbing or offensive? Answer with exactly one word: SAFE or UNSAFE.';
 
-async function visionVerdict(env, bytes) {
+async function visionVerdict(env, image) {
   for (const model of VISION_MODELS) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const out = await env.AI.run(model, { image: bytes, prompt: VISION_PROMPT, max_tokens: 12 });
-        const text = String((out && (out.description || out.response)) || '');
+        const text = await runVision(env, model, image, VISION_PROMPT, 40);
         if (/\bUNSAFE\b/i.test(text)) return 'unsafe';
         if (/\bSAFE\b/i.test(text)) return 'safe';
         break; // unclear answer: try the next model
@@ -300,9 +310,7 @@ async function handleAvatar(request, env, headers) {
   const fields = (await prof.json()).fields || {};
   if (plain(fields.photo_blocked) === true) return reply(403, { error: 'photo_blocked' }, headers);
 
-  const raw = atob(image.slice(image.indexOf(',') + 1));
-  const bytes = Array.from(raw, (c) => c.charCodeAt(0));
-  const verdict = aiCheck ? await visionVerdict(env, bytes) : 'skipped';
+  const verdict = aiCheck ? await visionVerdict(env, image) : 'skipped';
   if (verdict === 'unsafe') return reply(422, { error: 'unsafe' }, headers);
   // if the checker could not decide, the photo is accepted and appears in the admin Photos tab for the daily hand check
 
@@ -332,17 +340,16 @@ async function handleAnalyzeImage(request, env, headers) {
   if (!quota.ok) return reply(quota.status === 401 ? 401 : 429, { error: quota.status === 401 ? 'sign_in_required' : 'daily_limit' }, headers);
 
   const hint = String(body.hint || '').replace(/[^A-Za-z0-9 ,.()-]/g, '').slice(0, 80);
-  const prompt = `This is a photo of a damaged metal part. In under 80 words: say which kind of damage it shows (corrosion, overheating, brittle fracture, fatigue crack or bending), what you can see that supports it, and one likely cause. If the photo is unclear, say so. A basic on-device check guessed: ${hint || 'nothing'}. Do not invent details you cannot see.`;
-  const raw = atob(image.slice(image.indexOf(',') + 1));
-  const bytes = Array.from(raw, (c) => c.charCodeAt(0));
+  const prompt = `This is a photo of a damaged metal part. In under 80 words: say which kind of damage it shows (corrosion, overheating, brittle fracture, fatigue crack or bending), what you can see that supports it, and one likely cause. If the photo is unclear, say so. A single clean split through a thick or welded section with little bending points to brittle fracture, often caused by cold. A basic colour check guessed: ${hint || 'nothing'}; it is often wrong, so judge from the picture. Do not invent details you cannot see.`;
+  let why = '';
   for (const model of VISION_MODELS) {
     try {
-      const out = await env.AI.run(model, { image: bytes, prompt, max_tokens: 200 });
-      const text = String((out && (out.description || out.response)) || '').trim();
+      const text = await runVision(env, model, image, prompt, 220);
       if (text) return reply(200, { text: text.slice(0, 900) }, headers);
-    } catch { /* try the next model */ }
+      why = `${model.split('/').pop()}: empty answer`;
+    } catch (e) { why = `${model.split('/').pop()}: ${String((e && e.message) || e).slice(0, 140)}`; }
   }
-  return reply(503, { error: 'unavailable' }, headers);
+  return reply(503, { error: 'unavailable', detail: why }, headers);
 }
 
 export default {

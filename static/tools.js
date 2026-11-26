@@ -753,7 +753,9 @@
     } else if (event === 'brittle' || (event === 'crack_vib' && envKey === 'cryo')) {
       if (g.s === 'BCC') {
         ev.mechanism = 'Ductile-to-brittle transition (cold brittle fracture)';
-        ev.why = `${g.name} has a BCC crystal structure. Below a certain temperature it stops bending and snaps suddenly, which is exactly what happens at ${num(T)}°C.`;
+        ev.why = T <= 0
+          ? `${g.name} has a BCC crystal structure. Below a certain temperature it stops bending and snaps suddenly, which is a risk at ${num(T)}°C.`
+          : `${g.name} has a BCC crystal structure. It can snap suddenly when cold, even in water near freezing, particularly in thick or welded sections with sharp corners. Check how cold the part actually was.`;
         ev.evidence = ['BCC lattice: few slip systems at low temperature', 'Flat, shiny fracture surface with no stretching'];
       } else {
         ev.mechanism = 'Fatigue or hidden defect (not a cold-brittle material)';
@@ -1539,11 +1541,12 @@ Chassis plate: 6061-T6, 6 kg`;
   /* failure-style questions ("my 304 bracket rusted at the coast") route to the Failure Doctor logic */
   function detectFailure(text, req) {
     const g = findGrade(text);
-    if (!g || !/\b(failed|failure|broke|broken|cracked|cracking|rusted|rusting|corroded|melted|warped|bent|snapped|keeps? (?:cracking|rusting|breaking))\b/i.test(text)) return null;
+    if (!g || !/\b(failed|failure|broke|broken|cracked|cracking|rusted|rusting|corroded|melted|warped|bent|snapped|fractured?|split|keeps? (?:cracking|rusting|breaking))\b/i.test(text)) return null;
     let event = 'warped';
     if (/rust|corrod|pitting|stain/i.test(text)) event = 'corroded';
     else if (/melt|soft|sag|slump/i.test(text)) event = 'melted';
-    else if (/brittle|shatter|snap/i.test(text)) event = 'brittle';
+    else if (/fatigue|vibrat/i.test(text)) event = 'crack_vib';
+    else if (/brittle|shatter|snap|split|sudden/i.test(text)) event = 'brittle';
     else if (/crack|fatigue|vibrat|broke|break/i.test(text)) event = 'crack_vib';
     let env = 'dry';
     if (/sea|salt|coast|marine|ocean|chloride/i.test(text)) env = 'coastal';

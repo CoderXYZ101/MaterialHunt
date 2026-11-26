@@ -123,10 +123,12 @@
     if (!useFg) { fg.fill(1); fgCount = n; }
 
     const gray = new Float32Array(n);
+    let colourless = 0;
     let rust = 0; let dark = 0; let tint = 0; let bright = 0; let mid = 0;
     for (let i = 0; i < n; i += 1) {
       const r = px[i * 4] / 255; const g = px[i * 4 + 1] / 255; const b = px[i * 4 + 2] / 255;
       gray[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (Math.abs(r - g) < 0.012 && Math.abs(g - b) < 0.012) colourless += 1;
       if (!fg[i]) continue;
       const max = Math.max(r, g, b); const min = Math.min(r, g, b);
       const v = max; const d = max - min; const s = max === 0 ? 0 : d / max;
@@ -153,11 +155,16 @@
       }
     }
     const f = fgCount || 1;
-    return { rust: rust / f, dark: dark / f, tint: tint / f, bright: bright / f, mid: mid / f, strongEdge: strong / f, meanEdge: sum / f, partOnly: useFg };
+    return { rust: rust / f, dark: dark / f, tint: tint / f, bright: bright / f, mid: mid / f, strongEdge: strong / f, meanEdge: sum / f, partOnly: useFg, blackAndWhite: colourless / n > 0.97 };
   }
 
   function heuristic(img) {
     const f = features(img);
+    if (f.blackAndWhite) {
+      const best = { key: 'unclear', label: LABELS.unclear, confidence: 0.5 };
+      return { source: 'heuristic', engine: 'Basic colour and texture check (on this device)', best, ranked: [best], metalHint: 'unknown', features: f,
+        notes: ['This is a black-and-white photo. This check works from colour, so it cannot tell what happened.', 'Choose it yourself below. For a sudden clean split, especially in the cold, pick "Snapped suddenly, like glass".'] };
+    }
     const raw = {
       corroded: clamp(f.rust * 2.6, 0, 1),
       melted: clamp((f.dark * 1.1 + f.tint * 1.9) * (f.rust > 0.3 ? 0.5 : 1), 0, 1),
@@ -177,6 +184,7 @@
     if (f.tint > 0.08) notes.push(`Blue, purple or straw colours (${Math.round(f.tint * 100)}%) are typical of heat tint.`);
     if (f.bright > 0.3 && f.strongEdge > 0.08) notes.push('Bright metal with many sharp edges, like a fresh break surface.');
     let best = ranked[0];
+    if (signal >= 0.3 && (best.key === 'crack_vib' || best.key === 'brittle')) notes.push('A photo cannot reliably separate a fatigue crack from a sudden brittle break. If it snapped at once, especially in the cold, choose "Snapped suddenly".');
     if (signal < 0.3) { best = { key: 'unclear', label: LABELS.unclear, confidence: 0.5 }; ranked = [best, ...ranked.slice(0, 2)]; }
     const metalHint = f.rust > 0.1 || (f.dark > 0.2 && f.tint > 0.05) ? 'steel' : (f.bright > 0.35 ? 'aluminium or stainless' : 'unknown');
     return { source: 'heuristic', engine: 'Basic colour and texture check (on this device)', best, ranked: ranked.slice(0, 3), notes, metalHint, features: f };
@@ -363,7 +371,10 @@
     try { res = await fetch(`${base}/analyze-image`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ image: small, hint: local?.best?.label || '' }) });
     } catch { throw new Error('Cloud AI could not be reached. Check your internet connection. The on-device result above still applies.'); }
     if (res.status === 429) throw new Error('You have used today\'s Cloud AI questions. The on-device result above still applies.');
-    if (!res.ok) throw new Error('Cloud AI is not available right now. The on-device result above still applies.');
+    if (!res.ok) {
+      const why = await res.json().then((j2) => j2.detail || j2.error || '').catch(() => '');
+      throw new Error(`Cloud AI is not available right now (${res.status}${why ? `: ${why}` : ''}). The on-device result above still applies.`);
+    }
     const j = await res.json();
     if (!j.text) throw new Error('Cloud AI could not describe that photo.');
     return j.text;
