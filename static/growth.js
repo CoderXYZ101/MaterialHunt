@@ -21,7 +21,7 @@
     paymentLinks: { pro_month: '', pro_year: '', team_month: '', team_year: '', credits: '' },
     prices: { pro: { month: 1499, year: 14990 }, team: { month: 4999, year: 49990 }, credits: 999 },
     limits: {
-      guest: { sim: 25, bom: 6, report: 3, batch: 0, ai: 5 }, // without an account: per day sim, bom, ai; per month report (so a visitor or judge can finish a whole workflow)
+      guest: { sim: 60, bom: 15, report: 6, batch: 0, ai: 25, finder: 30, doctor: 25, compare: 30, ml: 10 }, // demo (no account): per day, except report which is per month
       free: { report: 3, batch: 2, ai: 40 },                  // reports/batch per month, ai per day
     },
     payments: { razorpayKeyId: '', upiId: '', payeeName: 'MaterialHunt' },
@@ -104,7 +104,7 @@
   function readUsage() {
     let u = {};
     try { u = JSON.parse(localStorage.getItem(usageKey()) || '{}'); } catch { u = {}; }
-    if (u.day !== today()) { u.day = today(); u.sim = 0; u.bom = 0; u.ai = 0; }
+    if (u.day !== today()) { u.day = today(); u.sim = 0; u.bom = 0; u.ai = 0; u.finder = 0; u.doctor = 0; u.compare = 0; u.ml = 0; }
     if (u.month !== month()) { u.month = month(); u.report = 0; u.batch = 0; }
     return u;
   }
@@ -114,7 +114,7 @@
     tier() { return state.user ? (state.user.tier || 'free') : 'guest'; },
     isPaid() { return PAID.includes(PLAN.tier()); },
     verified() { return Boolean(state.user?.email_verified); },
-    bucket(kind) { return { sim: 'sim', bom: 'bom', ai: 'ai', pdf: 'report', rfq: 'report', batch: 'batch' }[kind]; },
+    bucket(kind) { return { sim: 'sim', bom: 'bom', ai: 'ai', pdf: 'report', rfq: 'report', batch: 'batch', finder: 'finder', doctor: 'doctor', compare: 'compare', ml: 'ml' }[kind]; },
     limit(kind) {
       const b = PLAN.bucket(kind);
       const t = PLAN.tier();
@@ -153,6 +153,10 @@
     pdf: ['Create a free account to download reports', 'Free accounts get 3 PDF reports a month.'],
     rfq: ['Create a free account to generate RFQs', 'Free accounts get 3 RFQ / PDF reports a month, with the full NABL test sheet.'],
     batch: ['Create a free account to use this tool', 'It only takes a few seconds.'],
+    finder: ['Demo limit reached for the Alloy Finder', 'Create a free account to keep searching.'],
+    doctor: ['Demo limit reached for the Failure Doctor', 'Create a free account to keep diagnosing.'],
+    compare: ['Demo limit reached for Compare', 'Create a free account to keep comparing alloys.'],
+    ml: ['Demo limit reached for the ML Lab', 'Create a free account to keep training models.'],
   };
 
   function gateSignup(kind) {

@@ -18,8 +18,8 @@ html[data-auth="out"] .copilot-fab, html[data-auth="out"] .viewport-card .mode-t
 html[data-auth="out"] .viewport-card .viewport-readout, html[data-auth="out"] .viewport-card .viewport-legend { display: none !important; }
 
 /* ---------- signed in: straight to the tools ---------- */
-html[data-auth="in"] #view-simulator > .mh-band, html[data-auth="in"] #view-simulator > .mh-block,
-html[data-auth="in"] #view-simulator > .mh-note, html[data-auth="in"] #view-simulator > .mh-cta { display: none !important; }
+html:not([data-auth="out"]) #view-simulator > .mh-band, html:not([data-auth="out"]) #view-simulator > .mh-block,
+html:not([data-auth="out"]) #view-simulator > .mh-note, html:not([data-auth="out"]) #view-simulator > .mh-cta { display: none !important; }
 
 /* ---------- shared blocks ---------- */
 .mh-band, .mh-block { margin: 18px 0 34px; padding: clamp(28px, 5vw, 64px) clamp(18px, 4.5vw, 56px); border-radius: 32px; }
@@ -111,4 +111,20 @@ html.mh-anim .mh-reveal.in { opacity: 1; transform: none; }
   .mh-band { border-radius: 24px; }
   .mh-person { padding: 20px; }
   .mh-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+/* ---------- demo strip ---------- */
+.mh-demo-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; margin: 12px 0 4px; padding: 12px 16px; border-radius: 18px;
+  background: linear-gradient(110deg, rgba(var(--accent-rgb), .22), rgba(var(--accent2-rgb), .14)), var(--panel-strong); border: 1px solid rgba(var(--accent-rgb), .55); }
+.mh-demo-bar > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.mh-demo-bar b { font-size: 11px; letter-spacing: .16em; padding: 4px 10px; border-radius: 999px; color: #06121f; background: linear-gradient(120deg, var(--cyan), var(--accent2)); }
+html[data-theme="light"] .mh-demo-bar b { color: #fff; }
+.mh-demo-bar span { font-size: 13px; color: var(--text-soft); }
+.mh-demo-bar i { font-style: normal; font-weight: 800; color: var(--text); }
+@media (max-width: 640px) {
+  .mh-demo-bar { padding: 9px 12px; gap: 7px; margin-top: 8px; }
+  .mh-demo-bar span { font-size: 11.5px; line-height: 1.4; }
+  .mh-demo-bar b { font-size: 9.5px; padding: 3px 8px; }
+  .mh-demo-bar .btn.small { min-height: 34px; padding: 6px 11px; font-size: 11.5px; }
+  .mh-demo-bar .text-btn { min-height: 30px; font-size: 11.5px; }
 }

@@ -198,8 +198,8 @@ def qr():
     arrow(ax, 10.5, 4.8, 10.5, 7, RED, 0.9, 6)
     rect(ax, 3, 8, 15, 15, BLACK, 5)
     T(ax, 10.5, 15.5, 'stick the\nprinted QR\ncode here', 0.8, '#8a8a8a', bold=False)
-    T(ax, 10.5, 25.2, LINK, 0.9, BLACK)
-    T(ax, 10.5, 27.4, 'free  •  works on your phone', 0.65, GREEN)
+    T(ax, 10.5, 25.2, LINK + '/demo', 0.85, BLACK)
+    T(ax, 10.5, 27.4, 'free demo  •  no sign-up to start', 0.65, GREEN)
     save(fig, '5-A4-scan-and-try')
 
 
