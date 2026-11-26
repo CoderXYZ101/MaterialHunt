@@ -1,0 +1,82 @@
+/* ==========================================================================
+   MATERIALHUNT — colour themes and visual polish (loaded after the other stylesheets)
+   A skin only changes variables, so every screen follows it.
+   ========================================================================== */
+
+/* ---------- dark skins ---------- */
+html[data-skin="ocean"] { --bg:#031620; --bg-2:#062433; --bg-3:#0a3042; --panel:rgba(8,44,60,.55); --panel-strong:rgba(10,52,70,.85); --panel-soft:rgba(8,44,60,.34); --panel-solid:#082a39;
+  --cyan:#2dd4bf; --accent2:#38bdf8; --accent-rgb:45,212,191; --accent2-rgb:56,189,248; --accent3-rgb:14,165,233; }
+html[data-skin="royal"] { --bg:#0c0b26; --bg-2:#14123a; --bg-3:#1c1950; --panel:rgba(34,30,90,.5); --panel-strong:rgba(38,34,100,.86); --panel-soft:rgba(34,30,90,.32); --panel-solid:#191648;
+  --cyan:#a5b4fc; --accent2:#c084fc; --accent-rgb:129,140,248; --accent2-rgb:192,132,252; --accent3-rgb:236,72,153; }
+html[data-skin="cyber"] { --bg:#0e0619; --bg-2:#180a2b; --bg-3:#220f3c; --panel:rgba(42,16,70,.5); --panel-strong:rgba(48,20,80,.86); --panel-soft:rgba(42,16,70,.32); --panel-solid:#200e39;
+  --cyan:#f0abfc; --accent2:#22d3ee; --accent-rgb:232,121,249; --accent2-rgb:34,211,238; --accent3-rgb:168,85,247; }
+html[data-skin="sunset"] { --bg:#190a14; --bg-2:#2a1020; --bg-3:#38162a; --panel:rgba(68,24,46,.5); --panel-strong:rgba(76,28,52,.86); --panel-soft:rgba(68,24,46,.32); --panel-solid:#361428;
+  --cyan:#fdba74; --accent2:#f472b6; --accent-rgb:251,146,60; --accent2-rgb:244,114,182; --accent3-rgb:168,85,247; }
+html[data-skin="forest"] { --bg:#06150e; --bg-2:#0a2317; --bg-3:#0f3021; --panel:rgba(14,52,34,.52); --panel-strong:rgba(17,60,40,.86); --panel-soft:rgba(14,52,34,.32); --panel-solid:#0d2a1d;
+  --cyan:#6ee7a0; --accent2:#bef264; --accent-rgb:74,222,128; --accent2-rgb:190,242,100; --accent3-rgb:45,212,191; }
+html[data-skin="contrast"] { --bg:#000; --bg-2:#050505; --bg-3:#101010; --panel:rgba(12,12,12,.94); --panel-strong:#101010; --panel-soft:#0a0a0a; --panel-solid:#0d0d0d;
+  --text:#fff; --text-soft:#f2f2f2; --muted:#d4d4d4; --muted-2:#bdbdbd; --border:rgba(255,255,255,.45); --border-strong:rgba(255,255,255,.75);
+  --cyan:#ffd400; --accent2:#00e5ff; --accent-rgb:255,212,0; --accent2-rgb:0,229,255; --accent3-rgb:255,255,255; }
+
+/* ---------- light skins ---------- */
+html[data-skin="sky"] { --bg:#ebf4ff; --bg-2:#dcebff; --cyan:#1d4ed8; --accent2:#0e7490; --accent-rgb:37,99,235; --accent2-rgb:6,182,212; --accent3-rgb:99,102,241; }
+html[data-skin="mint"] { --bg:#ecfaf4; --bg-2:#d9f3e8; --cyan:#0f766e; --accent2:#4d7c0f; --accent-rgb:13,148,136; --accent2-rgb:101,163,13; --accent3-rgb:6,182,212; }
+html[data-skin="lavender"] { --bg:#f4f0ff; --bg-2:#e9e1ff; --cyan:#6d28d9; --accent2:#be185d; --accent-rgb:124,58,237; --accent2-rgb:219,39,119; --accent3-rgb:59,130,246; }
+html[data-skin="peach"] { --bg:#fff3ec; --bg-2:#ffe6d8; --cyan:#c2410c; --accent2:#be185d; --accent-rgb:234,88,12; --accent2-rgb:219,39,119; --accent3-rgb:245,158,11; }
+html[data-skin="sky"], html[data-skin="mint"], html[data-skin="lavender"], html[data-skin="peach"] { --cyan-soft:rgba(var(--accent-rgb),.11); }
+
+/* ---------- background: soft moving colour in the theme's own accents ---------- */
+html[data-skin] .ambient {
+  background:
+    radial-gradient(ellipse 70% 48% at 12% -6%, rgba(var(--accent-rgb), .24), transparent 62%),
+    radial-gradient(ellipse 60% 46% at 96% 8%, rgba(var(--accent2-rgb), .18), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 78% 96%, rgba(var(--accent3-rgb), .16), transparent 62%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 58%, var(--bg) 100%);
+}
+html[data-skin] .orb-cyan { background: rgba(var(--accent-rgb), .3); }
+html[data-skin] .orb-emerald { background: rgba(var(--accent2-rgb), .24); }
+html[data-skin] .orb-amber { background: rgba(var(--accent3-rgb), .2); }
+html[data-skin="contrast"] .ambient, html[data-skin="contrast"] .ambient-orb { display: none; }
+html[data-theme="light"][data-skin] .btn-primary { color: #fff; }
+
+/* ---------- hero first, helper strips after it ---------- */
+#view-simulator.active { display: flex; flex-direction: column; }
+#view-simulator.active > * { order: 4; }
+#view-simulator.active > .hero { order: 1; }
+#view-simulator.active > .challenge-banner { order: 2; }
+#view-simulator.active > .engine-bar { order: 3; margin-bottom: 18px; }
+.hero h1 { font-size: clamp(44px, 5.6vw, 78px); }
+.grad-text { background-size: 220% 100%; animation: mhShine 9s ease-in-out infinite alternate; }
+@keyframes mhShine { from { background-position: 0 0; } to { background-position: 100% 0; } }
+
+/* ---------- buttons, tabs and cards ---------- */
+.btn { border-radius: 999px; }
+.btn-primary { transition: transform .18s ease, box-shadow .18s ease; }
+.nav-link { border-radius: 999px; }
+.nav-link.active { background: linear-gradient(120deg, rgba(var(--accent-rgb), .22), rgba(var(--accent2-rgb), .16)); }
+.nav-link.active::after { display: none; }
+.glass { box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, .05); }
+.stat-card, .goal-card, .step-card, .price-card, .battle-card, .forum-thread { transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+@media (hover: hover) {
+  .btn-primary:hover { transform: translateY(-2px); }
+  .stat-card:hover, .goal-card:hover, .step-card:hover, .price-card:hover, .forum-thread:hover {
+    transform: translateY(-4px); border-color: rgba(var(--accent-rgb), .55); box-shadow: 0 18px 44px -22px rgba(var(--accent-rgb), .7); }
+}
+.trust-row > div { padding: 12px 16px; border-radius: 16px; background: var(--panel-soft); border: 1px solid var(--border); }
+.trust-row strong { background: linear-gradient(110deg, var(--cyan), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.panel-kicker, .eyebrow { color: var(--cyan); }
+.section-head h2 { position: relative; padding-bottom: 8px; }
+.section-head h2::after { content: ""; position: absolute; left: 0; bottom: 0; width: 56px; height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--cyan), var(--accent2)); }
+
+/* ---------- theme picker ---------- */
+.theme-btn { position: relative; }
+.theme-btn::after { content: ""; position: absolute; right: 5px; bottom: 5px; width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--cyan), var(--accent2)); }
+.theme-panel { position: fixed; z-index: 1200; padding: 14px; border-radius: 18px; background: var(--panel-solid); border: 1px solid var(--border-strong); box-shadow: 0 26px 60px -24px rgba(0, 0, 0, .55); max-height: 76vh; overflow-y: auto; }
+.theme-panel.hidden { display: none; }
+.theme-panel h4 { margin: 4px 2px 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.theme-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.theme-swatch { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 8px 4px; border-radius: 12px; background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 11.5px; line-height: 1.2; }
+.theme-swatch i { display: block; width: 100%; height: 34px; border-radius: 8px; border: 1px solid var(--border-strong); }
+.theme-swatch[aria-pressed="true"] { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .55); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) { .grad-text { animation: none; } }
