@@ -4470,13 +4470,24 @@ function benchmarkScore(benchmark, sim, tier) {
   return Math.round(base + Math.min(sf, 3) * 10 + Math.max(0, benchmark.maxDensity - d.density_gcm3) * 5 + Math.max(0, (benchmark.maxCostINR - d.cost_per_kg) / 100));
 }
 
+/* challenges only accept mixes that could exist as a metal alloy: limits are in weight percent and sit above real
+   grades (cast iron has about 3% carbon, so the carbon limit leaves out cast iron; casting aluminium has about 10% silicon) */
+const NON_METAL_LIMITS = { C: 2.5, Si: 13, B: 1, P: 1, S: 1, H: 1, N: 1, O: 1, F: 1, Cl: 1, Se: 1, Br: 1, I: 1, He: 1, Ne: 1, Ar: 1, Kr: 1, Xe: 1, Rn: 1 };
+function unrealMixReason() {
+  const mix = normalisedComposition();
+  const over = Object.entries(NON_METAL_LIMITS).filter(([k, max]) => Number(mix[k] || 0) > max + 0.001);
+  if (over.length) return `Not a real metal alloy: ${over.map(([k, max]) => `${k} is ${Number(mix[k]).toFixed(1)}% (limit ${max}%)`).join(', ')}.`;
+  const total = Object.keys(NON_METAL_LIMITS).reduce((a, k) => a + Number(mix[k] || 0), 0);
+  return total > 15 ? `Not a real metal alloy: ${total.toFixed(1)}% non-metals (limit 15%).` : '';
+}
+
 function benchmarkVerdict(benchmark, sim) {
   const derived = sim.derived;
   const elements = (sim.composition?.elements || []).map((el) => el.symbol);
   const bannedHit = elements.filter((symbol) => (benchmark.bannedElements || []).includes(symbol));
   const nonMetals = benchmark.metalsOnly ? elements.filter((symbol) => NON_METALS.includes(symbol)) : [];
   if (derived.is_melted || derived.aggregate_phase === 'GASEOUS / VAPORIZED') return 'MELT';
-  if (bannedHit.length || nonMetals.length) return 'BANNED';
+  if (bannedHit.length || nonMetals.length || unrealMixReason()) return 'BANNED';
   if (derived.is_burst_condition || (derived.burst_pressure_pa / 1e6) < benchmark.minBurstMPa) return 'BURST';
   if (derived.density_gcm3 > benchmark.maxDensity) return 'OVERWEIGHT';
   if (derived.cost_per_kg > benchmark.maxCostINR) return 'OVER BUDGET';
@@ -4501,7 +4512,7 @@ function renderBenchmarkResult(benchmark, sim) {
     PASS: 'All blueprint constraints satisfied. Ready for validation.',
     MELT: 'The alloy reaches its liquidus before the service temperature.',
     BURST: 'Pressure containment fails below the required burst pressure.',
-    BANNED: benchmark.metalsOnly && ((sim.composition?.elements || []).some((el) => NON_METALS.includes(el.symbol))) ? `Metals only: remove ${((sim.composition?.elements || []).map((el) => el.symbol)).filter((s) => NON_METALS.includes(s)).join(', ')}.` : `Banned elements present: ${((sim.composition?.elements || []).map((el) => el.symbol)).filter((s) => benchmark.bannedElements.includes(s)).join(', ')}.`,
+    BANNED: unrealMixReason() || (benchmark.metalsOnly && ((sim.composition?.elements || []).some((el) => NON_METALS.includes(el.symbol))) ? `Metals only: remove ${((sim.composition?.elements || []).map((el) => el.symbol)).filter((s) => NON_METALS.includes(s)).join(', ')}.` : `Banned elements present: ${((sim.composition?.elements || []).map((el) => el.symbol)).filter((s) => benchmark.bannedElements.includes(s)).join(', ')}.`),
     OVERWEIGHT: 'Density exceeds the blueprint limit.',
     'OVER BUDGET': 'Raw material cost exceeds the blueprint limit.',
     FRACTURE: 'Safety factor is below the required minimum.',
@@ -4512,7 +4523,8 @@ function renderBenchmarkResult(benchmark, sim) {
   if (verdict === 'OVERWEIGHT') fixes.push('Too dense: swap some of the heavy metal (W, Ta, Re) for a lighter one (Nb, V, Ti).');
   if (verdict === 'OVER BUDGET') fixes.push('Cut the expensive elements (Ta, Nb, Re, Hf) or blend with cheaper metals.');
   if (verdict === 'FRACTURE') fixes.push('Increase strength or reduce applied load until safety factor clears the minimum.');
-  if (verdict === 'BANNED') fixes.push(benchmark.metalsOnly ? 'This challenge allows metals only. Remove carbon, boron, silicon and other non-metals.' : `Remove ${benchmark.bannedElements.join(', ')} from the composition.`);
+  if (verdict === 'BANNED' && unrealMixReason()) fixes.push('Lower the non-metals so one metal makes up most of the mix.');
+  else if (verdict === 'BANNED') fixes.push(benchmark.metalsOnly ? 'This challenge allows metals only. Remove carbon, boron, silicon and other non-metals.' : `Remove ${benchmark.bannedElements.join(', ')} from the composition.`);
   const tier = verdict === 'PASS' ? benchmarkTier(benchmark, sim) : null;
   if (verdict === 'PASS') fixes.push(benchmark.tiers ? benchmarkNextTierHint(benchmark, sim, tier) : 'Lock the heat-treatment spec and book a NABL validation coupon.');
   const list = $('#benchmarkFixes');

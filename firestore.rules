@@ -317,6 +317,9 @@ service cloud.firestore {
         && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
         && request.resource.data.formula is string && request.resource.data.formula.size() <= 60
         && request.resource.data.composition is map
+        && request.resource.data.composition.get('C', 0) <= 2.5 && request.resource.data.composition.get('Si', 0) <= 13
+        && request.resource.data.composition.get('B', 0) <= 1 && request.resource.data.composition.get('P', 0) <= 1
+        && request.resource.data.composition.get('S', 0) <= 1 && request.resource.data.composition.get('O', 0) <= 1
         && request.resource.data.medal in ['GOLD', 'SILVER', 'BRONZE']
         && request.resource.data.sf is number && request.resource.data.cost is number && request.resource.data.density is number
         && request.resource.data.score is number && request.resource.data.score >= 0 && request.resource.data.score <= 600
@@ -462,6 +465,9 @@ service cloud.firestore {
         && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
         && request.resource.data.formula is string && request.resource.data.formula.size() <= 60
         && request.resource.data.composition is map
+        && request.resource.data.composition.get('C', 0) <= 2.5 && request.resource.data.composition.get('Si', 0) <= 13
+        && request.resource.data.composition.get('B', 0) <= 1 && request.resource.data.composition.get('P', 0) <= 1
+        && request.resource.data.composition.get('S', 0) <= 1 && request.resource.data.composition.get('O', 0) <= 1
         && request.resource.data.sf is number && request.resource.data.cost is number && request.resource.data.density is number
         && request.resource.data.score is number && request.resource.data.score >= 0 && request.resource.data.score <= 600
         && request.resource.data.created_at == request.time;
