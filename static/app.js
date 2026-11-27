@@ -458,6 +458,7 @@ async function afterLogin() {
 async function logout() {
   try { await api('/api/auth/logout', { method: 'POST' }); } catch { /* offline logout is still local */ }
   setSession('', null);
+  window.MH_LANDING?.start();
   state.screenItems = [];
   state.selectedItem = null;
   state.adminSnapshot = null;

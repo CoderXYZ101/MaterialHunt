@@ -98,6 +98,18 @@
   }
   document.addEventListener('click', () => { if (root.dataset.auth === 'demo') setTimeout(() => bar('demo'), 400); });
 
+  /* logging out goes back to the start page, even if this device had used the demo before */
+  window.MH_LANDING = {
+    start() {
+      setDemo(false);
+      const url = new URL(location.href);
+      if (url.searchParams.has('demo')) { url.searchParams.delete('demo'); history.replaceState(null, '', url.pathname + url.search + url.hash); }
+      sync();
+      if (typeof setView === 'function') setView('simulator', false);
+      window.scrollTo(0, 0);
+    },
+  };
+
   window.addEventListener('mh:session', () => setTimeout(sync, 0));
   window.addEventListener('storage', sync);
   sync();
