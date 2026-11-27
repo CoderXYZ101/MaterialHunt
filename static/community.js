@@ -77,7 +77,7 @@
     render();
     try {
       const snap = await db().collection('community_entries').where('challenge', '==', id).limit(60).get();
-      boards[id] = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.score - a.score);
+      boards[id] = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(window.MH_RANK.sort);
     } catch { boards[id] = []; }
     render();
   }
@@ -291,6 +291,9 @@
       };
       const ref = db().collection('community_entries').doc(`${b.communityId}_${u.uid}`);
       const old = await ref.get();
+      const others = await db().collection('community_entries').where('challenge', '==', b.communityId).limit(200).get();
+      if (others.docs.some((x) => x.data().user_id !== u.uid && window.MH_RANK.sameAlloy(x.data().composition, comp))) { notify('Someone already entered this alloy first. Change your mix by at least 0.5% in one element and try again.', 'warning', 6500); busy = false; return; }
+      if (old.exists && window.MH_RANK.sameAlloy(old.data().composition, comp) && old.data().score >= entry.score) { notify('This alloy is already your entry. Your place is kept.', 'info', 4000); busy = false; return; }
       if (old.exists && old.data().score > entry.score && !window.confirm(`Your current entry scores ${old.data().score}. This design scores ${entry.score}. Replace it anyway?`)) { busy = false; return; }
       await ref.set({ ...entry, created_at: FV().serverTimestamp() });
       notify(`Entered with a score of ${entry.score}.`, 'success', 5000);

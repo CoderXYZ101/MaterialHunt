@@ -176,7 +176,8 @@ async function runQuery(token, env, collection, field, value) {
   });
 }
 
-const top3 = (rows) => rows.filter((r) => r.user_id && Number.isFinite(r.score)).sort((a, b) => b.score - a.score).slice(0, 3);
+// higher score first; on a tie the earlier entry wins
+const top3 = (rows) => rows.filter((r) => r.user_id && Number.isFinite(r.score)).sort((a, b) => (b.score - a.score) || ((a.created_at || Infinity) - (b.created_at || Infinity))).slice(0, 3);
 
 async function issuePrize(token, env, id, data) {
   // a prize an admin already handed out by hand is never issued again

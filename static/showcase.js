@@ -57,7 +57,7 @@
       await window.MH_FIREBASE.initFirebase();
       const db = window.MH_FIREBASE.db;
       stallUnsub = db.collection('challenge_entries').where('period', '==', period.id).limit(100).onSnapshot((snap) => {
-        const rows = snap.docs.map((d) => d.data()).sort((a, b) => b.score - a.score).slice(0, 10);
+        const rows = snap.docs.map((d) => d.data()).sort(window.MH_RANK.sort).slice(0, 10);
         const box = q('#stallRows', el);
         if (!box) return;
         box.innerHTML = rows.length

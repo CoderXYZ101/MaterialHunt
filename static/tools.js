@@ -1149,7 +1149,13 @@ Chassis plate: 6061-T6, 6 kg`;
     window.MH_PROFILE?.decorate?.(body);
   }
 
-  const sortRows = (docs) => docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.score - a.score);
+  /* ranking: higher score first; on a tie the earlier entry wins (an entry still being saved counts as newest) */
+  const entryTime = (r) => (r.created_at && r.created_at.toMillis ? r.created_at.toMillis() : Number.MAX_SAFE_INTEGER);
+  const rankEntries = (a, b) => (b.score - a.score) || (entryTime(a) - entryTime(b));
+  /* the same alloy = every element within 0.5 wt% */
+  const sameAlloy = (a, b) => [...new Set([...Object.keys(a || {}), ...Object.keys(b || {})])].every((k) => Math.abs(Number(a?.[k] || 0) - Number(b?.[k] || 0)) < 0.5);
+  window.MH_RANK = { sort: rankEntries, sameAlloy };
+  const sortRows = (docs) => docs.map((d) => ({ id: d.id, ...d.data() })).sort(rankEntries);
   let unsub = null;
   let unsubPeriod = '';
 
@@ -1222,6 +1228,18 @@ Chassis plate: 6061-T6, 6 kg`;
       if (!bridge?.db || !user) throw new Error('offline');
       const ref = bridge.db.collection('challenge_entries').doc(`${period.id}_${user.uid}`);
       const existing = await ref.get();
+      // an alloy that someone else entered first cannot be entered again
+      const others = await bridge.db.collection('challenge_entries').where('period', '==', period.id).limit(200).get();
+      if (others.docs.some((x) => x.data().user_id !== user.uid && sameAlloy(x.data().composition, comp))) {
+        notify('Someone already entered this alloy first. Change your mix by at least 0.5% in one element and try again.', 'warning', 6500);
+        return;
+      }
+      // re-entering your own alloy keeps your original time
+      if (existing.exists && sameAlloy(existing.data().composition, comp) && existing.data().score >= entry.score) {
+        notify('This alloy is already your entry. Your place is kept.', 'info', 4000);
+        setView('challenge');
+        return;
+      }
       if (existing.exists && existing.data().score > entry.score) {
         const keep = !window.confirm(`Your current entry scores ${existing.data().score}. This design scores ${entry.score}. Replace your entry with this one anyway?`);
         if (keep) { notify('Kept your higher-scoring entry.', 'info', 3500); return; }

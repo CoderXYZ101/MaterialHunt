@@ -257,7 +257,7 @@
         winners.curId = cur.id; winners.prevId = prev.id;
         const pull = async (id) => {
           const snap = await db().collection('challenge_entries').where('period', '==', id).limit(100).get();
-          return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.score - a.score).slice(0, 3);
+          return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(window.MH_RANK.sort).slice(0, 3);
         };
         [winners.cur, winners.prev] = await Promise.all([pull(cur.id), pull(prev.id)]);
       }
@@ -411,7 +411,7 @@
       c.funded = !c.funded;
     } else if (t.dataset.cc === 'winners') {
       const snap = await db().collection('community_entries').where('challenge', '==', id).limit(100).get();
-      cwin[id] = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.score - a.score).slice(0, 3);
+      cwin[id] = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort(window.MH_RANK.sort).slice(0, 3);
     }
     render();
   }
