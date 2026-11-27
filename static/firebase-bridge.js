@@ -1034,8 +1034,10 @@
         return jsonResponse({ ok: true, token: await cred.user.getIdToken(), user });
       }
       if (route === '/api/auth/me') {
-        await Promise.race([authReady, new Promise((r) => setTimeout(r, 6000))]);
+        await Promise.race([authReady, new Promise((r) => setTimeout(r, 10000))]);
         const fbUser = bridge.auth.currentUser;
+        // still restoring (slow network): say "try later", never "signed out"
+        if (!fbUser && !authSettled) return jsonResponse({ detail: 'Still restoring your sign-in.' }, 503);
         if (!fbUser) return jsonResponse({ detail: 'Not authenticated.' }, 401);
         return jsonResponse({ ok: true, user: bridge.user || await syncAccount(fbUser) });
       }

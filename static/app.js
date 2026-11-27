@@ -468,7 +468,25 @@ async function logout() {
 /* --------------------------------------------------------------------------
    Bootstrap + metadata
    -------------------------------------------------------------------------- */
+/* Firebase remembers the sign-in on this device. Whenever it reports a signed-in member (also late, on a slow
+   network), show them as signed in. */
+window.addEventListener('mh:auth', (event) => {
+  const member = event.detail?.user;
+  if (!member) return;
+  setTimeout(async () => {
+    if (state.user && state.user.id === member.id) return;
+    const current = window.MH_FIREBASE?.auth?.currentUser;
+    if (!current || current.uid !== member.id) return;
+    try {
+      setSession(await current.getIdToken(), member);
+      closeAuth();
+      if (state.initialised) await afterLogin();
+    } catch { /* the next page load tries again */ }
+  }, 700);
+});
+
 async function bootstrap() {
+  window.MH_FIREBASE?.initFirebase?.();
   const savedTheme = localStorage.getItem(STORAGE.theme);
   applyTheme(savedTheme || 'dark');
 
@@ -507,8 +525,9 @@ async function bootstrap() {
     try {
       const result = await api('/api/auth/me');
       setSession(state.token, result.user);
-    } catch {
-      setSession('', null);
+    } catch (err) {
+      // only a definite "not signed in" forgets the session; a slow or missing network keeps it
+      if (err.status === 401) setSession('', null);
     }
   }
 
