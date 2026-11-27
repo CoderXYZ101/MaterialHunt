@@ -128,3 +128,10 @@ html[data-theme="light"] .mh-demo-bar b { color: #fff; }
   .mh-demo-bar .btn.small { min-height: 34px; padding: 6px 11px; font-size: 11.5px; }
   .mh-demo-bar .text-btn { min-height: 30px; font-size: 11.5px; }
 }
+
+/* ---------- roadmap on the team page ---------- */
+.mh-road { padding-left: 0; padding-right: 0; }
+.mh-roadgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 14px; }
+.mh-roadgrid .mh-kicker { margin: 0; }
+@media (max-width: 1000px) { .mh-roadgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .mh-roadgrid { grid-template-columns: minmax(0, 1fr); } }
