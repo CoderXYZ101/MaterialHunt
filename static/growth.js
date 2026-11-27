@@ -73,7 +73,7 @@
   if (BOOTH) {
     if (!localStorage.getItem('mh_consent')) localStorage.setItem('mh_consent', 'no');
     let idle = null;
-    const arm = () => { clearTimeout(idle); idle = setTimeout(() => { location.replace('/?booth=1'); }, 120000); };
+    const arm = () => { clearTimeout(idle); idle = setTimeout(() => { if (new URLSearchParams(location.search).get('booth') === '1' && navigator.onLine !== false) location.replace('/?booth=1'); }, 120000); };
     ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach((t) => window.addEventListener(t, arm, { passive: true }));
     arm();
   }

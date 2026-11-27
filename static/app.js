@@ -488,6 +488,7 @@ window.addEventListener('mh:auth', (event) => {
 
 async function bootstrap() {
   window.MH_FIREBASE?.initFirebase?.();
+  renderSession(); // shows the Sign in buttons to a visitor who has no account yet
   const savedTheme = localStorage.getItem(STORAGE.theme);
   applyTheme(savedTheme || 'dark');
 

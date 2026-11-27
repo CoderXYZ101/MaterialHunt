@@ -9,10 +9,11 @@
 (function () {
   const OPEN_VIEWS = new Set(['simulator', 'pricing', 'forum', 'about', 'admin', 'team']);
   const root = document.documentElement;
-  const booth = (() => {
-    const asked = new URLSearchParams(location.search).get('booth') === '1';
-    try { if (asked) sessionStorage.setItem('mh_booth', '1'); return asked || sessionStorage.getItem('mh_booth') === '1'; } catch { return asked; }
-  })();
+  // booth mode lasts only while the address says ?booth=1, so it can never linger after you leave it
+  let booth = new URLSearchParams(location.search).get('booth') === '1';
+  try { sessionStorage.removeItem('mh_booth'); } catch { /* private window */ }
+  const startedAt = Date.now();
+  const STARTUP_MS = 12000;
   // demo mode: the QR code opens /demo, which comes here with ?demo=1. Tools work with daily limits, then sign-in is asked.
   const DEMO_KEY = 'mh_demo';
   const setDemo = (on) => { try { if (on) localStorage.setItem(DEMO_KEY, '1'); else localStorage.removeItem(DEMO_KEY); } catch { /* private window */ } demoNow = on; };
@@ -20,7 +21,8 @@
   if (new URLSearchParams(location.search).get('demo') === '1') setDemo(true);
   const allowed = () => signedIn() || demoNow;
   const remembered = () => { try { return Boolean(localStorage.getItem(typeof STORAGE !== 'undefined' ? STORAGE.token : 'mh_token')); } catch { return false; } };
-  const signedIn = () => booth || Boolean(typeof state !== 'undefined' && state.user) || remembered();
+  // a saved sign-in only counts while the page is still starting; after that the screen follows the real account
+  const signedIn = () => booth || Boolean(typeof state !== 'undefined' && state.user) || (Date.now() - startedAt < STARTUP_MS && remembered());
   let last = null;
 
   function ask() {
@@ -102,8 +104,10 @@
   window.MH_LANDING = {
     start() {
       setDemo(false);
+      booth = false;
+      try { localStorage.removeItem(typeof STORAGE !== 'undefined' ? STORAGE.token : 'mh_token'); } catch { /* private window */ }
       const url = new URL(location.href);
-      if (url.searchParams.has('demo')) { url.searchParams.delete('demo'); history.replaceState(null, '', url.pathname + url.search + url.hash); }
+      if (url.searchParams.has('demo') || url.searchParams.has('booth')) { url.searchParams.delete('demo'); url.searchParams.delete('booth'); history.replaceState(null, '', url.pathname + url.search + url.hash); }
       sync();
       if (typeof setView === 'function') setView('simulator', false);
       window.scrollTo(0, 0);
@@ -114,6 +118,7 @@
   window.addEventListener('storage', sync);
   sync();
   window.addEventListener('load', () => { sync(); setTimeout(sync, 2500); });
+  setTimeout(sync, STARTUP_MS + 300);
 
   // entrance animation; without it everything is simply visible
   if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
